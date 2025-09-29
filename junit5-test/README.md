@@ -347,3 +347,93 @@ public class Account {
   públicos.
 - Al inicio solo contiene estado (datos), pero más adelante podemos extenderla con comportamiento (métodos) como
   `debit()`, `credit()`, etc. para enriquecer las pruebas.
+
+## 🧪 Escribiendo y ejecutando nuestras primeras pruebas unitarias
+
+Ahora que ya tenemos nuestra clase `Account`, vamos a dar el siguiente paso: crear su primera clase de pruebas unitarias
+con `JUnit 5`.
+
+### ⚡ Creando la clase de prueba desde IntelliJ IDEA
+
+Podríamos crear la clase de prueba manualmente, pero `IntelliJ` nos facilita esta tarea con el atajo:
+
+````bash
+Ctrl + Shift + T
+````
+
+Este atajo puede hacer lo siguiente según el contexto:
+
+- ✨ `Crear automáticamente una clase de prueba` a partir de la clase base (si el cursor está dentro de `Account`).
+- 🔄 `Navegar entre clase y test`: si ya existe la clase de prueba, podemos saltar de la clase `Account` a `AccountTest`
+  y viceversa.
+- ➕` Agregar nuevos métodos de test` a la clase ya existente.
+
+Al generarse automáticamente, la clase de prueba se verá así:
+
+````java
+package dev.magadiflo.junit5.app.model;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class AccountTest {
+
+}
+````
+
+Fijémonos en la línea:
+
+````java
+import static org.junit.jupiter.api.Assertions.*; 
+````
+
+- Esta importación estática corresponde a `JUnit 5` y nos permite usar directamente sus métodos de aserción clásicos
+  como: `assertEquals(...)`, `assertTrue(...)`, `assertThrows(...)`, etc.
+
+Sin embargo, en este proyecto también incluimos `AssertJ`, que nos da un estilo de aserciones mucho más expresivo.
+Para usarlo necesitamos añadir:
+
+````java
+import static org.assertj.core.api.Assertions.assertThat;
+````
+
+#### 🎯 Estrategia que seguiremos
+
+- Mantendremos ambos estilos de aserciones (`JUnit` y `AssertJ`) dentro del proyecto.
+- La idea es comparar las diferencias en expresividad y legibilidad.
+- A medida que avancemos, verás cómo `AssertJ` se vuelve más natural en casos complejos (listas, excepciones, objetos
+  anidados, etc.).
+
+### 📝 Creando el primer método de prueba
+
+Sigamos con el atajo para generar un método de prueba:
+
+````bash
+Alt + insert
+Seleccionamos Test Method
+````
+
+Y seleccionamos `Test Method`. Esto generará un método vacío con la anotación `@Test`:
+
+````java
+class AccountTest {
+    @Test
+    void shouldHaveAvailableBalanceAfterDeposit() {
+        // Aquí irá nuestra lógica de prueba
+    }
+}
+````
+
+💡 Buenas prácticas sobre visibilidad en pruebas
+
+Por convención:
+
+- La clase de prueba debería declararse con acceso por `default (package-private)`, es decir, `class AccountTest {}`,
+  y no `public class AccountTest {}`.
+- Lo mismo aplica a los métodos de prueba: `void shouldHaveAvailableBalanceAfterDeposit() {}` en lugar de
+  `public void ....`
+
+Esto se hace porque las pruebas son internas al módulo y no deberían estar expuestas públicamente fuera del contexto
+de ejecución de los tests.
+
+En otras palabras: las pruebas `no forman parte del API de tu aplicación, sino de su suite de verificación`.
+

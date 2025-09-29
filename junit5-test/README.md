@@ -39,6 +39,21 @@ configurar el plugin que permitirá ejecutar las pruebas.
             <version>3.25.3</version>
             <scope>test</scope>
         </dependency>
+
+        <!-- SLF4J (API de logging independiente de la implementación) -->
+        <dependency>
+            <groupId>org.slf4j</groupId>
+            <artifactId>slf4j-api</artifactId>
+            <version>2.0.17</version>
+        </dependency>
+
+        <!-- Logback (implementación de logging basada en SLF4J, sucesor de Log4j) -->
+        <dependency>
+            <groupId>ch.qos.logback</groupId>
+            <artifactId>logback-classic</artifactId>
+            <version>1.5.18</version>
+            <scope>compile</scope>
+        </dependency>
     </dependencies>
     <build>
         <plugins>
@@ -89,6 +104,33 @@ Ventajas principales:
 
 > En proyectos `Spring Boot`, `AssertJ` ya viene incluido de forma transitiva al usar `spring-boot-starter-test`. Sin
 > embargo, en proyectos `Java puro` como este módulo, es necesario agregarlo explícitamente.
+
+### 📝 Logging en el proyecto: SLF4J + Logback
+
+En pruebas unitarias es común imprimir valores con `System.out.println(...)` para depurar, pero esto no es una buena
+práctica en proyectos reales. La forma recomendada es usar un framework de `logging` que sea:
+
+- 📊 Consistente en todo el proyecto.
+- ⚙️ Configurable según el entorno (desarrollo, pruebas, producción).
+- 🔍 Filtrable por niveles (DEBUG, INFO, WARN, ERROR).
+- 🔌 Extensible (escribir logs en archivos, consola, sistemas externos, etc.).
+
+Por eso agregamos las dependencias al `pom.xml`: `slf4j-api` y el `logback-classic`.
+
+#### 📘 `¿Qué es SLF4J?`
+
+- `SLF4J` (Simple Logging Facade for Java) es una fachada de logging.
+- Define una API genérica para escribir logs, pero no implementa el almacenamiento de los mismos.
+- Permite que el código de la aplicación sea independiente de la librería de logging concreta.
+  > 👉 Con `SLF4J` escribes tus logs siempre igual (`logger.info(...)`, `logger.error(...)`), y detrás puedes cambiar de
+  > implementación (`Logback`, `Log4j2`, `JUL`, etc.) sin modificar tu código.
+
+#### 📘 `¿Qué es Logback?`
+
+- `Logback` es una de las implementaciones más populares de `SLF4J`.
+- Es el sucesor de `Log4j` y está diseñado para ser más rápido y flexible.
+- Permite definir configuraciones avanzadas en el archivo `logback.xml` (nivel de logs, formato, appender a archivos,
+  etc.).
 
 ### ⚙️ Sobre el plugin `maven-surefire-plugin`
 

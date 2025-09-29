@@ -305,3 +305,45 @@ Solo se ejecutarán los tests anotados con `@Tag("account")`.
 
 - Si no configuramos `groups`, `Maven` ejecutará todas las pruebas.
 - Podemos especificar múltiples grupos separados por comas: `<groups>unit,integration</groups>`
+
+---
+
+## 🏦 Creando la clase Account (Cuenta)
+
+Antes de escribir pruebas unitarias, necesitamos una clase sencilla que represente un objeto de negocio.
+En este caso, modelaremos una Cuenta bancaria (`Account`) con dos atributos principales:
+
+- 👤 `person` → nombre del titular de la cuenta.
+- 💰 `balance` → saldo de la cuenta, representado con `BigDecimal`.
+
+````java
+public class Account {
+    private String person;
+    private BigDecimal balance;
+
+    public String getPerson() {
+        return person;
+    }
+
+    public void setPerson(String person) {
+        this.person = person;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public void setBalance(BigDecimal balance) {
+        this.balance = balance;
+    }
+}
+````
+
+### 📘 Notas de diseño
+
+- Usamos `BigDecimal` en lugar de double o float para representar dinero, ya que evita problemas de precisión en
+  cálculos financieros.
+- La clase está en su forma más simple (`POJO: Plain Old Java Object`), con atributos privados y getters/setters
+  públicos.
+- Al inicio solo contiene estado (datos), pero más adelante podemos extenderla con comportamiento (métodos) como
+  `debit()`, `credit()`, etc. para enriquecer las pruebas.

@@ -946,3 +946,161 @@ Resultado final ✅
 > Al volver a ejecutar el test, esta vez la prueba pasará, confirmando que el método `transfer()` cumple con el
 > comportamiento esperado.
 
+## 🏦 Probando y afirmando las relaciones entre Bank y Account
+
+En esta lección agregaremos la relación entre `Bank` y `Account`:
+
+- Un banco puede tener muchas cuentas `(1..N)`.
+- Cada cuenta debe estar asociada a un banco `(1..1)`.
+
+Para eso, en Bank incluimos una lista de cuentas, y en Account añadimos la referencia hacia su banco.
+
+### 🛠️ Implementación inicial
+
+````java
+public class Bank {
+    private String name;
+    private List<Account> accounts = new ArrayList<>(); // ✅ inicializar para evitar NullPointerException
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public List<Account> getAccounts() {
+        return accounts;
+    }
+
+    public void setAccounts(List<Account> accounts) {
+        this.accounts = accounts;
+    }
+
+    public void addAccount(Account account) {
+        this.accounts.add(account); // ⚠️ solo agrega, no establece relación inversa todavía
+    }
+
+    public void transfer(Account source, Account target, BigDecimal amount) {
+        source.debit(amount);
+        target.credit(amount);
+    }
+}
+````
+
+````java
+public class Account {
+    private String person;
+    private BigDecimal balance;
+    private Bank bank; // relación inversa
+
+    public Account(String person, BigDecimal balance) {
+        this.person = person;
+        this.balance = balance;
+    }
+
+    public String getPerson() {
+        return person;
+    }
+
+    public BigDecimal getBalance() {
+        return balance;
+    }
+
+    public Bank getBank() {
+        return bank;
+    }
+
+    public void setBank(Bank bank) {
+        this.bank = bank;
+    }
+}
+````
+
+### ✅ Caso 1: El banco almacena correctamente sus cuentas
+
+````java
+class BankTest {
+    @Test
+    void shouldAssociateAccountsWithBankCorrectly() {
+        Account source = new Account("Martín", new BigDecimal("2000.50"));
+        Account target = new Account("Alicia", new BigDecimal("1500.50"));
+
+        Bank bank = new Bank();
+        bank.setName("Banco BBVA");
+        bank.addAccount(source);
+        bank.addAccount(target);
+
+        // JUnit 5
+        assertEquals(2, bank.getAccounts().size(), "El banco debe tener 2 cuentas");
+
+        // AssertJ
+        assertThat(bank.getAccounts())
+                .hasSize(2)
+                .containsExactly(source, target);
+    }
+}
+````
+
+Esta prueba pasa, porque el método `addAccount()` guarda correctamente las cuentas en la lista interna del banco.
+
+### 🚨 Caso 2: Relación inversa (desde Account hacia Bank)
+
+Ahora queremos verificar que también se pueda navegar desde la cuenta hacia el banco:
+
+````java
+class BankTest {
+    @Test
+    void shouldLinkAccountsToBankAndReflectOwnershipCorrectly() {
+        Account source = new Account("Martín", new BigDecimal("2000.50"));
+        Account target = new Account("Alicia", new BigDecimal("1500.50"));
+
+        Bank bank = new Bank();
+        bank.setName("Banco BBVA");
+        bank.addAccount(source);
+        bank.addAccount(target);
+
+        // JUnit 5
+        assertEquals(2, bank.getAccounts().size());
+        assertEquals("Banco BBVA", source.getBank().getName());
+        assertEquals("Banco BBVA", target.getBank().getName());
+        assertTrue(bank.getAccounts().stream().anyMatch(a -> a.getPerson().equals("Martín")));
+
+        // AssertJ
+        assertThat(bank.getAccounts()).hasSize(2);
+        assertThat(source.getBank().getName()).isEqualTo("Banco BBVA");
+        assertThat(target.getBank().getName()).isEqualTo("Banco BBVA");
+        assertThat(bank.getAccounts()).anyMatch(account -> account.getPerson().equals("Martín"));
+    }
+}
+````
+
+Pero aquí ocurre un `NullPointerException` ⛔:
+
+````bash
+java.lang.NullPointerException: Cannot invoke "dev.magadiflo.junit5.app.model.Bank.getName()" 
+because the return value of "dev.magadiflo.junit5.app.model.Account.getBank()" is null
+````
+
+Esto pasa porque solo agregamos la cuenta al banco, pero no establecemos la relación inversa.
+
+### 🔄 Solución: establecer la relación en addAccount()
+
+````java
+public class Bank {
+    public void addAccount(Account account) {
+        this.accounts.add(account);
+        account.setBank(this); // 👈 relación bidireccional
+    }
+}
+````
+
+Ahora, al ejecutar el test nuevamente, todo pasa con éxito ✅.
+
+### 📌 Conclusión:
+
+Para manejar relaciones bidireccionales, debemos asegurarnos de mantener ambas partes sincronizadas:
+
+- El banco debe conocer sus cuentas.
+- Cada cuenta debe saber a qué banco pertenece.

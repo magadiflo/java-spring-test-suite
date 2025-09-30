@@ -1,9 +1,9 @@
 package dev.magadiflo.junit5.app.model;
 
 import dev.magadiflo.junit5.app.exception.InsufficientMoneyException;
-import org.junit.jupiter.api.Disabled;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 
@@ -13,10 +13,23 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class AccountTest {
 
+    private static final Logger log = LoggerFactory.getLogger(AccountTest.class);
+    private Account account;
+
+    @BeforeEach
+    void setUp() {
+        log.info("Ejecutando @BeforeEach - iniciando recursos");
+        this.account = new Account("Martín", new BigDecimal("2000"));
+    }
+
+    @AfterEach
+    void tearDown() {
+        this.account = null;
+        log.info("Ejecutando @AfterEach - recursos liberados");
+    }
+
     @Test
     void shouldReturnCorrectPersonNameWhenAccountIsCreated() {
-        Account account = new Account("Martín", new BigDecimal("2000"));
-
         String real = account.getPerson();
 
         // JUnit 5
@@ -28,8 +41,6 @@ class AccountTest {
 
     @Test
     void shouldHavePositiveBalanceWhenAccountIsCreated() {
-        Account account = new Account("Martín", new BigDecimal("2000"));
-
         // JUnit 5
         assertEquals(2000D, account.getBalance().doubleValue());
         assertNotEquals(-1, account.getBalance().compareTo(BigDecimal.ZERO));
@@ -42,7 +53,7 @@ class AccountTest {
     }
 
     @Test
-    @Disabled
+    @Disabled("Se deshabilitó porque equals() fue sobreescrito y la comparación por referencia ya no aplica")
     void shouldNotBeSameReferenceWhenAccountAreCreatedSeparately() {
         Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
         Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
@@ -69,7 +80,6 @@ class AccountTest {
 
     @Test
     void shouldReduceBalanceWhenDebitIsApplied() {
-        Account account = new Account("Martín", new BigDecimal("2000"));
         account.debit(new BigDecimal("100")); // ejecutamos el método a probar
 
         // JUnit 5
@@ -85,7 +95,6 @@ class AccountTest {
 
     @Test
     void shouldIncreaseBalanceWhenCreditIsApplied() {
-        Account account = new Account("Martín", new BigDecimal("2000"));
         account.credit(new BigDecimal("100")); // ejecutamos el método a probar
 
         // JUnit 5
@@ -101,7 +110,6 @@ class AccountTest {
 
     @Test
     void shouldThrowInsufficientMoneyExceptionWhenDebitExceedsBalance() {
-        Account account = new Account("Martín", new BigDecimal("2000"));
         BigDecimal amount = new BigDecimal("5000");
 
         // JUnit 5
@@ -119,16 +127,16 @@ class AccountTest {
 
     @Test
     void shouldCreditAccountAndReflectUpdatedBalance() {
-        Account account = new Account("Martín", new BigDecimal("2001"));
-        account.credit(new BigDecimal("100"));
+        Account account1 = new Account("Martín", new BigDecimal("2001"));
+        account1.credit(new BigDecimal("100"));
 
         // JUnit 5
-        assertNotNull(account.getBalance(), () -> "La cuenta no puede ser nula");
-        assertEquals(2101D, account.getBalance().doubleValue(), () -> "El valor obtenido no es igual al valor que se espera");
-        assertEquals("2101", account.getBalance().toPlainString(), () -> "El valor obtenido no es igual al valor que se espera");
+        assertNotNull(account1.getBalance(), () -> "La cuenta no puede ser nula");
+        assertEquals(2101D, account1.getBalance().doubleValue(), () -> "El valor obtenido no es igual al valor que se espera");
+        assertEquals("2101", account1.getBalance().toPlainString(), () -> "El valor obtenido no es igual al valor que se espera");
 
         // AssertJ
-        assertThat(account.getBalance())
+        assertThat(account1.getBalance())
                 .withFailMessage(() -> "El saldo no coincide con el esperado")
                 .isEqualByComparingTo("2101");
     }

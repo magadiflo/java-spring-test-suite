@@ -1268,7 +1268,7 @@ aún no está listo, depende de algo externo o está en mantenimiento.
 ````java
 class AccountTest {
     @Test
-    @Disabled
+    @Disabled("Se deshabilitó porque equals() fue sobreescrito y la comparación por referencia ya no aplica")
     void shouldNotBeSameReferenceWhenAccountAreCreatedSeparately() {
         Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
         Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
@@ -1282,6 +1282,12 @@ class AccountTest {
 }
 ````
 
+> 🧪 Tests deshabilitados con propósito documentado
+>
+> Cuando un test deja de ser válido por cambios en la lógica, se recomienda deshabilitarlo temporalmente con una
+> explicación clara usando `@Disabled("...")`. Esto evita confusión y facilita la trazabilidad en revisiones
+> de código.
+
 ### 🖥️ Resultado en consola
 
 Al ejecutar la suite de tests:
@@ -1291,4 +1297,109 @@ Al ejecutar la suite de tests:
 
 ![02.png](assets/02.png)
 
+## 🔄 Ciclo de vida: anotaciones @BeforeEach y @AfterEach
+
+En `JUnit 5`, cada vez que ejecutamos una clase de pruebas (por ejemplo, `AccountTest`):
+
+- ✅ `Se crea una nueva instancia` de la clase por `cada método de test`.
+- ✅ Los métodos de test se ejecutan en `orden aleatorio`.
+- ✅ Esto garantiza que los tests sean `independientes` entre sí.
+
+Para controlar lo que ocurre antes o después de cada test, `JUnit` nos da `hooks` (ganchos):
+
+- `@BeforeEach` → se ejecuta `antes de cada test`.
+- `@AfterEach` → se ejecuta `después de cada test`.
+
+### ⚙️ Ejemplo con `@BeforeEach`
+
+Refactoricemos los tests para inicializar un objeto común en un método anotado con `@BeforeEach`.
+
+````java
+
+class AccountTest {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountTest.class);
+    private Account account;
+
+    @BeforeEach
+    void setUp() {
+        log.info("Ejecutando @BeforeEach - iniciando recursos");
+        this.account = new Account("Martín", new BigDecimal("2000"));
+    }
+
+    @Test
+    void shouldReturnCorrectPersonNameWhenAccountIsCreated() {
+        String real = account.getPerson();
+
+        // JUnit 5
+        assertEquals("Martín", real);
+
+        // AssertJ
+        assertThat(real).isEqualTo("Martín");
+    }
+
+    @Test
+    void shouldReduceBalanceWhenDebitIsApplied() {
+        account.debit(new BigDecimal("100"));
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertEquals(1900D, account.getBalance().doubleValue());
+        assertEquals("1900", account.getBalance().toPlainString());
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isEqualByComparingTo("1900");
+    }
+}
+````
+
+> 📌 `Importante`: aunque un test modifique `account`, no afectará a los demás tests, porque antes de ejecutar cada
+> método se vuelve a correr el `@BeforeEach`, creando una nueva instancia.
+
+### 🧹 Ejemplo con `@AfterEach`
+
+El `@AfterEach` se usa generalmente para:
+
+- Liberar recursos.
+- Cerrar conexiones.
+- Escribir logs de limpieza.
+
+````java
+class AccountTest {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountTest.class);
+    private Account account;
+
+    @BeforeEach
+    void setUp() {
+        log.info("Ejecutando @BeforeEach - iniciando recursos");
+        this.account = new Account("Martín", new BigDecimal("2000"));
+    }
+
+    @AfterEach
+    void tearDown() {
+        this.account = null;
+        log.info("Ejecutando @AfterEach - recursos liberados");
+    }
+
+    @Test
+    void shouldReturnCorrectPersonNameWhenAccountIsCreated() {
+        String real = account.getPerson();
+
+        // JUnit 5
+        assertEquals("Martín", real);
+
+        // AssertJ
+        assertThat(real).isEqualTo("Martín");
+    }
+}
+````
+
+### 🚀 Conclusión
+
+- `@BeforeEach`: prepara el estado inicial para cada test.
+- `@AfterEach`: se encarga de la limpieza posterior.
+- Esto asegura que los tests no dependan unos de otros y que siempre produzcan los mismos resultados al repetirse.
 

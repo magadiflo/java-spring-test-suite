@@ -1,6 +1,8 @@
 package dev.magadiflo.junit5.app.model;
 
 import dev.magadiflo.junit5.app.exception.InsufficientMoneyException;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -40,18 +42,20 @@ class AccountTest {
     }
 
     @Test
+    @Disabled
     void shouldNotBeSameReferenceWhenAccountAreCreatedSeparately() {
         Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
         Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
 
         // JUnit 5
-        //assertNotEquals(account1, account2); // Lo comentamos porque ya sobreescribimos equals(), ahora ambos objetos son considerados iguales por valor.
+        assertNotEquals(account1, account2); // Lo comentamos porque ya sobreescribimos equals(), ahora ambos objetos son considerados iguales por valor.
 
         // AssertJ
         assertThat(account1).isNotSameAs(account2);
     }
 
     @Test
+    @DisplayName("Verifying that two objects are equal")
     void shouldBeEqualWhenAccountsHaveSameValues() {
         Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
         Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));

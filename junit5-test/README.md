@@ -1229,4 +1229,66 @@ class AccountTest {
 Siempre que sea posible, usa mensajes diferidos con lambdas. Así solo se crean cuando hay un fallo, evitando trabajo
 innecesario cuando el test pasa.
 
+## 🏷️ Usando anotaciones @DisplayName y @Disabled
+
+En `JUnit 5` podemos hacer que nuestros tests sean más legibles y más expresivos gracias a dos anotaciones muy útiles:
+
+- `@DisplayName` → Define un nombre descriptivo para el test (más allá del nombre del método).
+- `@Disabled` → Marca un test como deshabilitado, de modo que no se ejecuta durante la corrida.
+
+### ✨ @DisplayName
+
+Por defecto, `JUnit` muestra como nombre del test el nombre del método. Con `@DisplayName`, podemos darle un alias
+amigable que aparecerá en la consola o en los reportes de ejecución.
+
+````java
+class AccountTest {
+    @Test
+    @DisplayName("Verifying that two objects are equal")
+    void shouldBeEqualWhenAccountsHaveSameValues() {
+        Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+        Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+
+        // JUnit 5
+        assertEquals(account1, account2);
+
+        // AssertJ
+        assertThat(account1).isEqualTo(account2);
+    }
+}
+````
+
+En la consola ya no veremos `shouldBeEqualWhenAccountsHaveSameValues`, sino: `Verifying that two objects are equal`.
+
+### ✨ @Disabled
+
+La anotación `@Disabled` se utiliza cuando queremos ignorar un test temporalmente. Esto es muy útil cuando el test
+aún no está listo, depende de algo externo o está en mantenimiento.
+
+````java
+class AccountTest {
+    @Test
+    @Disabled
+    void shouldNotBeSameReferenceWhenAccountAreCreatedSeparately() {
+        Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+        Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+
+        // JUnit 5
+        assertNotEquals(account1, account2);
+
+        // AssertJ
+        assertThat(account1).isNotSameAs(account2);
+    }
+}
+````
+
+### 🖥️ Resultado en consola
+
+Al ejecutar la suite de tests:
+
+- ✅ Los tests ejecutados aparecen con check verde.
+- 🚫 Los tests anotados con `@Disabled` aparecen con un ícono especial, indicando que fueron omitidos.
+
+![02.png](assets/02.png)
+
 

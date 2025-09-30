@@ -437,3 +437,79 @@ de ejecución de los tests.
 
 En otras palabras: las pruebas `no forman parte del API de tu aplicación, sino de su suite de verificación`.
 
+## Creando nuestra primera prueba
+
+### 1. Preparando la clase Account
+
+Vamos a darle un constructor a nuestra clase `Account` que reciba dos parámetros: `person` y `balance`.
+
+Pero de manera `intencional`, cometeremos un error: asignaremos solo el balance al atributo, dejando el person sin
+asignar.
+
+````java
+
+public class Account {
+    private String person;
+    private BigDecimal balance;
+
+    public Account(String person, BigDecimal balance) {
+        this.balance = balance; // 👈 intencionalmente olvidamos asignar 'person'
+    }
+
+    /* getters and setters */
+}
+````
+
+### 2. Escribiendo la prueba
+
+Ahora, desde la clase de prueba, creamos un objeto con datos conocidos y validamos que el nombre de la persona sea
+correctamente retornado:
+
+````java
+class AccountTest {
+
+    @Test
+    void shouldReturnCorrectPersonNameWhenAccountIsCreated() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+
+        String real = account.getPerson();
+
+        assertEquals("Martín", account.getPerson());        // con JUnit
+        assertThat(account.getPerson()).isEqualTo("Martín");// con AssertJ
+    }
+}
+````
+
+### 3. Ejecutando la prueba
+
+Para correrla desde `IntelliJ` presionamos: `Ctrl + Shift + F10`. El resultado esperado es un fallo, ya que olvidamos
+asignar el parámetro person en el constructor:
+
+````bash
+org.opentest4j.AssertionFailedError: 
+Expected :Martín
+Actual   :null
+````
+
+### 4. Corrigiendo la clase base
+
+Al revisar el constructor notamos el problema: `faltó asignar person`. Lo corregimos así:
+
+````java
+public class Account {
+    private String person;
+    private BigDecimal balance;
+
+    public Account(String person, BigDecimal balance) {
+        this.person = person;   // ✅ corregido
+        this.balance = balance;
+    }
+    /* Getters and Setters */
+}
+````
+
+### 5. Volvemos a ejecutar
+
+Ejecutamos otra vez la prueba y ahora sí:
+
+> ✅ la prueba pasa exitosamente.

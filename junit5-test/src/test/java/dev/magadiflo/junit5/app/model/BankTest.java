@@ -69,4 +69,32 @@ class BankTest {
         assertThat(target.getBank().getName()).isEqualTo("Banco BBVA");
         assertThat(bank.getAccounts()).anyMatch(account -> account.getPerson().equals("Martín"));
     }
+
+    @Test
+    void shouldValidateBankAccountRelationshipsCollectively() {
+        Account account1 = new Account("Martín", new BigDecimal("2000.50"));
+        Account account2 = new Account("Alicia", new BigDecimal("1500.50"));
+        Account account3 = new Account("Alex", new BigDecimal("1500.50"));
+
+        Bank bank = new Bank();
+        bank.setName("Banco BBVA");
+        bank.addAccount(account1);
+        bank.addAccount(account2);
+        bank.addAccount(account3);
+
+        // JUnit 5: agrupando asserts
+        assertAll(
+                () -> assertEquals(3, bank.getAccounts().size()),
+                () -> assertEquals("Banco BBVA", account2.getBank().getName()),
+                () -> assertTrue(bank.getAccounts().stream().anyMatch(a -> a.getPerson().equals("Alex")))
+        );
+
+        // JUnit 5 + AssertJ dentro del assertAll
+        assertAll(
+                () -> assertThat(bank.getAccounts()).hasSize(3),
+                () -> assertThat(account1.getBalance()).isNotNull(),
+                () -> assertThat(account1.getBalance()).isEqualByComparingTo("2000.50"),
+                () -> assertThat(account1.getPerson()).isEqualTo("Martín")
+        );
+    }
 }

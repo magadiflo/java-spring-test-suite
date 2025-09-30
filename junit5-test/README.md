@@ -1104,3 +1104,56 @@ Para manejar relaciones bidireccionales, debemos asegurarnos de mantener ambas p
 
 - El banco debe conocer sus cuentas.
 - Cada cuenta debe saber a qué banco pertenece.
+
+## ✅ Usando el método assertAll
+
+Cuando en un test escribimos varios `asserts`, si uno falla 👉 los demás `ya no se ejecutan`.
+Esto puede dificultar el análisis porque no sabemos si otras verificaciones también fallarían.
+
+Con `assertAll()` podemos agrupar varias aserciones y ver cuáles pasan y cuáles fallan, sin detenerse en la primera ❌.
+
+### 🛠️ Ejemplo práctico
+
+````java
+class BankTest {
+    @Test
+    void shouldValidateBankAccountRelationshipsCollectively() {
+        Account account1 = new Account("Martín", new BigDecimal("2000.50"));
+        Account account2 = new Account("Alicia", new BigDecimal("1500.50"));
+        Account account3 = new Account("Alex", new BigDecimal("1500.50"));
+
+        Bank bank = new Bank();
+        bank.setName("Banco BBVA");
+        bank.addAccount(account1);
+        bank.addAccount(account2);
+        bank.addAccount(account3);
+
+        // JUnit 5: agrupando asserts
+        assertAll(
+                () -> assertEquals(3, bank.getAccounts().size()),
+                () -> assertEquals("Banco BBVA", account2.getBank().getName()),
+                () -> assertTrue(bank.getAccounts().stream().anyMatch(a -> a.getPerson().equals("Alex")))
+        );
+
+        // JUnit 5 + AssertJ dentro del assertAll
+        assertAll(
+                () -> assertThat(bank.getAccounts()).hasSize(3),
+                () -> assertThat(account1.getBalance()).isNotNull(),
+                () -> assertThat(account1.getBalance()).isEqualByComparingTo("2000.50"),
+                () -> assertThat(account1.getPerson()).isEqualTo("Martín")
+        );
+    }
+}
+````
+
+### 🔍 Diferencia clave
+
+- Sin `assertAll()` → se detiene en el primer fallo ❌.
+- Con `assertAll()` → ejecuta todos los asserts y muestra un reporte detallado 📝.
+
+Esto es especialmente útil en tests con múltiples validaciones, porque nos da una visión más completa de qué está
+funcionando y qué no.
+
+📌 Conclusión:
+> `assertAll()` es ideal cuando queremos validar en bloque varias propiedades relacionadas, sin perder información de
+> fallos intermedios.

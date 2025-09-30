@@ -1435,3 +1435,228 @@ class AccountTest {
 📌 `Importante`: Los métodos anotados con `@BeforeAll` y `@AfterAll` deben ser `estáticos`, ya que pertenecen a la
 clase y no a una instancia particular. Esto garantiza que sean comunes a todas las instancias de prueba creadas
 durante la ejecución.
+
+## 🖥️ Test condicionales con @EnabledOnOs, @EnabledOnJre
+
+Los tests condicionales se ejecutan únicamente en ciertos contextos, por ejemplo:
+
+- Ejecutar una prueba solo si el sistema operativo es `Windows` o `Linux`.
+- Ejecutar una prueba solo si la versión de `Java` coincide con la que indiquemos.
+
+📌 Ejemplo:
+
+````java
+class Lec01ConditionalsTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec01ConditionalsTest.class);
+
+    @Test
+    @EnabledOnOs(OS.WINDOWS)
+    void shouldRunOnlyOnWindowsOs() {
+        log.info("Ejecutando test para Windows");
+    }
+
+    @Test
+    @EnabledOnOs(OS.LINUX)
+    void shouldRunOnlyOnLinuxOs() {
+        log.info("Ejecutando test para Linux");
+    }
+
+    @Test
+    @DisabledOnOs(OS.WINDOWS)
+    void shouldNotRunOnWindowsOs() {
+        log.info("Este test no se está ejecutando en Windows");
+    }
+
+    @Test
+    @EnabledOnJre(JRE.JAVA_21)
+    void shouldRunOnlyOnJava21Runtime() {
+        log.info("Este test solo debe ejecutarse si usa java 21");
+    }
+
+    @Test
+    @EnabledOnJre(JRE.JAVA_17)
+    void shouldRunOnlyOnJava17Runtime() {
+        log.info("Este test solo debe ejecutarse si usa java 17");
+    }
+}
+````
+
+✅ Cuando ejecutamos esta clase, veremos que solo se ejecutan los tests que cumplen con las condiciones del entorno.
+Los demás quedarán deshabilitados (se marcarán con un ícono distinto en el reporte de ejecución).
+
+![03.png](assets/03.png)
+
+## ⚙️ Test condicionales con propiedades del sistema
+
+También podemos condicionar la ejecución de pruebas según las propiedades del sistema (`System Properties`).
+
+### Propiedades del Sistema (`System Properties`)
+
+Cuando hablamos de propiedades del sistema en este contexto nos referimos a las que maneja la `JVM` 🟢.
+
+Estas propiedades son un conjunto de pares `clave=valor` que describen el entorno de ejecución de Java y la propia
+máquina virtual. Se pueden obtener en tiempo de ejecución con:
+
+````bash
+Properties props = System.getProperties(); 
+````
+
+Algunos ejemplos comunes que provee la JVM automáticamente:
+
+- `java.version` → versión exacta de Java
+- `os.name` → nombre del sistema operativo
+- `user.home` → directorio del usuario actual
+- `file.separator` → separador de archivos según el SO
+
+Y además, el programador puede inyectar propiedades personalizadas con la opción `-D` al ejecutar la aplicación:
+
+````bash
+$ java -DENV=dev -jar mi-app.jar 
+````
+
+Esto agrega la propiedad `ENV=dev` a la `JVM` y luego podemos leerla en Java con:
+
+````bash
+System.getProperty("ENV"); 
+````
+
+Entonces sí: se trata de `propiedades del sistema gestionadas por la JVM`, tanto las predefinidas como las que uno
+puede añadir.
+
+Veamos los siguientes métodos test que están condicionados según algunas propiedades del sistema, excepto el primero que
+imprime todas las propiedades del sistema.
+
+````java
+class Lec02SystemPropertiesTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec02SystemPropertiesTest.class);
+
+    @Test
+    void shouldPrintAllSystemProperties() {
+        Properties properties = System.getProperties();
+        properties.forEach((key, value) -> log.info("{}: {}", key, value));
+    }
+
+    @Test
+    @EnabledIfSystemProperty(named = "java.version", matches = "21.0.6")
+    void shouldRunOnlyOnExactJavaVersion_21_0_6() {
+        log.info("Ejecutando test para la versión exacta de java 21.0.6");
+    }
+
+    @Test
+    @DisabledIfSystemProperty(named = "os.arch", matches = ".*32.*")
+    void shouldNotRunOn32BitArchitecture() {
+        log.info("Solo se ejecutará si la arquitectura del SO no es de 32bits");
+    }
+}
+````
+
+🔎 En este ejemplo:
+
+- Imprimimos todas las propiedades del sistema.
+- Usamos `@EnabledIfSystemProperty` para habilitar un test solo si se cumple una versión exacta de Java.
+- Usamos `@DisabledIfSystemProperty` para deshabilitar un test si la arquitectura es de 32 bits.
+
+Esto nos permite crear condiciones muy específicas. A continuación se muestran todas las propiedades del sistema que
+nos imprime el método de test `shouldPrintAllSystemProperties()`.
+
+````
+...Lec02SystemPropertiesTest -- java.specification.version: 21
+...Lec02SystemPropertiesTest -- sun.cpu.isalist: amd64
+...Lec02SystemPropertiesTest -- sun.jnu.encoding: Cp1252
+...Lec02SystemPropertiesTest -- java.class.path: C:\Users\magadiflo\.m2\repository\org\junit\platform\junit-platform-launcher\1.13.4\junit-platform-launcher-1.13.4.jar;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3.5\lib\idea_rt.jar;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3.5\plugins\junit\lib\junit5-rt.jar;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3.5\plugins\junit\lib\junit-rt.jar;D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\junit5-test\target\test-classes;D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\junit5-test\target\classes;C:\Users\magadiflo\.m2\repository\org\junit\jupiter\junit-jupiter\5.13.4\junit-jupiter-5.13.4.jar;C:\Users\magadiflo\.m2\repository\org\junit\jupiter\junit-jupiter-api\5.13.4\junit-jupiter-api-5.13.4.jar;C:\Users\magadiflo\.m2\repository\org\opentest4j\opentest4j\1.3.0\opentest4j-1.3.0.jar;C:\Users\magadiflo\.m2\repository\org\junit\platform\junit-platform-commons\1.13.4\junit-platform-commons-1.13.4.jar;C:\Users\magadiflo\.m2\repository\org\apiguardian\apiguardian-api\1.1.2\apiguardian-api-1.1.2.jar;C:\Users\magadiflo\.m2\repository\org\junit\jupiter\junit-jupiter-params\5.13.4\junit-jupiter-params-5.13.4.jar;C:\Users\magadiflo\.m2\repository\org\junit\jupiter\junit-jupiter-engine\5.13.4\junit-jupiter-engine-5.13.4.jar;C:\Users\magadiflo\.m2\repository\org\junit\platform\junit-platform-engine\1.13.4\junit-platform-engine-1.13.4.jar;C:\Users\magadiflo\.m2\repository\org\assertj\assertj-core\3.25.3\assertj-core-3.25.3.jar;C:\Users\magadiflo\.m2\repository\net\bytebuddy\byte-buddy\1.14.11\byte-buddy-1.14.11.jar;C:\Users\magadiflo\.m2\repository\org\slf4j\slf4j-api\2.0.17\slf4j-api-2.0.17.jar;C:\Users\magadiflo\.m2\repository\ch\qos\logback\logback-classic\1.5.18\logback-classic-1.5.18.jar;C:\Users\magadiflo\.m2\repository\ch\qos\logback\logback-core\1.5.18\logback-core-1.5.18.jar
+...Lec02SystemPropertiesTest -- java.vm.vendor: Oracle Corporation
+...Lec02SystemPropertiesTest -- kotlinx.coroutines.debug.enable.mutable.state.flows.stack.trace: true
+...Lec02SystemPropertiesTest -- sun.arch.data.model: 64
+...Lec02SystemPropertiesTest -- idea.test.cyclic.buffer.size: 1048576
+...Lec02SystemPropertiesTest -- user.variant: 
+...Lec02SystemPropertiesTest -- java.vendor.url: https://java.oracle.com/
+...Lec02SystemPropertiesTest -- user.timezone: America/Lima
+...Lec02SystemPropertiesTest -- user.country.format: PE
+...Lec02SystemPropertiesTest -- java.vm.specification.version: 21
+...Lec02SystemPropertiesTest -- os.name: Windows 11
+...Lec02SystemPropertiesTest -- sun.java.launcher: SUN_STANDARD
+...Lec02SystemPropertiesTest -- user.country: US
+...Lec02SystemPropertiesTest -- sun.boot.library.path: C:\Program Files\Java\jdk-21.0.6\bin
+...Lec02SystemPropertiesTest -- sun.java.command: com.intellij.rt.junit.JUnitStarter -ideVersion5 -junit5 dev.magadiflo.junit5.app.Lec02SystemPropertiesTest,shouldPrintAllSystemProperties
+...Lec02SystemPropertiesTest -- jdk.debug: release
+...Lec02SystemPropertiesTest -- sun.cpu.endian: little
+...Lec02SystemPropertiesTest -- user.home: C:\Users\magadiflo
+...Lec02SystemPropertiesTest -- user.language: en
+...Lec02SystemPropertiesTest -- sun.stderr.encoding: UTF-8
+...Lec02SystemPropertiesTest -- java.specification.vendor: Oracle Corporation
+...Lec02SystemPropertiesTest -- java.version.date: 2025-01-21
+...Lec02SystemPropertiesTest -- java.home: C:\Program Files\Java\jdk-21.0.6
+...Lec02SystemPropertiesTest -- file.separator: \
+...Lec02SystemPropertiesTest -- java.vm.compressedOopsMode: Zero based
+...Lec02SystemPropertiesTest -- sun.stdout.encoding: UTF-8
+...Lec02SystemPropertiesTest -- line.separator: 
+
+...Lec02SystemPropertiesTest -- java.vm.specification.vendor: Oracle Corporation
+...Lec02SystemPropertiesTest -- java.specification.name: Java Platform API Specification
+...Lec02SystemPropertiesTest -- intellij.debug.agent: true
+...Lec02SystemPropertiesTest -- user.script: 
+...Lec02SystemPropertiesTest -- sun.management.compiler: HotSpot 64-Bit Tiered Compilers
+...Lec02SystemPropertiesTest -- java.runtime.version: 21.0.6+8-LTS-188
+...Lec02SystemPropertiesTest -- user.name: magadiflo
+...Lec02SystemPropertiesTest -- stdout.encoding: UTF-8
+...Lec02SystemPropertiesTest -- path.separator: ;
+...Lec02SystemPropertiesTest -- kotlinx.coroutines.debug.enable.creation.stack.trace: false
+...Lec02SystemPropertiesTest -- os.version: 10.0
+...Lec02SystemPropertiesTest -- java.runtime.name: Java(TM) SE Runtime Environment
+...Lec02SystemPropertiesTest -- file.encoding: UTF-8
+...Lec02SystemPropertiesTest -- java.vm.name: Java HotSpot(TM) 64-Bit Server VM
+...Lec02SystemPropertiesTest -- java.vendor.url.bug: https://bugreport.java.com/bugreport/
+...Lec02SystemPropertiesTest -- java.io.tmpdir: C:\Users\MAGADI~1\AppData\Local\Temp\
+...Lec02SystemPropertiesTest -- java.version: 21.0.6
+...Lec02SystemPropertiesTest -- jboss.modules.system.pkgs: com.intellij.rt
+...Lec02SystemPropertiesTest -- user.dir: D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\junit5-test
+...Lec02SystemPropertiesTest -- os.arch: amd64
+...Lec02SystemPropertiesTest -- java.vm.specification.name: Java Virtual Machine Specification
+...Lec02SystemPropertiesTest -- user.language.format: es
+...Lec02SystemPropertiesTest -- sun.os.patch.level: 
+...Lec02SystemPropertiesTest -- native.encoding: Cp1252
+...Lec02SystemPropertiesTest -- kotlinx.coroutines.debug.enable.flows.stack.trace: true
+...Lec02SystemPropertiesTest -- java.library.path: C:\Program Files\Java\jdk-21.0.6\bin;C:\WINDOWS\Sun\Java\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\app\magadiflo\product\21c\dbhomeXE\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Java\jdk-21.0.6\bin;%MAVEN_HOME%\bin;C:\cmder\vendor\bin;C:\curl-jq;C:\Users\magadiflo\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Microsoft SQL Server\140\Tools\Binn\;C:\Program Files\Microsoft SQL Server\140\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\140\DTS\Binn\;C:\Program Files\Microsoft SQL Server\140\DTS\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\130\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\160\DTS\Binn\;C:\Program Files\MongoDB\Server\8.0\bin;C:\Program Files\mongosh-2.4.2-win32-x64\bin;C:\ProgramData\chocolatey\bin;C:\Program Files\Kubernetes\Minikube;C:\Program Files\Git\cmd;;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\MySQL\MySQL Shell 8.0\bin\;C:\Users\magadiflo\AppData\Local\Microsoft\WindowsApps;C:\Users\magadiflo\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3.5\bin;;C:\Users\magadiflo\AppData\Local\GitHubDesktop\bin;C:\Users\magadiflo\AppData\Local\nvm;C:\nvm4w\nodejs;.
+...Lec02SystemPropertiesTest -- java.vm.info: mixed mode, sharing
+...Lec02SystemPropertiesTest -- stderr.encoding: UTF-8
+...Lec02SystemPropertiesTest -- java.vendor: Oracle Corporation
+...Lec02SystemPropertiesTest -- java.vm.version: 21.0.6+8-LTS-188
+...Lec02SystemPropertiesTest -- sun.io.unicode.encoding: UnicodeLittle
+...Lec02SystemPropertiesTest -- debugger.agent.enable.coroutines: true
+...Lec02SystemPropertiesTest -- java.class.version: 65.0
+````
+
+### 🛠️ Creando propiedades personalizadas de la JVM
+
+Podemos definir nuestras propiedades personalizadas desde la configuración del IDE o al ejecutar el proyecto.
+
+En IntelliJ IDEA:
+
+1. Abre el menú de `Run/Debug Configurations`.
+2. Selecciona tu configuración (por ejemplo, `AuxiliaryTest`).
+3. En la sección `Build and run`, agrega:
+    ````bash
+    -ea -DENV=dev 
+    ````
+   Con esto definimos una nueva propiedad llamada `ENV` con valor `dev`.
+
+   ![04.png](assets/04.png)
+
+5. Ahora podemos usarla en un test:
+
+````java
+class Lec02SystemPropertiesTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec02SystemPropertiesTest.class);
+
+    @Test
+    @EnabledIfSystemProperty(named = "ENV", matches = "dev")
+    void shouldRunOnlyWhenEnvPropertyIsDev() {
+        log.info("Test ejecutado solo si existe la propiedad de sistema ENV con valor dev");
+    }
+}
+````
+
+De esta forma podemos condicionar la ejecución de tests a entornos específicos, como `dev`, `test`, `qa` o `prod`.

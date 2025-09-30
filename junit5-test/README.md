@@ -859,3 +859,90 @@ Esto valida que la excepción se lanzó correctamente solo en el caso esperado.
 💡 Tip práctico:
 > En `TDD`, las excepciones suelen ser una de las primeras reglas de negocio críticas que se prueban. Validar errores
 > esperados no solo ayuda a robustecer la lógica, sino también a documentar qué casos no están permitidos en el dominio.
+
+## Añadiendo la clase Bank y la relación con las cuentas
+
+Hasta ahora nuestras pruebas se han centrado en operaciones individuales de la clase `Account`. El siguiente paso será
+introducir una entidad más: `Bank`, que permita relacionar varias cuentas y realizar transferencias entre ellas.
+
+Como seguimos la metodología TDD, primero escribiremos la prueba y recién después implementaremos el método real.
+
+### Paso 1: Definimos el modelo Bank
+
+Creamos una clase sencilla con un atributo `name` y un método `transfer()`, que por ahora no tiene implementación:
+
+````java
+public class Bank {
+    private String name;
+
+    /* Bank getters and getters */
+
+    public void transfer(Account source, Account target, BigDecimal amount) {
+        // TODO por implementar
+    }
+}
+````
+
+### Paso 2: Creamos el test de transferencia
+
+Generamos una nueva clase de pruebas `BankTest`, donde definimos el caso de transferencia entre dos cuentas:
+
+````java
+class BankTest {
+    @Test
+    void shouldTransferMoneyBetweenAccountsCorrectly() {
+        Account source = new Account("Martín", new BigDecimal("2000.50"));
+        Account target = new Account("Alicia", new BigDecimal("1500.50"));
+
+        Bank bank = new Bank();
+        bank.setName("Banco BBVA");
+
+        bank.transfer(source, target, new BigDecimal("500.50"));
+
+        // JUnit 5
+        assertEquals(1500D, source.getBalance().doubleValue());
+        assertEquals(2001D, target.getBalance().doubleValue());
+
+        // AssertJ
+        assertThat(source.getBalance()).isEqualByComparingTo("1500");
+        assertThat(target.getBalance()).isEqualByComparingTo("2001");
+    }
+}
+````
+
+Al ejecutar este test ahora mismo, fallará porque todavía no tenemos implementada la lógica del método `transfer()`:
+
+````bash
+org.opentest4j.AssertionFailedError: 
+Expected :1500.0
+Actual   :2000.5
+````
+
+### Paso 3: Implementamos el método transfer()
+
+Con base en el test, la transferencia debe restar dinero de la cuenta de origen y sumarlo en la cuenta destino:
+
+````java
+public class Bank {
+    private String name;
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public void transfer(Account source, Account target, BigDecimal amount) {
+        source.debit(amount);
+        target.credit(amount);
+    }
+}
+````
+
+Resultado final ✅
+
+> Al volver a ejecutar el test, esta vez la prueba pasará, confirmando que el método `transfer()` cumple con el
+> comportamiento esperado.
+

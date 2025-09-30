@@ -1403,3 +1403,35 @@ class AccountTest {
 - `@AfterEach`: se encarga de la limpieza posterior.
 - Esto asegura que los tests no dependan unos de otros y que siempre produzcan los mismos resultados al repetirse.
 
+## 🔄 Ciclo de vida con las anotaciones @BeforeAll y @AfterAll
+
+A diferencia de `@BeforeEach` y `@AfterEach` —que se ejecutan antes y después de cada método de prueba—,
+las anotaciones `@BeforeAll` y `@AfterAll` se ejecutan una sola vez en todo el ciclo de la clase de pruebas:
+
+- `@BeforeAll` ➝ se ejecuta antes de que se ejecute el primer test de la clase.
+- `@AfterAll` ➝ se ejecuta una vez que todos los tests de la clase han finalizado.
+
+Esto es útil para tareas de inicialización global, como abrir conexiones costosas, preparar datos compartidos,
+o configurar un entorno común; y para tareas de limpieza, como liberar recursos al terminar todas las pruebas.
+
+````java
+class AccountTest {
+
+    private static final Logger log = LoggerFactory.getLogger(AccountTest.class);
+    private Account account;
+
+    @BeforeAll
+    static void beforeAll() {
+        log.info("Iniciando la suite de pruebas de AccountTest");
+    }
+
+    @AfterAll
+    static void afterAll() {
+        log.info("Finalizando la suite de pruebas de AccountTest");
+    }
+}
+````
+
+📌 `Importante`: Los métodos anotados con `@BeforeAll` y `@AfterAll` deben ser `estáticos`, ya que pertenecen a la
+clase y no a una instancia particular. Esto garantiza que sean comunes a todas las instancias de prueba creadas
+durante la ejecución.

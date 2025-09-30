@@ -16,6 +16,16 @@ class AccountTest {
     private static final Logger log = LoggerFactory.getLogger(AccountTest.class);
     private Account account;
 
+    @BeforeAll
+    static void beforeAll() {
+        log.info("Iniciando la suite de pruebas de AccountTest");
+    }
+
+    @AfterAll
+    static void afterAll() {
+        log.info("Finalizando la suite de pruebas de AccountTest");
+    }
+
     @BeforeEach
     void setUp() {
         log.info("Ejecutando @BeforeEach - iniciando recursos");

@@ -798,16 +798,17 @@ class AccountTest {
     @Test
     void shouldThrowInsufficientMoneyExceptionWhenDebitExceedsBalance() {
         Account account = new Account("Martín", new BigDecimal("2000"));
+        BigDecimal amount = new BigDecimal("5000");
 
         // JUnit 5
         InsufficientMoneyException exception = assertThrows(InsufficientMoneyException.class, () -> {
-            account.debit(new BigDecimal("5000")); // acción que dispara la excepción
-        });
+            account.debit(amount);
+        }, "Se esperaba que InsufficientMoneyException fuera lanzado"); //<-- Nuestro mensaje a mostrar cuando falle
         assertEquals(InsufficientMoneyException.class, exception.getClass());
         assertEquals("Dinero insuficiente", exception.getMessage());
 
         // AssertJ
-        assertThatThrownBy(() -> account.debit(new BigDecimal("5000")))
+        assertThatThrownBy(() -> account.debit(amount))
                 .isInstanceOf(InsufficientMoneyException.class)
                 .hasMessage("Dinero insuficiente");
     }
@@ -1157,3 +1158,75 @@ funcionando y qué no.
 📌 Conclusión:
 > `assertAll()` es ideal cuando queremos validar en bloque varias propiedades relacionadas, sin perder información de
 > fallos intermedios.
+
+## 💬 Agregando mensajes de falla en los métodos assertions
+
+Muchas veces queremos un mensaje más descriptivo cuando un test falla. Para eso, tanto `JUnit 5` como `AssertJ`
+permiten personalizar mensajes de error en sus assertions.
+
+### 🛠️ Ejemplo práctico
+
+````java
+
+@Test
+void shouldCreditAccountAndReflectUpdatedBalance() {
+    Account account = new Account("Martín", new BigDecimal("2001"));
+    account.credit(new BigDecimal("100"));
+
+    // JUnit 5
+    assertNotNull(account.getBalance(), "La cuenta no puede ser nula");
+    assertEquals(2101D, account.getBalance().doubleValue(), "El valor obtenido no es igual al valor que se espera");
+    assertEquals("2101", account.getBalance().toPlainString(), "El valor obtenido no es igual al valor que se espera");
+
+    // AssertJ
+    assertThat(account.getBalance())
+            .withFailMessage("El saldo no coincide con el esperado")
+            .isEqualByComparingTo("2101");
+}
+````
+
+📉 Cuando el test falla
+
+````bash
+org.opentest4j.AssertionFailedError: El valor obtenido no es igual al valor que se espera ==> 
+Expected :2100.0
+Actual   :2101.0
+````
+
+### ⚠️ Cuidado con los Strings inmediatos
+
+Hay un detalle importante: Si pasamos un `String` directo, como en los ejemplos de arriba, ese texto se instancia
+siempre, incluso si el test pasa correctamente.
+
+Esto significa un `gasto innecesario de memoria y CPU`, aunque mínimo, puede acumularse en proyectos con muchos tests.
+
+### 🕒 Solución → Usar `lambdas` para mensajes diferidos
+
+Para que el mensaje se construya `solo si el assert falla`, usamos expresiones lambda:
+
+````java
+class AccountTest {
+    @Test
+    void shouldCreditAccountAndReflectUpdatedBalance() {
+        Account account = new Account("Martín", new BigDecimal("2001"));
+        account.credit(new BigDecimal("100"));
+
+        // JUnit 5
+        assertNotNull(account.getBalance(), () -> "La cuenta no puede ser nula");
+        assertEquals(2101D, account.getBalance().doubleValue(), () -> "El valor obtenido no es igual al valor que se espera");
+        assertEquals("2101", account.getBalance().toPlainString(), () -> "El valor obtenido no es igual al valor que se espera");
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .withFailMessage(() -> "El saldo no coincide con el esperado")
+                .isEqualByComparingTo("2101");
+    }
+}
+````
+
+### 📌 Conclusión
+
+Siempre que sea posible, usa mensajes diferidos con lambdas. Así solo se crean cuando hay un fallo, evitando trabajo
+innecesario cuando el test pasa.
+
+

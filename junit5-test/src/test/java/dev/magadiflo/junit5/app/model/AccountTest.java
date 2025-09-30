@@ -98,17 +98,35 @@ class AccountTest {
     @Test
     void shouldThrowInsufficientMoneyExceptionWhenDebitExceedsBalance() {
         Account account = new Account("Martín", new BigDecimal("2000"));
+        BigDecimal amount = new BigDecimal("5000");
 
         // JUnit 5
         InsufficientMoneyException exception = assertThrows(InsufficientMoneyException.class, () -> {
-            account.debit(new BigDecimal("5000"));
+            account.debit(amount);
         }, "Se esperaba que InsufficientMoneyException fuera lanzado"); //<-- Nuestro mensaje a mostrar cuando falle
         assertEquals(InsufficientMoneyException.class, exception.getClass());
         assertEquals("Dinero insuficiente", exception.getMessage());
 
         // AssertJ
-        assertThatThrownBy(() -> account.debit(new BigDecimal("5000")))
+        assertThatThrownBy(() -> account.debit(amount))
                 .isInstanceOf(InsufficientMoneyException.class)
                 .hasMessage("Dinero insuficiente");
     }
+
+    @Test
+    void shouldCreditAccountAndReflectUpdatedBalance() {
+        Account account = new Account("Martín", new BigDecimal("2001"));
+        account.credit(new BigDecimal("100"));
+
+        // JUnit 5
+        assertNotNull(account.getBalance(), () -> "La cuenta no puede ser nula");
+        assertEquals(2101D, account.getBalance().doubleValue(), () -> "El valor obtenido no es igual al valor que se espera");
+        assertEquals("2101", account.getBalance().toPlainString(), () -> "El valor obtenido no es igual al valor que se espera");
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .withFailMessage(() -> "El saldo no coincide con el esperado")
+                .isEqualByComparingTo("2101");
+    }
+
 }

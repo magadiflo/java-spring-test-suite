@@ -1,5 +1,7 @@
 package dev.magadiflo.junit5.app.model;
 
+import dev.magadiflo.junit5.app.exception.InsufficientMoneyException;
+
 import java.math.BigDecimal;
 import java.util.Objects;
 
@@ -29,6 +31,9 @@ public class Account {
     }
 
     public void debit(BigDecimal amount) {
+        if (amount.compareTo(this.balance) > 0) {
+            throw new InsufficientMoneyException("Dinero insuficiente");
+        }
         this.balance = this.balance.subtract(amount);
     }
 

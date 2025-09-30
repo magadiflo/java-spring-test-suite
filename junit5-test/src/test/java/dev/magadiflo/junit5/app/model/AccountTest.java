@@ -1,10 +1,12 @@
 package dev.magadiflo.junit5.app.model;
 
+import dev.magadiflo.junit5.app.exception.InsufficientMoneyException;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AccountTest {
@@ -45,7 +47,7 @@ class AccountTest {
         // JUnit 5
         //assertNotEquals(account1, account2); // Lo comentamos porque ya sobreescribimos equals(), ahora ambos objetos son considerados iguales por valor.
 
-        // AssetJ
+        // AssertJ
         assertThat(account1).isNotSameAs(account2);
     }
 
@@ -57,7 +59,7 @@ class AccountTest {
         // JUnit 5
         assertEquals(account1, account2);
 
-        // AssetJ
+        // AssertJ
         assertThat(account1).isEqualTo(account2);
     }
 
@@ -71,7 +73,7 @@ class AccountTest {
         assertEquals(1900D, account.getBalance().doubleValue());
         assertEquals("1900", account.getBalance().toPlainString());
 
-        // AssetJ
+        // AssertJ
         assertThat(account.getBalance())
                 .isNotNull()
                 .isEqualByComparingTo("1900");
@@ -87,9 +89,26 @@ class AccountTest {
         assertEquals(2100D, account.getBalance().doubleValue());
         assertEquals("2100", account.getBalance().toPlainString());
 
-        // AssetJ
+        // AssertJ
         assertThat(account.getBalance())
                 .isNotNull()
                 .isEqualByComparingTo("2100");
+    }
+
+    @Test
+    void shouldThrowInsufficientMoneyExceptionWhenDebitExceedsBalance() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+
+        // JUnit 5
+        InsufficientMoneyException exception = assertThrows(InsufficientMoneyException.class, () -> {
+            account.debit(new BigDecimal("5000"));
+        }, "Se esperaba que InsufficientMoneyException fuera lanzado"); //<-- Nuestro mensaje a mostrar cuando falle
+        assertEquals(InsufficientMoneyException.class, exception.getClass());
+        assertEquals("Dinero insuficiente", exception.getMessage());
+
+        // AssertJ
+        assertThatThrownBy(() -> account.debit(new BigDecimal("5000")))
+                .isInstanceOf(InsufficientMoneyException.class)
+                .hasMessage("Dinero insuficiente");
     }
 }

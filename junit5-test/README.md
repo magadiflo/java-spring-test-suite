@@ -596,7 +596,7 @@ class AccountTest {
         // JUnit 5
         assertNotEquals(account1, account2);
 
-        // AssetJ
+        // AssertJ
         assertThat(account1).isNotSameAs(account2);
     }
 }
@@ -620,7 +620,7 @@ class AccountTest {
         // JUnit 5
         assertEquals(account1, account2);
 
-        // AssetJ
+        // AssertJ
         assertThat(account1).isEqualTo(account2);
     }
 }
@@ -709,7 +709,7 @@ class AccountTest {
         assertEquals(1900D, account.getBalance().doubleValue());
         assertEquals("1900", account.getBalance().toPlainString());
 
-        // AssetJ
+        // AssertJ
         assertThat(account.getBalance())
                 .isNotNull()
                 .isEqualByComparingTo("1900");
@@ -725,7 +725,7 @@ class AccountTest {
         assertEquals(2100D, account.getBalance().doubleValue());
         assertEquals("2100", account.getBalance().toPlainString());
 
-        // AssetJ
+        // AssertJ
         assertThat(account.getBalance())
                 .isNotNull()
                 .isEqualByComparingTo("2100");
@@ -770,3 +770,92 @@ Al ejecutar nuevamente los tests, ahora sí pasan en verde 🎉, porque ya se ac
 
 - `debit` → resta el monto al saldo.
 - `credit` → suma el monto al saldo.
+
+## ⚠️ Probando y afirmando excepciones
+
+En este paso simularemos un `escenario de error controlado`: cuando se intente debitar más dinero del que la cuenta
+posee. Para manejar este caso, crearemos una excepción personalizada llamada `InsufficientMoneyException`.
+
+### 🛠️ Creando la excepción personalizada
+
+````java
+public class InsufficientMoneyException extends RuntimeException {
+    public InsufficientMoneyException(String message) {
+        super(message);
+    }
+}
+````
+
+Al extender de `RuntimeException`, no será obligatorio declararla en la firma del método
+(`checked` vs `unchecked exception`).
+
+### 🧪 TDD → Primero escribimos la prueba
+
+Queremos que el método `debit()` lance la excepción si el monto (`amount`) excede al `balance` de la cuenta:
+
+````java
+class AccountTest {
+    @Test
+    void shouldThrowInsufficientMoneyExceptionWhenDebitExceedsBalance() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+
+        // JUnit 5
+        InsufficientMoneyException exception = assertThrows(InsufficientMoneyException.class, () -> {
+            account.debit(new BigDecimal("5000")); // acción que dispara la excepción
+        });
+        assertEquals(InsufficientMoneyException.class, exception.getClass());
+        assertEquals("Dinero insuficiente", exception.getMessage());
+
+        // AssertJ
+        assertThatThrownBy(() -> account.debit(new BigDecimal("5000")))
+                .isInstanceOf(InsufficientMoneyException.class)
+                .hasMessage("Dinero insuficiente");
+    }
+}
+````
+
+🔎 Aquí estamos usando:
+
+- `JUnit 5` → `assertThrows()`: captura y nos permite inspeccionar la excepción.
+- `AssertJ` → `assertThatThrownBy()`: ofrece una API más expresiva y fluida.
+
+### ❌ Fallo esperado antes de la implementación
+
+Como aún no hemos implementado la lógica en `debit()`, el test fallará:
+
+````bash
+org.opentest4j.AssertionFailedError: Expected dev.magadiflo.junit5.app.exception.InsufficientMoneyException to be thrown, but nothing was thrown.
+````
+
+### ✅ Implementación mínima para pasar el test
+
+````java
+public class Account {
+    /* omitted code */
+    public void debit(BigDecimal amount) {
+        if (amount.compareTo(this.balance) > 0) {
+            throw new InsufficientMoneyException("Dinero insuficiente");
+        }
+        this.balance = this.balance.subtract(amount);
+    }
+    /* omitted code */
+}
+````
+
+Con esta lógica:
+
+- Si el `amount` es mayor que el `balance` → se lanza `InsufficientMoneyException`.
+- Caso contrario → se descuenta el saldo normalmente.
+
+### 🟢 Ejecución final
+
+Tras implementar la lógica, volvemos a correr las pruebas y:
+
+- El test de `JUnit 5` pasa ✅
+- El test de `AssertJ` también pasa ✅
+
+Esto valida que la excepción se lanzó correctamente solo en el caso esperado.
+
+💡 Tip práctico:
+> En `TDD`, las excepciones suelen ser una de las primeras reglas de negocio críticas que se prueban. Validar errores
+> esperados no solo ayuda a robustecer la lógica, sino también a documentar qué casos no están permitidos en el dominio.

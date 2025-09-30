@@ -474,8 +474,11 @@ class AccountTest {
 
         String real = account.getPerson();
 
-        assertEquals("Martín", account.getPerson());        // con JUnit
-        assertThat(account.getPerson()).isEqualTo("Martín");// con AssertJ
+        // JUnit 5
+        assertEquals("Martín", real);
+
+        // AssertJ
+        assertThat(real).isEqualTo("Martín");
     }
 }
 ````
@@ -513,3 +516,61 @@ public class Account {
 Ejecutamos otra vez la prueba y ahora sí:
 
 > ✅ la prueba pasa exitosamente.
+
+## 💰 Escribiendo pruebas para el balance (saldo)
+
+Ahora validaremos que, al crear una cuenta con un saldo inicial, este sea positivo.
+
+````java
+
+@Test
+void shouldHavePositiveBalanceWhenAccountIsCreated() {
+    Account account = new Account("Martín", new BigDecimal("2000"));
+
+    // JUnit 5
+    assertEquals(2000D, account.getBalance().doubleValue());
+    assertNotEquals(-1, account.getBalance().compareTo(BigDecimal.ZERO));
+    assertEquals(1, account.getBalance().compareTo(BigDecimal.ZERO));
+
+    // AssertJ
+    assertThat(account.getBalance()).isEqualByComparingTo("2000");
+    assertThat(account.getBalance().compareTo(BigDecimal.ZERO)).isNotEqualTo(-1);
+    assertThat(account.getBalance().compareTo(BigDecimal.ZERO)).isGreaterThan(0);
+}
+````
+
+### 1. Comparación directa del saldo
+
+Sobre: `assertEquals(2000D, account.getBalance().doubleValue())`
+
+- Convertimos el `BigDecimal` en `double` para hacer la comparación numérica.
+- Es una forma rápida, pero puede no ser la más precisa debido a las particularidades de los decimales en coma
+  flotante.
+
+### 2. Verificando que el saldo no sea negativo
+
+Sobre: `assertNotEquals(-1, account.getBalance().compareTo(BigDecimal.ZERO))`
+
+- `compareTo(BigDecimal.ZERO)` devuelve:
+    - `-1` si es menor que 0
+    - `0` si es igual a 0
+    - `1` si es mayor que 0
+- En este caso, aseguramos que el resultado `no sea -1`, es decir, que no sea negativo.
+
+### 3. Verificando que el saldo es mayor que 0
+
+Sobre: `assertEquals(1, account.getBalance().compareTo(BigDecimal.ZERO))`
+
+- Aquí confirmamos explícitamente que el resultado sea `1`, o sea, que el saldo es estrictamente mayor que cero.
+
+### ✨ Diferencias con AssertJ
+
+- `isEqualByComparingTo("2000")` → compara directamente valores de tipo `BigDecimal` de manera precisa
+  (mejor que convertir a double).
+- `isGreaterThan(0)` → mucho más expresivo que `assertEquals(1, compareTo(...))`.
+- El código resulta más legible y cercano al lenguaje natural.
+
+### 📌 Conclusión
+
+> Con `JUnit 5` puedes lograr las validaciones, pero `AssertJ` te permite escribir pruebas más expresivas y fáciles
+> de leer, especialmente cuando trabajas con objetos como `BigDecimal`.

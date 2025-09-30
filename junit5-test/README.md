@@ -467,7 +467,6 @@ correctamente retornado:
 
 ````java
 class AccountTest {
-
     @Test
     void shouldReturnCorrectPersonNameWhenAccountIsCreated() {
         Account account = new Account("Martín", new BigDecimal("2000"));
@@ -522,20 +521,21 @@ Ejecutamos otra vez la prueba y ahora sí:
 Ahora validaremos que, al crear una cuenta con un saldo inicial, este sea positivo.
 
 ````java
+class AccountTest {
+    @Test
+    void shouldHavePositiveBalanceWhenAccountIsCreated() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
 
-@Test
-void shouldHavePositiveBalanceWhenAccountIsCreated() {
-    Account account = new Account("Martín", new BigDecimal("2000"));
+        // JUnit 5
+        assertEquals(2000D, account.getBalance().doubleValue());
+        assertNotEquals(-1, account.getBalance().compareTo(BigDecimal.ZERO));
+        assertEquals(1, account.getBalance().compareTo(BigDecimal.ZERO));
 
-    // JUnit 5
-    assertEquals(2000D, account.getBalance().doubleValue());
-    assertNotEquals(-1, account.getBalance().compareTo(BigDecimal.ZERO));
-    assertEquals(1, account.getBalance().compareTo(BigDecimal.ZERO));
-
-    // AssertJ
-    assertThat(account.getBalance()).isEqualByComparingTo("2000");
-    assertThat(account.getBalance().compareTo(BigDecimal.ZERO)).isNotEqualTo(-1);
-    assertThat(account.getBalance().compareTo(BigDecimal.ZERO)).isGreaterThan(0);
+        // AssertJ
+        assertThat(account.getBalance()).isEqualByComparingTo("2000");
+        assertThat(account.getBalance().compareTo(BigDecimal.ZERO)).isNotEqualTo(-1);
+        assertThat(account.getBalance().compareTo(BigDecimal.ZERO)).isGreaterThan(0);
+    }
 }
 ````
 
@@ -574,3 +574,91 @@ Sobre: `assertEquals(1, account.getBalance().compareTo(BigDecimal.ZERO))`
 
 > Con `JUnit 5` puedes lograr las validaciones, pero `AssertJ` te permite escribir pruebas más expresivas y fáciles
 > de leer, especialmente cuando trabajas con objetos como `BigDecimal`.
+
+## 🧪 Test Driven Development (TDD)
+
+Con TDD primero escribimos la prueba, luego implementamos la solución. Esto nos permite guiar el diseño del código a
+través de los tests.
+
+En este ejemplo trabajaremos con la clase `Account`. Queremos comprobar la igualdad de objetos:
+
+### Caso 1: Comparación por referencia (default en Java)
+
+Creamos dos cuentas distintas pero con los mismos valores:
+
+````java
+class AccountTest {
+    @Test
+    void shouldNotBeSameReferenceWhenAccountAreCreatedSeparately() {
+        Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+        Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+
+        // JUnit 5
+        assertNotEquals(account1, account2);
+
+        // AssetJ
+        assertThat(account1).isNotSameAs(account2);
+    }
+}
+````
+
+✅ Este test pasará porque, aunque los atributos sean iguales, las referencias de memoria son distintas.
+Java, por defecto, compara los objetos por referencia.
+
+### Caso 2: Nueva regla de negocio → Comparar por valor
+
+El negocio ahora exige que dos cuentas con mismos datos deben ser consideradas iguales, aunque se hayan creado por
+separado.
+
+````java
+class AccountTest {
+    @Test
+    void shouldBeEqualWhenAccountsHaveSameValues() {
+        Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+        Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+
+        // JUnit 5
+        assertEquals(account1, account2);
+
+        // AssetJ
+        assertThat(account1).isEqualTo(account2);
+    }
+}
+````
+
+🚨 Este test falla, porque aún seguimos comparando referencias de memoria. El mensaje de error será algo así:
+
+````bash
+org.opentest4j.AssertionFailedError: 
+Expected :dev.magadiflo.junit5.app.model.Account@55634720
+Actual   :dev.magadiflo.junit5.app.model.Account@4b0d79fc
+````
+
+### Caso 3: Implementamos equals() (y hashCode())
+
+Para que la comparación se haga por valor, sobrescribimos el método `equals()` en la clase `Account`.
+
+````java
+public class Account {
+    /* omitted code */
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Account account = (Account) o;
+        return Objects.equals(person, account.person) && Objects.equals(balance, account.balance);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(person, balance);
+    }
+}
+````
+
+### Resultado final
+
+Ahora, al ejecutar el test `shouldBeEqualWhenAccountsHaveSameValues()`, este pasa correctamente, porque la igualdad se
+hace por valor.
+
+> 📌 `Importante`: mantener también el test de referencia (`shouldNotBeSameReferenceWhenAccountsAreCreatedSeparately`)
+> es útil para mostrar la diferencia entre referencia vs valor, reforzando el aprendizaje.

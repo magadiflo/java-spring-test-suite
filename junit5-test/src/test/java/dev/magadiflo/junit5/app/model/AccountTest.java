@@ -36,4 +36,28 @@ class AccountTest {
         assertThat(account.getBalance().compareTo(BigDecimal.ZERO)).isNotEqualTo(-1);
         assertThat(account.getBalance().compareTo(BigDecimal.ZERO)).isGreaterThan(0);
     }
+
+    @Test
+    void shouldNotBeSameReferenceWhenAccountAreCreatedSeparately() {
+        Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+        Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+
+        // JUnit 5
+        //assertNotEquals(account1, account2); // Lo comentamos porque ya sobreescribimos equals(), ahora ambos objetos son considerados iguales por valor.
+
+        // AssetJ
+        assertThat(account1).isNotSameAs(account2);
+    }
+
+    @Test
+    void shouldBeEqualWhenAccountsHaveSameValues() {
+        Account account1 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+        Account account2 = new Account("Liz Gonzales", new BigDecimal("2500.00"));
+
+        // JUnit 5
+        assertEquals(account1, account2);
+
+        // AssetJ
+        assertThat(account1).isEqualTo(account2);
+    }
 }

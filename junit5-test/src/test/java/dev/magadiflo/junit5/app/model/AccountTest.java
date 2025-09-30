@@ -60,4 +60,36 @@ class AccountTest {
         // AssetJ
         assertThat(account1).isEqualTo(account2);
     }
+
+    @Test
+    void shouldReduceBalanceWhenDebitIsApplied() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal("100")); // ejecutamos el método a probar
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertEquals(1900D, account.getBalance().doubleValue());
+        assertEquals("1900", account.getBalance().toPlainString());
+
+        // AssetJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isEqualByComparingTo("1900");
+    }
+
+    @Test
+    void shouldIncreaseBalanceWhenCreditIsApplied() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.credit(new BigDecimal("100")); // ejecutamos el método a probar
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertEquals(2100D, account.getBalance().doubleValue());
+        assertEquals("2100", account.getBalance().toPlainString());
+
+        // AssetJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isEqualByComparingTo("2100");
+    }
 }

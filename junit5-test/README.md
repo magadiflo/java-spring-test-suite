@@ -662,3 +662,111 @@ hace por valor.
 
 > 📌 `Importante`: mantener también el test de referencia (`shouldNotBeSameReferenceWhenAccountsAreCreatedSeparately`)
 > es útil para mostrar la diferencia entre referencia vs valor, reforzando el aprendizaje.
+
+## 🧪 TDD para Débito y Crédito
+
+Aplicando `Test Driven Development (TDD)` seguimos el ciclo clásico:
+
+- ✍️ Escribir la prueba (rojo 🔴, porque fallará).
+- 🔨 Implementar lo mínimo necesario para que la prueba pase.
+- ✅ Refactorizar si es necesario, manteniendo todas las pruebas en verde.
+
+### Paso 1: Definimos los métodos (aún sin lógica)
+
+Primero declaramos los métodos en la clase `Account`, pero sin implementación:
+
+````java
+public class Account {
+    /* omitted code */
+
+    public void debit(BigDecimal amount) {
+        // pendiente de implementación
+    }
+
+    public void credit(BigDecimal amount) {
+        // pendiente de implementación
+    }
+    /* omitted code */
+}
+````
+
+### Paso 2: Creamos las pruebas unitarias
+
+Ahora escribimos dos tests:
+
+- `shouldReduceBalanceWhenDebitIsApplied()` → valida que al debitar, el saldo disminuye.
+- `shouldIncreaseBalanceWhenCreditIsApplied()` → valida que al acreditar, el saldo aumenta.
+
+````java
+class AccountTest {
+    @Test
+    void shouldReduceBalanceWhenDebitIsApplied() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal("100")); // ejecutamos el método a probar
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertEquals(1900D, account.getBalance().doubleValue());
+        assertEquals("1900", account.getBalance().toPlainString());
+
+        // AssetJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isEqualByComparingTo("1900");
+    }
+
+    @Test
+    void shouldIncreaseBalanceWhenCreditIsApplied() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.credit(new BigDecimal("100")); // ejecutamos el método a probar
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertEquals(2100D, account.getBalance().doubleValue());
+        assertEquals("2100", account.getBalance().toPlainString());
+
+        // AssetJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isEqualByComparingTo("2100");
+    }
+}
+````
+
+🚨 Ambos tests fallarán, porque aún no hemos implementado la lógica de negocio:
+
+````bash
+org.opentest4j.AssertionFailedError: 
+Expected :1900.0
+Actual   :2000.0
+````
+
+````bash
+org.opentest4j.AssertionFailedError: 
+Expected :2100.0
+Actual   :2000.0
+````
+
+### Paso 3: Implementamos la lógica
+
+Ahora completamos los métodos en la clase Account:
+
+````java
+public class Account {
+    public void debit(BigDecimal amount) {
+        this.balance = this.balance.subtract(amount);
+    }
+
+    public void credit(BigDecimal amount) {
+        this.balance = this.balance.add(amount);
+    }
+}
+````
+
+### ✅ Resultado Final
+
+Al ejecutar nuevamente los tests, ahora sí pasan en verde 🎉, porque ya se actualiza correctamente el atributo
+`balance`:
+
+- `debit` → resta el monto al saldo.
+- `credit` → suma el monto al saldo.

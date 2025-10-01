@@ -2218,3 +2218,121 @@ class Lec07ParameterizedTest {
 - `@ValueSource` → Fuente de datos simple (int, String, double, etc.).
 - `Personalización` → {index}, {argumentsWithNames}, {0} para mayor claridad en los reportes.
 - Ideal para `validar la misma lógica con múltiples entradas`.
+
+## 🔄 Pruebas parametrizadas con @ParameterizedTest (Parte 2)
+
+En la lección anterior vimos el uso de `@ValueSource` para pasar valores simples. Ahora exploraremos otras formas de
+inyectar datos de prueba en un `@ParameterizedTest`.
+
+### `@CsvSource` → Valores embebidos en el código
+
+Con `@CsvSource` podemos definir directamente pares (o múltiples columnas) de valores separados por coma.
+
+````java
+class Lec07ParameterizedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec07ParameterizedTest.class);
+
+    @ParameterizedTest(name = "número {index} ejecutando con valor {argumentsWithNames}")
+    @CsvSource({"1,100", "2,200", "3,300", "4,500", "5,700", "6,1000", "7,2000"})
+    void shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvSource(String index, String amount) {
+        log.info("{}: {}", index, amount);
+
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal(amount));
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertTrue(account.getBalance().compareTo(BigDecimal.ZERO) > 0);
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isGreaterThan(BigDecimal.ZERO);
+    }
+}
+````
+
+📌 Aquí cada línea representa una ejecución de test con los valores `index`, `amount`.
+
+### `@CsvFileSource` → Datos externos desde archivo CSV
+
+Podemos cargar los datos desde un archivo `.csv`, lo que es útil para datasets más grandes o que queremos mantener
+fuera del código.
+
+````java
+class Lec07ParameterizedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec07ParameterizedTest.class);
+
+    @ParameterizedTest(name = "número {index} ejecutando con valor {argumentsWithNames}")
+    @CsvFileSource(resources = "/csv/data.csv")
+    void shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvFileSource(String amount) {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal(amount));
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertTrue(account.getBalance().compareTo(BigDecimal.ZERO) > 0);
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isGreaterThan(BigDecimal.ZERO);
+    }
+}
+````
+
+📂 El archivo `data.csv` debe crearse en:
+
+````bash
+junit5-test/src/test/resources/csv/data.csv
+````
+
+Ejemplo de contenido (`data.csv`):
+
+````
+25
+150
+250
+370
+570
+1770
+2000
+````
+
+> 💡 `Recomendación`: Guardar los datasets en `/test/resources` y no en `/main/resources`, ya que son exclusivos
+> de pruebas.
+
+### `@MethodSource` → Método proveedor de datos
+
+Podemos usar un método estático que devuelva una colección, flujo o arreglo de valores.
+
+````java
+class Lec07ParameterizedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec07ParameterizedTest.class);
+
+    @ParameterizedTest(name = "número {index} ejecutando con valor {argumentsWithNames}")
+    @MethodSource("amountList")
+    void shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceMethodSource(String amount) {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal(amount));
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertTrue(account.getBalance().compareTo(BigDecimal.ZERO) > 0);
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isGreaterThan(BigDecimal.ZERO);
+    }
+
+    private static List<String> amountList() {
+        return List.of("100", "200", "300", "500", "700", "1000", "2000");
+    }
+}
+````
+
+👉 Este enfoque es flexible porque podemos generar datos dinámicamente (listas, streams, consultas a BD, etc.).

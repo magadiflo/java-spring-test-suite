@@ -2604,3 +2604,94 @@ class Lec09InfoReporterTest {
 15:54:17.698 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- [account]
 timestamp = 2025-10-01T15:54:17.698022, value = Ejecutando: Probando nombre de la cuenta 
 ````
+
+## ⏱️ Timeout en JUnit 5
+
+En `JUnit 5` podemos limitar el tiempo máximo de ejecución de un test usando la anotación `@Timeout`. Si el método de
+prueba excede ese límite, el test fallará automáticamente.
+
+`Por defecto`, `el valor que recibe está expresado en segundos`, aunque también podemos especificar otra unidad de
+tiempo.
+
+### Ejemplo 1: Timeout en segundos
+
+````java
+class Lec10TimeoutTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec10TimeoutTest.class);
+
+    @Test
+    @Timeout(5)
+    void shouldFailIfExecutionExceedsFiveSecons() throws InterruptedException {
+        // Simula una operación que demora demasiado
+        TimeUnit.SECONDS.sleep(6);
+    }
+}
+````
+
+📌 Aquí el test falla porque excede los 5 segundos.
+
+### Ejemplo 2: Timeout en milisegundos
+
+````java
+class Lec10TimeoutTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec10TimeoutTest.class);
+
+    @Test
+    @Timeout(value = 500, unit = TimeUnit.MILLISECONDS)
+    void shouldFailIfExecutionExceedsHalfASecond() throws InterruptedException {
+        Thread.sleep(Duration.ofMillis(510)); // Se pasa del límite
+    }
+}
+````
+
+📌 Ahora la unidad de tiempo es `milisegundos`, y el test también falla porque sobrepasa el límite.
+
+Si ejecutamos los dos test anteriores, veremos que ambos fallan por haber pasado el límite de tiempo.
+
+![15.png](assets/15.png)
+
+### Timeout programático con assertTimeout()
+
+Además de la anotación, `JUnit 5` ofrece un enfoque más programático mediante `Assertions.assertTimeout()`,
+donde indicamos explícitamente el tiempo máximo permitido para un bloque de código:
+
+````java
+class Lec10TimeoutTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec10TimeoutTest.class);
+
+    @Test
+    void shouldFailIfCodeExecutionExceedsFiveSeconds() {
+        // JUnit 5
+        assertTimeout(Duration.ofSeconds(5), () -> {
+            TimeUnit.SECONDS.sleep(6);  // Simula un retraso
+        }, "El bloque de código debería completarse en menos de 5 segundos");
+    }
+}
+````
+
+Salida de error:
+
+````bash
+org.opentest4j.AssertionFailedError: El bloque de código debería completarse en menos de 5 segundos ==> execution exceeded timeout of 5000 ms by 1015 ms
+````
+
+### 📘 Diferencia entre `@Timeout` y `assertTimeout()`
+
+`@Timeout`
+
+- Se aplica a nivel de anotación, directamente en el método de prueba.
+- Más simple y declarativo.
+- Termina el test si se sobrepasa el tiempo.
+
+`assertTimeout()`
+
+- Permite envolver solo un bloque específico del test, no necesariamente todo el método.
+- Útil para validar que una parte del código se ejecute dentro de cierto tiempo.
+- Proporciona mensajes personalizados de error.
+
+⚡ TIP:
+> Si quieres que toda una clase de tests tenga un límite de tiempo, también puedes aplicar la anotación `@Timeout`
+> a nivel de clase, y todos los métodos heredarán esa restricción.

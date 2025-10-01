@@ -92,3 +92,90 @@ que se trabajó en el proyecto de `junit5-test`, con la diferencia de que aquí 
 
 👉 Con esta configuración ya podemos comenzar a escribir nuestras pruebas unitarias con `Mockito`.
 
+## 🗂️ Creando la estructura de directorios y archivos para las pruebas
+
+Para organizar nuestro proyecto de pruebas con `Mockito`, definiremos una estructura básica de paquetes:
+
+- 📦 `model` → Contendrá las entidades o clases de dominio (en este caso, `Exam`).
+- 📦 `repository` → Contendrá las interfaces que simulan la capa de acceso a datos.
+- 📦 `service` → Contendrá las interfaces de lógica de negocio que utilizaremos en nuestras pruebas.
+
+### 📝 Clase de dominio: Exam
+
+La clase `Exam` representa un examen con un id, un nombre y una lista de preguntas.
+
+````java
+public class Exam {
+    private Long id;
+    private String name;
+    private List<String> questions = new ArrayList<>();
+
+    public Exam(Long id, String name) {
+        this.id = id;
+        this.name = name;
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
+    }
+
+    public List<String> getQuestions() {
+        return questions;
+    }
+
+    public void setQuestions(List<String> questions) {
+        this.questions = questions;
+    }
+
+    @Override
+    public String toString() {
+        final StringBuilder sb = new StringBuilder("Exam{");
+        sb.append("id=").append(id);
+        sb.append(", name='").append(name).append('\'');
+        sb.append(", questions=").append(questions);
+        sb.append('}');
+        return sb.toString();
+    }
+}
+````
+
+📌 `Nota`: La lista de preguntas se inicializa directamente como un `ArrayList<>` para evitar problemas de
+`NullPointerException`.
+
+### 📂 Capa Repository
+
+En este punto, solo necesitamos una interfaz que defina el contrato de acceso a los datos.
+
+````java
+public interface ExamRepository {
+    List<Exam> findAll();
+}
+````
+
+Más adelante, en las pruebas, `mockearemos` esta interfaz con `Mockito` para simular el acceso a la base de datos.
+
+### 📂 Capa Service
+
+La capa de servicio contendrá la lógica de negocio. Por ahora solo definimos un método para buscar un examen por nombre.
+
+````java
+public interface ExamService {
+    Exam findExamByName(String name);
+}
+````
+
+🔑 Resumen hasta aquí:
+> Hemos creado la base de nuestro proyecto con una entidad (`Exam`), un repositorio (`ExamRepository`) y un servicio
+> (`ExamService`). El siguiente paso será implementar estas interfaces y empezar a probarlas con Mockito 🧪.

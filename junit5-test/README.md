@@ -261,51 +261,6 @@ $ mvn test
 - Estándar en automatización y despliegues.
 - Permite ejecutar todas las pruebas o un subconjunto (según configuración).
 
-### 3️⃣ Ejecutar tests específicos con `@Tag`
-
-`JUnit 5` permite categorizar pruebas con la anotación `@Tag`. Esto es útil para agrupar tests
-(por ejemplo: `unit`, `integration`, `slow`, `account`).
-
-Ejemplo de test con un `@Tag`:
-
-````java
-class AccountServiceTest {
-    @Test
-    @Tag("account")
-    void shouldCreateAccountSuccessfully() {
-        // lógica de prueba
-    }
-}
-````
-
-Para ejecutar solo los tests con un `tag específico`, debemos configurarlo en el plugin `maven-surefire-plugin`:
-
-````xml
-
-<plugin>
-    <groupId>org.apache.maven.plugins</groupId>
-    <artifactId>maven-surefire-plugin</artifactId>
-    <version>3.5.4</version>
-    <!-- Ejecutar un tag en específico -->
-    <configuration>
-        <groups>account</groups>
-    </configuration>
-</plugin>
-````
-
-Ahora, al ejecutar:
-
-````bash
-$ mvn test
-````
-
-Solo se ejecutarán los tests anotados con `@Tag("account")`.
-
-📌 Nota importante:
-
-- Si no configuramos `groups`, `Maven` ejecutará todas las pruebas.
-- Podemos especificar múltiples grupos separados por comas: `<groups>unit,integration</groups>`
-
 ---
 
 ## 🏦 Creando la clase Account (Cuenta)
@@ -2402,3 +2357,172 @@ class Lec07ParameterizedTest {
 > 📌 En resumen: Con `@CsvFileSource` podemos crear pruebas más completas, reutilizando un archivo externo con múltiples
 > valores y escenarios en un solo método de test. Esto mejora la legibilidad, facilita la mantenibilidad y nos permite
 > expandir los casos de prueba sin modificar el código.
+
+## 🏷️ Tagging tests con la anotación @Tag
+
+La anotación `@Tag` nos permite `clasificar y ejecutar pruebas de forma selectiva`. Por ejemplo, podemos ejecutar
+solamente las pruebas que tengan el tag `param` o `account`.
+
+Esto es muy útil en proyectos grandes donde queremos organizar los tests por categorías, como rápidos, lentos,
+de integración, unitarios, etc.
+
+### 📝 Ejemplo de uso
+
+````java
+class Lec08TagTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec08TagTest.class);
+
+    @Tag("param")
+    @Test
+    void shouldRunTaggedParamTest_1() {
+        log.info("Ejecutando test 1 con tag param");
+    }
+
+    @Tag("param")
+    @Test
+    void shouldRunTaggedParamTest_2() {
+        log.info("Ejecutando test 2 con tag param");
+    }
+
+    @Test
+    void shouldRunUntaggedTestForParamCategory() {
+        log.info("Este test unitario no tiene el tag param!");
+    }
+
+    @Tag("account")
+    @Test
+    void shouldRunTaggedAccountTest_1() {
+        log.info("Ejecutando test de cuenta 1");
+    }
+
+    @Tag("account")
+    @Test
+    void shouldRunTaggedAccountTest_2() {
+        log.info("Ejecutando test de cuenta 2");
+    }
+}
+````
+
+📌 Notas importantes
+
+- Podemos `combinar varios tags` en distintos tests para tener mayor flexibilidad.
+- Si tenemos `clases anidadas` con `@Nested`, podemos aplicar el tag directamente a la `inner class`, y automáticamente
+  todos los métodos de prueba dentro de esa clase heredarán ese `tag`.
+
+### ▶️ Ejecutando un tag en IntelliJ IDEA
+
+1. Ir al menú desplegable de configuración (`Select → Edit Configurations...`).
+2. En la sección `Build and run`:
+    - Por defecto se ejecuta por `Class`.
+    - Cambiar a `Tags`.
+3. En el campo de etiquetas, escribir el tag que queremos ejecutar, por ejemplo: `account`.
+
+![13.png](assets/13.png)
+
+#### ✅ Resultado
+
+Al ejecutar, se correrán únicamente los tests anotados con `@Tag("account")`:
+
+![14.png](assets/14.png)
+
+### ▶️ Ejecutar un tag desde la línea de comandos con Maven
+
+Si ejecutamos el test desde la consola con el comando `mvn test` vemos que se ejecutarán todos los test presentes en el
+proyecto:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\junit5-test (feature/junit5)
+$ mvn test
+...
+[WARNING] Tests run: 8, Failures: 0, Errors: 0, Skipped: 1, Time elapsed: 0.030 s -- in dev.magadiflo.junit5.app.model.AccountTest
+[INFO] Running dev.magadiflo.junit5.app.model.BankTest
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.030 s -- in dev.magadiflo.junit5.app.model.BankTest
+[INFO]
+[INFO] Results:
+[INFO]
+[ERROR] Failures:
+[ERROR]   Lec07ParameterizedTest.shouldDebitAccountWithVariousAmountsAndValidatePositiveBalance:30 expected: <true> but was: <false>
+[ERROR]   Lec07ParameterizedTest.shouldDebitAccountWithVariousAmountsAndValidatePositiveBalance2:46 expected: <true> but was: <false>
+[ERROR]   Lec07ParameterizedTest.shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvFileSource:80 expected: <true> but was: <false>
+[ERROR]   Lec07ParameterizedTest.shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvFileSource:114 expected: <Alicia> but was: <Alicha>
+[ERROR]   Lec07ParameterizedTest.shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvFileSource:114 expected: <Carlos> but was: <Karlos>
+[ERROR]   Lec07ParameterizedTest.shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvFileSource:114 expected: <Luca> but was: <Lucas>
+[ERROR]   Lec07ParameterizedTest.shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvSource:64 expected: <true> but was: <false>
+[ERROR]   Lec07ParameterizedTest.shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceMethodSource:96 expected: <true> but was: <false>
+[INFO]
+[ERROR] Tests run: 97, Failures: 8, Errors: 0, Skipped: 17
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.831 s
+[INFO] Finished at: 2025-10-01T15:32:44-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.apache.maven.plugins:maven-surefire-plugin:3.5.4:test (default-test) on project junit5-test: There are test failures.
+[ERROR]
+[ERROR] See D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\junit5-test\target\surefire-reports for the individual test results.
+[ERROR] See dump files (if any exist) [date].dump, [date]-jvmRun[N].dump and [date].dumpstream.
+[ERROR] -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
+````
+
+Ahora, si solo queremos ejecutar algunos tests en específicos y además si ya tenemos configurado el plugin Surefire,
+podemos lanzar un tag así, por ejemplo si queremos ejecutar solo los test cuyo `tag` tiene el valor de `account`.
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\junit5-test (feature/junit5)
+$ mvn test -Dgroups=account
+...
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.magadiflo.junit5.app.Lec08TagTest
+15:35:38.742 [main] INFO dev.magadiflo.junit5.app.Lec08TagTest -- Ejecutando test de cuenta 1
+15:35:38.757 [main] INFO dev.magadiflo.junit5.app.Lec08TagTest -- Ejecutando test de cuenta 2
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.114 s -- in dev.magadiflo.junit5.app.Lec08TagTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 2, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.100 s
+[INFO] Finished at: 2025-10-01T15:35:38-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+O, si queremos varios tags separados por coma:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\junit5-test (feature/junit5)
+$ mvn test -Dgroups=account,param
+...
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.magadiflo.junit5.app.Lec08TagTest
+15:38:02.398 [main] INFO dev.magadiflo.junit5.app.Lec08TagTest -- Ejecutando test 1 con tag param
+15:38:02.414 [main] INFO dev.magadiflo.junit5.app.Lec08TagTest -- Ejecutando test 2 con tag param
+15:38:02.418 [main] INFO dev.magadiflo.junit5.app.Lec08TagTest -- Ejecutando test de cuenta 1
+15:38:02.422 [main] INFO dev.magadiflo.junit5.app.Lec08TagTest -- Ejecutando test de cuenta 2
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.142 s -- in dev.magadiflo.junit5.app.Lec08TagTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  2.108 s
+[INFO] Finished at: 2025-10-01T15:38:02-05:00
+[INFO] ------------------------------------------------------------------------
+````

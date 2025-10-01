@@ -2526,3 +2526,81 @@ $ mvn test -Dgroups=account,param
 [INFO] Finished at: 2025-10-01T15:38:02-05:00
 [INFO] ------------------------------------------------------------------------
 ````
+
+## Inyección de dependencias y Componentes testInfo y testReporter
+
+`TestInfo` y `testReporter` es parte de la inyección de dependencia de JUnit**, lo podemos **usar en cada método test**
+o si es que queremos que se apliquen a todos los métodos test, podemos aprovechar el ciclo de vida **@BeforeEach** e
+inyectar las dependencias en dicho método, así se aplicará todos los test:
+
+````java
+class Lec09InfoReporterTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec09InfoReporterTest.class);
+    private Account account;
+
+    @BeforeEach
+    void setUp(TestInfo testInfo, TestReporter testReporter) {
+        this.account = new Account("Martín", new BigDecimal("2000"));
+
+        log.info("{}", testInfo.getDisplayName());
+        testInfo.getTestMethod().ifPresent(method -> log.info("{}", method.getName()));
+        testInfo.getTestClass().ifPresent(aClass -> log.info("{}", aClass.getName()));
+        log.info("{}", testInfo.getTags());
+    }
+
+    @Test
+    @Tag("account")
+    @DisplayName("Probando nombre de la cuenta")
+    void shouldReturnCorrectAccountHolderName() {
+        String expected = "Martín";
+        String real = this.account.getPerson();
+
+        // JUnit 5
+        assertEquals(expected, real);
+
+        // AssertJ
+        assertThat(real).isEqualTo(expected);
+    }
+}
+````
+
+Como resultado obtendremos impreso los siguientes detalles:
+
+````bash
+15:51:45.068 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- Probando nombre de la cuenta
+15:51:45.076 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- shouldReturnCorrectAccountHolderName
+15:51:45.076 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- dev.magadiflo.junit5.app.Lec09InfoReporterTest
+15:51:45.076 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- [account] 
+````
+
+Podemos usar el **TestReporter** para publicar la información del test en el log del propio JUnit, es decir usando la
+salida estandar del propio JUnit.
+
+````java
+class Lec09InfoReporterTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec09InfoReporterTest.class);
+    private Account account;
+
+    @BeforeEach
+    void setUp(TestInfo testInfo, TestReporter testReporter) {
+        this.account = new Account("Martín", new BigDecimal("2000"));
+
+        log.info("{}", testInfo.getDisplayName());
+        testInfo.getTestMethod().ifPresent(method -> log.info("{}", method.getName()));
+        testInfo.getTestClass().ifPresent(aClass -> log.info("{}", aClass.getName()));
+        log.info("{}", testInfo.getTags());
+
+        testReporter.publishEntry("Ejecutando: " + testInfo.getDisplayName());
+    }
+}
+````
+
+````bash
+15:54:17.691 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- Probando nombre de la cuenta
+15:54:17.697 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- shouldReturnCorrectAccountHolderName
+15:54:17.698 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- dev.magadiflo.junit5.app.Lec09InfoReporterTest
+15:54:17.698 [main] INFO dev.magadiflo.junit5.app.Lec09InfoReporterTest -- [account]
+timestamp = 2025-10-01T15:54:17.698022, value = Ejecutando: Probando nombre de la cuenta 
+````

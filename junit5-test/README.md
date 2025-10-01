@@ -2131,3 +2131,90 @@ Ejecución personalizada:
 - `RepetitionInfo` → Permite lógica condicional según la repetición actual.
 - `Personalización` → `{currentRepetition}` y `{totalRepetitions}` en el name de la anotación hacen los reportes más
   claros.
+
+## 🎯 Escribiendo pruebas parametrizadas con @ParameterizedTest
+
+La anotación `@ParameterizedTest` es similar a `@RepeatedTest`, pero con una diferencia esencial:
+
+- `@RepeatedTest` repite una prueba con los mismos datos de entrada.
+- `@ParameterizedTest` repite la prueba con distintos valores de entrada provistos en cada ejecución.
+
+Esto permite validar un mismo algoritmo frente a múltiples inputs sin tener que escribir tests duplicados.
+
+### Ejemplo con @ValueSource
+
+En este caso, probamos distintos montos de débito sobre una cuenta.
+
+````java
+class Lec07ParameterizedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec07ParameterizedTest.class);
+
+    @ParameterizedTest
+    @ValueSource(strings = {"100", "200", "300", "500", "700", "1000", "2000"})
+    void shouldDebitAccountWithVariousAmountsAndValidatePositiveBalance(String amount) {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal(amount));
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertTrue(account.getBalance().compareTo(BigDecimal.ZERO) > 0);
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isGreaterThan(BigDecimal.ZERO);
+    }
+}
+````
+
+📌 Nota: En este ejemplo usamos strings, pero @ValueSource también soporta: `ints`, `longs`, `doubles`, `booleans`, etc.
+El tipo de dato definido en la anotación debe coincidir con el tipo del parámetro del método.
+
+### ⚠️ Ejecución y fallo esperado
+
+En la ejecución, todos los valores pasan excepto el 2000, ya que el balance resultante queda en 0 y no cumple la
+condición `> 0`.
+
+Resultado de la ejecución:
+
+![11.png](assets/11.png)
+
+### Personalizando el nombre de cada ejecución
+
+Podemos mejorar la legibilidad del reporte usando la propiedad `name` dentro de `@ParameterizedTest`:
+
+````java
+class Lec07ParameterizedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec07ParameterizedTest.class);
+
+    @ParameterizedTest(name = "número {index} ejecutando con valor {argumentsWithNames}")
+    @ValueSource(strings = {"100", "200", "300", "500", "700", "1000", "2000"})
+    void shouldDebitAccountWithVariousAmountsAndValidatePositiveBalance2(String amount) {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal(amount));
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertTrue(account.getBalance().compareTo(BigDecimal.ZERO) > 0);
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isGreaterThan(BigDecimal.ZERO);
+    }
+}
+
+````
+
+📌 Alternativamente, se puede usar `{0}` en lugar de `{argumentsWithNames}` para mostrar el valor del argumento.
+
+![12.png](assets/12.png)
+
+✅ Resumen rápido:
+
+- `@ParameterizedTest` → Ejecuta un test con diferentes parámetros.
+- `@ValueSource` → Fuente de datos simple (int, String, double, etc.).
+- `Personalización` → {index}, {argumentsWithNames}, {0} para mayor claridad en los reportes.
+- Ideal para `validar la misma lógica con múltiples entradas`.

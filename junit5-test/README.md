@@ -2041,3 +2041,93 @@ class Lec05NestedTest {
 
 ![08.png](assets/08.png)
 
+## 🔁 Repitiendo pruebas con @RepeatedTest
+
+La anotación `@RepeatedTest` permite ejecutar una misma prueba varias veces de forma automática. Es útil en escenarios
+donde:
+
+- Existe aleatoriedad en el código bajo prueba.
+- Queremos verificar consistencia en ejecuciones múltiples.
+- Necesitamos estresar una lógica con repeticiones controladas.
+
+📌 `Importante`: cuando usamos `@RepeatedTest`, no debemos usar `@Test` en el mismo método.
+
+### Ejemplo básico de repetición
+
+````java
+class Lec06RepeatedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec06RepeatedTest.class);
+
+    @RepeatedTest(value = 5)
+        // Ejecuta el test 5 veces
+    void shouldDebitAccountAndValidateBalanceRepeatedly() {
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal("100"));
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertEquals(1900D, account.getBalance().doubleValue());
+        assertEquals("1900", account.getBalance().toPlainString());
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .withFailMessage("El saldo no debería ser nulo después del débito")
+                .isNotNull()
+                .withFailMessage("El saldo numérico no coincide con el esperado")
+                .isEqualByComparingTo("1900");
+    }
+}
+````
+
+Ejecución del test repetido:
+
+![09.png](assets/09.png)
+
+### Personalización de repeticiones
+
+Podemos cambiar el nombre de las repeticiones y usar inyección de dependencias mediante el parámetro `RepetitionInfo`,
+el cual nos indica:
+
+- `currentRepetition`: número de la repetición actual.
+- `totalRepetitions`: número total de repeticiones configuradas.
+
+ ````java
+class Lec06RepeatedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec06RepeatedTest.class);
+
+    @RepeatedTest(value = 5, name = "Repetición número {currentRepetition} de {totalRepetitions}")
+    void shouldDebitAccountAndValidateBalanceRepeatedly(RepetitionInfo info) {
+        if (info.getCurrentRepetition() == 3) {
+            log.info("Estamos en la repetición {}", info.getCurrentRepetition());
+        }
+
+        Account account = new Account("Martín", new BigDecimal("2000"));
+        account.debit(new BigDecimal("100"));
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertEquals(1900D, account.getBalance().doubleValue());
+        assertEquals("1900", account.getBalance().toPlainString());
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .withFailMessage("El saldo no debería ser nulo después del débito")
+                .isNotNull()
+                .withFailMessage("El saldo numérico no coincide con el esperado")
+                .isEqualByComparingTo("1900");
+    }
+}
+````
+
+Ejecución personalizada:
+
+![10.png](assets/10.png)
+
+✅ Resumen rápido:
+
+- `@RepeatedTest(n)` → Ejecuta el test n veces.
+- `RepetitionInfo` → Permite lógica condicional según la repetición actual.
+- `Personalización` → `{currentRepetition}` y `{totalRepetitions}` en el name de la anotación hacen los reportes más
+  claros.

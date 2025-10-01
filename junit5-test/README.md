@@ -1823,3 +1823,82 @@ Para que funcione debemos crear nuestra propia variable de entorno en el `IDE`:
 - El test `shouldRunOnlyWhenEnvironmentVariableIsProd()` ✅ sí se ejecuta.
 
 ![06.png](assets/06.png)
+
+## ⚖️ Ejecución de test condicional con Assumptions programáticamente
+
+Los `assumptions` permiten condicionar la ejecución de un test de forma programática. Su comportamiento es similar a
+las anotaciones `@EnabledIf...`, pero en lugar de declararse como metadatos,
+`se evalúan en tiempo de ejecución dentro del propio código del test`.
+
+En pocas palabras:
+
+- ✅ Si la condición se cumple → el test continúa ejecutándose normalmente.
+- 🚫 Si la condición no se cumple → el test se marca como `deshabilitado` (no falla, solo no se ejecuta)
+
+### ▶️ Usando Assumptions.assumeTrue(...)
+
+Con `assumeTrue(...)` el flujo del test se detiene inmediatamente si la condición es falsa.
+
+````java
+class Lec04AssumptionsProgrammaticallyTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec04AssumptionsProgrammaticallyTest.class);
+
+    @Test
+    void shouldRunBalanceAccountTestOnlyIfEnvIsDev() {
+        boolean isDev = "dev".equals(System.getenv("ENV"));
+        Assumptions.assumeTrue(isDev); // ✅ Si es true, continúa; 🚫 caso contrario, queda deshabilitado.
+
+        Account account = new Account("Martín", new BigDecimal("2000"));
+
+        // JUnit 5
+        assertEquals("2000", account.getBalance().toPlainString());
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .withFailMessage("El saldo inicial no coincide con el esperado")
+                .isEqualByComparingTo("2000");
+    }
+}
+````
+
+📌 Resultado en consola:
+
+- Si `ENV=dev` → el test se ejecuta ✅.
+- Si `ENV≠dev` → el test aparece como skipped (omitido) ⏭️.
+
+### ▶️ Usando Assumptions.assumingThat(...)
+
+En cambio, `assumingThat(...)` no deshabilita todo el test, sino solo el bloque de código pasado como lambda.
+
+- Si la condición es falsa → se ignora el bloque, pero el test sigue ejecutando el resto del código.
+- En consola aparece como ejecutado ✅, aunque el bloque condicionado no se haya corrido.
+
+````java
+class Lec04AssumptionsProgrammaticallyTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec04AssumptionsProgrammaticallyTest.class);
+
+    @Test
+    void shouldRunBalanceAssertionOnlyIfEnvIsQa() {
+        boolean isDev = "qa".equals(System.getenv("ENV"));
+
+        // JUnit 5
+        Assumptions.assumingThat(isDev, () -> {
+            Account account = new Account("Martín", new BigDecimal("2000"));
+
+            // AssertJ
+            assertThat(account.getBalance())
+                    .withFailMessage("El saldo inicial no coincide con el esperado")
+                    .isEqualByComparingTo("2000");
+        });
+
+        log.info("El test continuó ejecutándose aunque la condición no se cumpliera");
+    }
+}
+````
+
+📌 Resultado en consola:
+
+- Si `ENV=qa` → se ejecuta el bloque del lambda.
+- Si `ENV≠qa` → se omite el bloque, pero el test igual aparece como ejecutado ✅.

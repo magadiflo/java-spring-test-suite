@@ -1660,3 +1660,166 @@ class Lec02SystemPropertiesTest {
 ````
 
 De esta forma podemos condicionar la ejecución de tests a entornos específicos, como `dev`, `test`, `qa` o `prod`.
+
+## Ejecuciones de test condicionales con @EnabledIfEnvironmentVariable
+
+También podemos condicionar la ejecución de pruebas según las `variables de entorno`.
+
+### Variables de entorno (`Environment Variables`)
+
+Las variables de entorno son valores definidos en el `Sistema Operativo` 🖥️, los cuales afectan el comportamiento de
+procesos y aplicaciones. Se representan como pares `CLAVE=VALOR` y suelen contener información relevante sobre el
+entorno, como rutas de instalación, configuración de red o preferencias del usuario.
+
+### Diferencias clave con las `System Properties` (JVM)
+
+- `System Properties` ➝ Propiedades internas manejadas por la `JVM` ☕ (ej. `java.version`, `user.home`).
+- `Environment Variables` ➝ Variables externas definidas en el `SO` 🌍 (ej. `JAVA_HOME`, `PATH`, `USER`).
+
+> Ambas pueden condicionar la ejecución de tests, pero provienen de orígenes distintos:
+> la `JVM` vs. el `Sistema Operativo`.
+
+## Ejecuciones de test condicionales con @EnabledIfEnvironmentVariable
+
+Al igual que hicimos con los `System Properties` (JVM), ahora nos toca imprimir las variables de entorno del sistema
+operativo:
+
+````java
+class Lec03EnvironmentVariablesTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec03EnvironmentVariablesTest.class);
+
+    @Test
+    void shouldPrintAllEnvironmentVariables() {
+        Map<String, String> getenv = System.getenv();
+        getenv.forEach((key, value) -> log.info("{}: {}", key, value));
+    }
+}
+````
+
+El test anterior imprime todas las variables de entorno de nuestro sistema operativo.
+
+````
+...Lec03EnvironmentVariablesTest -- USERDOMAIN_ROAMINGPROFILE: SysEngJava
+...Lec03EnvironmentVariablesTest -- EFC_17216_1262719628: 1
+...Lec03EnvironmentVariablesTest -- NVM_SYMLINK: C:\nvm4w\nodejs
+...Lec03EnvironmentVariablesTest -- PROCESSOR_LEVEL: 6
+...Lec03EnvironmentVariablesTest -- SESSIONNAME: Console
+...Lec03EnvironmentVariablesTest -- ALLUSERSPROFILE: C:\ProgramData
+...Lec03EnvironmentVariablesTest -- PROCESSOR_ARCHITECTURE: AMD64
+...Lec03EnvironmentVariablesTest -- PSModulePath: C:\Program Files\WindowsPowerShell\Modules;C:\WINDOWS\system32\WindowsPowerShell\v1.0\Modules;C:\Program Files (x86)\Microsoft SQL Server\140\Tools\PowerShell\Modules\
+...Lec03EnvironmentVariablesTest -- SystemDrive: C:
+...Lec03EnvironmentVariablesTest -- MAVEN_HOME: C:\Program Files\maven\apache-maven-3.9.9
+...Lec03EnvironmentVariablesTest -- USERNAME: magadiflo
+...Lec03EnvironmentVariablesTest -- EFC_17216_1592913036: 1
+...Lec03EnvironmentVariablesTest -- ProgramFiles(x86): C:\Program Files (x86)
+...Lec03EnvironmentVariablesTest -- FPS_BROWSER_USER_PROFILE_STRING: Default
+...Lec03EnvironmentVariablesTest -- EFC_17216_3789132940: 1
+...Lec03EnvironmentVariablesTest -- PATHEXT: .COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH;.MSC
+...Lec03EnvironmentVariablesTest -- DriverData: C:\Windows\System32\Drivers\DriverData
+...Lec03EnvironmentVariablesTest -- OneDriveConsumer: C:\Users\magadiflo\OneDrive
+...Lec03EnvironmentVariablesTest -- IntelliJ IDEA Community Edition: C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3.5\bin;
+...Lec03EnvironmentVariablesTest -- MAVEN: C:\Program Files\maven\apache-maven-3.9.9
+...Lec03EnvironmentVariablesTest -- ProgramData: C:\ProgramData
+...Lec03EnvironmentVariablesTest -- ProgramW6432: C:\Program Files
+...Lec03EnvironmentVariablesTest -- HOMEPATH: \Users\magadiflo
+...Lec03EnvironmentVariablesTest -- PROCESSOR_IDENTIFIER: Intel64 Family 6 Model 165 Stepping 3, GenuineIntel
+...Lec03EnvironmentVariablesTest -- ProgramFiles: C:\Program Files
+...Lec03EnvironmentVariablesTest -- PUBLIC: C:\Users\Public
+...Lec03EnvironmentVariablesTest -- windir: C:\WINDOWS
+...Lec03EnvironmentVariablesTest -- =::: ::\
+...Lec03EnvironmentVariablesTest -- LOCALAPPDATA: C:\Users\magadiflo\AppData\Local
+...Lec03EnvironmentVariablesTest -- ChocolateyLastPathUpdate: 133949561237953560
+...Lec03EnvironmentVariablesTest -- USERDOMAIN: SysEngJava
+...Lec03EnvironmentVariablesTest -- FPS_BROWSER_APP_PROFILE_STRING: Internet Explorer
+...Lec03EnvironmentVariablesTest -- LOGONSERVER: \\SYSENGJAVA
+...Lec03EnvironmentVariablesTest -- JAVA_HOME: C:\Program Files\Java\jdk-21.0.6
+...Lec03EnvironmentVariablesTest -- OneDrive: C:\Users\magadiflo\OneDrive
+...Lec03EnvironmentVariablesTest -- APPDATA: C:\Users\magadiflo\AppData\Roaming
+...Lec03EnvironmentVariablesTest -- ChocolateyInstall: C:\ProgramData\chocolatey
+...Lec03EnvironmentVariablesTest -- CommonProgramFiles: C:\Program Files\Common Files
+...Lec03EnvironmentVariablesTest -- Path: C:\app\magadiflo\product\21c\dbhomeXE\bin;C:\WINDOWS\system32;C:\WINDOWS;C:\WINDOWS\System32\Wbem;C:\WINDOWS\System32\WindowsPowerShell\v1.0\;C:\WINDOWS\System32\OpenSSH\;C:\Program Files\Java\jdk-21.0.6\bin;%MAVEN_HOME%\bin;C:\cmder\vendor\bin;C:\curl-jq;C:\Users\magadiflo\AppData\Local\nvm;C:\nvm4w\nodejs;C:\Program Files (x86)\Microsoft SQL Server\140\Tools\Binn\;C:\Program Files\Microsoft SQL Server\140\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\140\DTS\Binn\;C:\Program Files\Microsoft SQL Server\140\DTS\Binn\;C:\Program Files\Microsoft SQL Server\Client SDK\ODBC\130\Tools\Binn\;C:\Program Files (x86)\Microsoft SQL Server\160\DTS\Binn\;C:\Program Files\MongoDB\Server\8.0\bin;C:\Program Files\mongosh-2.4.2-win32-x64\bin;C:\ProgramData\chocolatey\bin;C:\Program Files\Kubernetes\Minikube;C:\Program Files\Docker\Docker\resources\bin;C:\Program Files\Git\cmd;C:\Program Files\MySQL\MySQL Shell 8.0\bin\;C:\Users\magadiflo\AppData\Local\Microsoft\WindowsApps;C:\Users\magadiflo\AppData\Local\Programs\Microsoft VS Code\bin;C:\Program Files\JetBrains\IntelliJ IDEA Community Edition 2024.3.5\bin;;C:\Users\magadiflo\AppData\Local\GitHubDesktop\bin;C:\Users\magadiflo\AppData\Local\nvm;C:\nvm4w\nodejs
+...Lec03EnvironmentVariablesTest -- OS: Windows_NT
+...Lec03EnvironmentVariablesTest -- COMPUTERNAME: SYSENGJAVA
+...Lec03EnvironmentVariablesTest -- NVM_HOME: C:\Users\magadiflo\AppData\Local\nvm
+...Lec03EnvironmentVariablesTest -- PROCESSOR_REVISION: a503
+...Lec03EnvironmentVariablesTest -- CommonProgramW6432: C:\Program Files\Common Files
+...Lec03EnvironmentVariablesTest -- EFC_17216_2775293581: 1
+...Lec03EnvironmentVariablesTest -- ComSpec: C:\WINDOWS\system32\cmd.exe
+...Lec03EnvironmentVariablesTest -- EFC_17216_2283032206: 1
+...Lec03EnvironmentVariablesTest -- SystemRoot: C:\WINDOWS
+...Lec03EnvironmentVariablesTest -- TEMP: C:\Users\MAGADI~1\AppData\Local\Temp
+...Lec03EnvironmentVariablesTest -- HOMEDRIVE: C:
+...Lec03EnvironmentVariablesTest -- USERPROFILE: C:\Users\magadiflo
+...Lec03EnvironmentVariablesTest -- TMP: C:\Users\MAGADI~1\AppData\Local\Temp
+...Lec03EnvironmentVariablesTest -- CommonProgramFiles(x86): C:\Program Files (x86)\Common Files
+...Lec03EnvironmentVariablesTest -- NUMBER_OF_PROCESSORS: 8
+
+````
+
+### Usando variables de entorno
+
+````java
+class Lec03EnvironmentVariablesTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec03EnvironmentVariablesTest.class);
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "JAVA_HOME", matches = "C:\\\\Program Files\\\\Java\\\\jdk-21.0.6")
+    void shouldRunOnlyWhenJavaHomeIsSetToJdk_21_0_6() {
+        log.info("Ejecutando test porque cumple la condición de la variable de entorno");
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "NUMBER_OF_PROCESSORS", matches = "8")
+    void shouldRunOnlyWhenSystemHasEightProcessors() {
+        log.info("Ejecutando test solo si tiene 8 procesadores");
+    }
+}
+````
+
+📌 Para el caso de `JAVA_HOME`, se usan cuatro barras invertidas (`\\\\`) en el código fuente para que Java y la
+expresión regular interpreten correctamente el carácter `\`.
+
+- `Doble backslash (\\)` para que la expresión regular lo interprete como un carácter literal.
+- `Doble backslash adicional` para que Java compile correctamente el string.
+
+Resultado: `\\\\` en el código fuente para representar `\\` en la expresión regular, que a su vez representa `\` en la
+ruta real.
+
+### ⚙️ Creando nuestras propias variables de entorno
+
+````java
+class Lec03EnvironmentVariablesTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec03EnvironmentVariablesTest.class);
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "ENV", matches = "dev")
+    void shouldRunOnlyWhenEnvironmentVariableIsDev() {
+        log.info("Ejecutando test solo si la variable de entorno ENV del sistema operativo es dev");
+    }
+
+    @Test
+    @EnabledIfEnvironmentVariable(named = "ENV", matches = "prod")
+    void shouldRunOnlyWhenEnvironmentVariableIsProd() {
+        log.info("Ejecutando test solo si la variable de entorno ENV del sistema operativo es prod");
+    }
+}
+````
+
+Si ejecutamos todos los test, los anteriores no serán ejecutados, ya que no se encuentra la variable `ENV`.
+Para que funcione debemos crear nuestra propia variable de entorno en el `IDE`:
+
+1. En el apartado de ejecución del proyecto, clic en el menú y seleccionamos: `Edit configurations... ⚙️`
+2. En la parte derecha, sección `Environment variables`, agregamos: `ENV=prod`.
+3. Guardamos y ejecutamos seleccionando la configuración `Lec03EnvironmentVariablesTest`.
+
+   ![05.png](assets/05.png)
+
+📸 Resultado:
+
+- El test `shouldRunOnlyWhenEnvironmentVariableIsDev()` ❌ no se ejecuta.
+- El test `shouldRunOnlyWhenEnvironmentVariableIsProd()` ✅ sí se ejecuta.
+
+![06.png](assets/06.png)

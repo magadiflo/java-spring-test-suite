@@ -243,3 +243,172 @@ public class ExamServiceImpl implements ExamService {
 - `Uso de Streams en Java`: `findExamByName` filtra la lista de exámenes y devuelve el primero que coincida con el
   nombre. Si no encuentra ninguno, lanza una excepción `NoSuchElementException`.
 - `Buena práctica para pruebas`: Al no depender de una BD real, nuestras pruebas serán rápidas y fáciles de ejecutar.
+
+## 🧪 Realizando primeras pruebas con Mockito
+
+Nuestro objetivo es probar el método `findExamByName(String name)` de la clase `ExamServiceImpl`. Para ello,
+necesitamos crear su clase de test unitario.
+
+Podemos hacerlo manualmente o (más rápido 🚀) desde `IntelliJ IDEA`:
+
+1. Abrimos la clase `ExamServiceImpl`.
+2. Presionamos `Ctrl` + `Shift` + `T` → `Create New Test....`
+3. Aceptamos, y automáticamente tendremos creada la clase de prueba en el directorio `/test`
+
+````java
+package dev.magadiflo.mockito.app.service.impl;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class ExamServiceImplTest {
+
+}
+````
+
+### 🔍 Prueba inicial con JUnit + AssertJ (sin Mockito)
+
+Antes de usar Mockito, probemos con `JUnit + AssertJ`.
+
+> 📌 `Importante`: A partir de aquí usaremos `AssertJ` siempre que sea posible por su sintaxis más fluida. En los casos
+> donde `AssertJ` no sea suficiente, combinaremos con el assert de `JUnit`.
+
+````java
+class ExamServiceImplTest {
+    @Test
+    void shouldReturnExamWithCorrectIdAndNameWhenSearchingByName() {
+        ExamRepository examRepository = new ExamRepositoryImpl();
+        ExamService examService = new ExamServiceImpl(examRepository);
+
+        Exam exam = examService.findExamByName("Aritmética");
+
+        assertThat(exam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName)
+                .containsExactly(1L, "Aritmética");
+    }
+}
+````
+
+- ✅ Aquí usamos la implementación real del repositorio.
+- ❌ El problema es que si queremos probar escenarios diferentes (ej: lista vacía), tendríamos que modificar la
+  implementación real del repositorio, lo cual no es correcto en pruebas unitarias.
+
+### 🎭 ¿Por qué usar Mockito?
+
+- Necesitamos probar la clase `ExamServiceImpl` en aislamiento.
+- Si dependemos de la implementación real de `ExamRepository`, nuestras pruebas dejan de ser unitarias.
+- Con `Mockito` podemos simular (`mockear`) el comportamiento del repositorio:
+    - Qué retorna `findAll()`.
+    - Qué pasa cuando la lista está vacía, etc.
+
+> Así mantenemos la prueba enfocada en el servicio y no en la implementación real del repositorio.
+
+### 🛠️ Primer Test Unitario con Mockito
+
+````java
+public class ExamRepositoryImpl implements ExamRepository {
+    @Override
+    public List<Exam> findAll() {
+        return List.of();
+    }
+}
+````
+
+Ahora sí, llegó el momento de crear nuestro **primer Test Unitario usando Mockito**:
+
+````java
+
+class ExamServiceImplTest {
+    @Test
+    void shouldReturnOptionalExamWithCorrectIdAndNameWhenRepositoryIsMocked() {
+        // (1) Creamos el mock del repositorio
+        ExamRepository examRepository = Mockito.mock(ExamRepository.class);
+        ExamService examService = new ExamServiceImpl(examRepository);
+
+        // Datos simulados
+        List<Exam> exams = List.of(
+                new Exam(1L, "Aritmética"),
+                new Exam(2L, "Geometría"),
+                new Exam(3L, "Álgebra"),
+                new Exam(4L, "Trigonometría"),
+                new Exam(5L, "Programación"),
+                new Exam(6L, "Bases de Datos"),
+                new Exam(7L, "Estructura de datos"),
+                new Exam(8L, "Java 17")
+        );
+
+        // (2) Definimos el comportamiento del mock
+        Mockito.when(examRepository.findAll()).thenReturn(exams); //(2)
+
+        // Ejecutamos el método a probar
+        Exam exam = examService.findExamByName("Aritmética");
+
+        // Verificamos el resultado
+        assertThat(exam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName)
+                .containsExactly(1L, "Aritmética");
+    }
+}
+````
+
+Explicación:
+
+- `(1)` → `Mockito.mock(ExamRepository.class)` crea una implementación simulada de `ExamRepository`.
+- `(2)` → `when(...).thenReturn(...)` define el comportamiento esperado: cuando se invoque `findAll()`, devolverá
+  nuestra lista predefinida.
+
+📌 Nota:
+> - `Mockito` solo `puede mockear` métodos `públicos` o `default`.
+> - `No funciona` con métodos `privados`, `estáticos` o `finales`.
+
+### 🔄 Mockeando con la implementación concreta
+
+Incluso podemos mockear una clase concreta (`ExamRepositoryImpl`) en lugar de la interfaz.
+
+````java
+class ExamServiceImplTest {
+    @Test
+    void shouldReturnOptionalExamWithCorrectIdAndNameWhenRepositoryIsMocked() {
+        ExamRepository examRepository = Mockito.mock(ExamRepositoryImpl.class);
+    }
+}
+````
+
+> 👉 Sin embargo, `es mejor práctica mockear interfaces`. Esto mantiene las pruebas más limpias y desacopladas de
+> implementaciones específicas.
+
+### ⚠️ Segundo Test: lista vacía en el repositorio
+
+¿Qué pasa si el repositorio devuelve una lista vacía?
+
+````java
+class ExamenServiceImplTest {
+    @Test
+    void shouldThrowNoSuchElementExceptionWithCorrectMessageWhenExamIsNotFound() {
+        ExamRepository examRepository = Mockito.mock(ExamRepository.class);
+        ExamService examService = new ExamServiceImpl(examRepository);
+
+        // Simulamos que el repositorio no tiene exámenes
+        Mockito.when(examRepository.findAll()).thenReturn(List.of());
+
+        // Verificamos que el servicio lanza la excepción esperada
+        assertThatThrownBy(() -> examService.findExamByName("Aritmética"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No existe el examen Aritmética");
+
+    }
+}
+````
+
+- Aquí ya no necesitamos modificar `ExamRepositoryImpl`.
+- Simplemente, decimos con `Mockito` qué debe pasar cuando `findAll()` devuelva una lista vacía.
+
+### 🔑 Conclusión
+
+- Las pruebas unitarias deben enfocarse en la clase bajo prueba (`SUT: System Under Test`).
+- Con `Mockito` podemos aislar dependencias y simular distintos escenarios.
+- Esto nos da:
+    - Pruebas más rápidas ⚡
+    - Código desacoplado 🧩
+    - Escenarios flexibles 🎭

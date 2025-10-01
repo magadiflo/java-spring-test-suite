@@ -101,6 +101,28 @@ class Lec07ParameterizedTest {
                 .isGreaterThan(BigDecimal.ZERO);
     }
 
+    @ParameterizedTest(name = "número {index} ejecutando con valor {argumentsWithNames}")
+    @CsvFileSource(resources = "/csv/data-multiple-values.csv")
+    void shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvFileSource(String balance, String amount, String expected, String actual) {
+        Account account = new Account("Martín", new BigDecimal(balance));
+        account.debit(new BigDecimal(amount));
+        account.setPerson(actual);
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertNotNull(account.getPerson());
+        assertEquals(expected, account.getPerson());
+        assertTrue(account.getBalance().compareTo(BigDecimal.ZERO) > 0);
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isGreaterThan(BigDecimal.ZERO);
+        assertThat(account.getPerson())
+                .isNotNull()
+                .isEqualTo(expected);
+    }
+
     private static List<String> amountList() {
         return List.of("100", "200", "300", "500", "700", "1000", "2000");
     }

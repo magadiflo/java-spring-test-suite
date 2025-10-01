@@ -2336,3 +2336,69 @@ class Lec07ParameterizedTest {
 ````
 
 👉 Este enfoque es flexible porque podemos generar datos dinámicamente (listas, streams, consultas a BD, etc.).
+
+## ⚡ Pruebas parametrizadas con @ParameterizedTest (parte 3)
+
+Además de trabajar con valores simples, también podemos probar múltiples parámetros en un mismo test usando un archivo
+CSV 📂.
+
+Para ello, crearemos un nuevo archivo dentro de `src/test/resources/csv` llamado `data-multiple-values.csv` con el
+siguiente contenido.
+
+````
+200,100,Alicia,Alicha
+250,200,Pepe,Pepe
+300.50,300,María,María
+400,399,Carlos,Karlos
+750,700,Luca,Lucas
+1000.50,1000,Cata,Cata
+````
+
+Cada línea representa un conjunto de valores que se inyectarán en nuestro método de prueba.
+
+### 📝 Implementación del test
+
+````java
+class Lec07ParameterizedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec07ParameterizedTest.class);
+
+    @ParameterizedTest(name = "número {index} ejecutando con valor {argumentsWithNames}")
+    @CsvFileSource(resources = "/csv/data-multiple-values.csv")
+    void shouldDebitAccountWithVariousAmountsAndValidatePositiveBalanceCsvFileSource(String balance, String amount, String expected, String actual) {
+        Account account = new Account("Martín", new BigDecimal(balance));
+        account.debit(new BigDecimal(amount));
+        account.setPerson(actual);
+
+        // JUnit 5
+        assertNotNull(account.getBalance());
+        assertNotNull(account.getPerson());
+        assertEquals(expected, account.getPerson());
+        assertTrue(account.getBalance().compareTo(BigDecimal.ZERO) > 0);
+
+        // AssertJ
+        assertThat(account.getBalance())
+                .isNotNull()
+                .isGreaterThan(BigDecimal.ZERO);
+        assertThat(account.getPerson())
+                .isNotNull()
+                .isEqualTo(expected);
+    }
+}
+````
+
+🔍 Explicación
+
+- `@CsvFileSource` carga automáticamente cada fila del archivo CSV y la transforma en parámetros para el método de
+  prueba.
+- En este ejemplo:
+    - `balance` = saldo inicial de la cuenta.
+    - `amount` = monto a debitar.
+    - `expected` = nombre esperado después de la operación.
+    - `actual` = valor real asignado al objeto (para simular variaciones).
+- El parámetro `name` en la anotación permite personalizar cómo se mostrará cada repetición en la consola 🖥️, indicando
+  los valores actuales que se están usando.
+
+> 📌 En resumen: Con `@CsvFileSource` podemos crear pruebas más completas, reutilizando un archivo externo con múltiples
+> valores y escenarios en un solo método de test. Esto mejora la legibilidad, facilita la mantenibilidad y nos permite
+> expandir los casos de prueba sin modificar el código.

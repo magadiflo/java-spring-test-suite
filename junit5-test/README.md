@@ -1902,3 +1902,142 @@ class Lec04AssumptionsProgrammaticallyTest {
 
 - Si `ENV=qa` → se ejecuta el bloque del lambda.
 - Si `ENV≠qa` → se omite el bloque, pero el test igual aparece como ejecutado ✅.
+
+## 🧩 Clases de test anidadas usando @Nested
+
+La anotación `@Nested` permite `agrupar pruebas dentro de clases anidadas`. Esto facilita la organización lógica de los
+tests y mejora la legibilidad, especialmente cuando tenemos distintos contextos o condiciones de ejecución.
+
+📌 Reglas importantes
+
+- Cada clase anidada puede tener sus propios `hooks locales` (`@BeforeEach`, `@AfterEach`).
+- Los hooks de `nivel global` (`@BeforeAll`, `@AfterAll`) solo se aplican en la clase principal (no en las anidadas).
+- Los resultados en consola muestran claramente el `método fallido y la clase contenedora`, lo que facilita la
+  trazabilidad.
+
+### Ejemplo de tests agrupados con condiciones
+
+````java
+class Lec05NestedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec05NestedTest.class);
+
+    @Nested
+    class OperatingSystemTest {
+        @Test
+        @EnabledOnOs(OS.WINDOWS)
+        void shouldRunOnlyOnWindowsOs() {
+            log.info("Ejecutando test para Windows");
+        }
+
+        @Test
+        @EnabledOnOs(value = OS.LINUX, disabledReason = "Test que se ejecuta solo en Linux")
+        void shouldRunOnlyOnLinuxOs() {
+            log.info("Ejecutando test para Linux");
+        }
+
+        @Test
+        @DisabledOnOs(value = OS.WINDOWS, disabledReason = "Si es windows este test se deshabilitará")
+        void shouldNotRunOnWindowsOs() {
+            log.info("Este test no se ejecuta en Windows");
+        }
+    }
+
+    @Nested
+    class JavaVersionTest {
+
+        @Test
+        @EnabledOnJre(JRE.JAVA_8)
+        void shouldRunOnlyOnJava8Runtime() {
+            log.info("Test que se ejecuta solo si usa java 8");
+        }
+
+        @Test
+        @EnabledOnJre(JRE.JAVA_21)
+        void shouldRunOnlyOnJava21Runtime() {
+            log.info("Test que se ejecuta solo si usa java 21");
+        }
+    }
+
+    @Nested
+    class SystemPropertiesTest {
+
+        @Test
+        @EnabledIfSystemProperty(named = "java.version", matches = "17.0.4.1")
+        void shouldRunOnlyWhenJavaVersionIs_17_0_4_1() {
+            log.info("Ejecutando test para la versión exacta de java 17.0.4.1");
+        }
+
+        @Test
+        @DisabledIfSystemProperty(named = "os.arch", matches = ".*32.*")
+        void shouldNotRunOn32BitArchitecture() {
+            log.info("Solo se ejecutará si la arquitectura del SO no es de 32bits");
+        }
+
+        @Test
+        @EnabledIfSystemProperty(named = "ENV", matches = "dev")
+        void shouldRunOnlyWhenEnvPropertyIsDev() {
+            log.info("Test ejecutado solo si existe la propiedad de sistema DEV con valor dev");
+        }
+    }
+
+    @Nested
+    class EnvironmentVariablesTest {
+
+        @Test
+        @EnabledIfEnvironmentVariable(named = "JAVA_HOME", matches = "C:\\\\Program Files\\\\Java\\\\jdk-17.0.4.1")
+        void shouldRunOnlyWhenJavaHomeIsSetToJdk_17_0_4_1() {
+            log.info("Ejecutando test porque cumple la condición de la variable de entorno");
+        }
+
+        @Test
+        @EnabledIfEnvironmentVariable(named = "NUMBER_OF_PROCESSORS", matches = "8")
+        void shouldRunOnlyWhenSystemHasEightProcessors() {
+            log.info("Ejecutando test solo si tiene 8 procesadores");
+        }
+
+        @Test
+        @EnabledIfEnvironmentVariable(named = "ENV", matches = "dev")
+        void shouldRunOnlyWhenEnvironmentVariableIsDev() {
+            log.info("Ejecutando test solo si su variable de entorno del SO es dev");
+        }
+
+        @Test
+        @EnabledIfEnvironmentVariable(named = "ENV", matches = "prod")
+        void shouldRunOnlyWhenEnvironmentVariableIsProd() {
+            log.info("Ejecutando test solo si su variable de entorno del SO es prod");
+        }
+    }
+}
+````
+
+📸 Ejecución en `IntelliJ IDEA`:
+
+![07.png](assets/07.png)
+
+### ❌ Manejo de fallos en clases anidadas
+
+Si un método falla dentro de una clase anidada, en la consola se muestra tanto el método fallido como la clase que lo
+contiene, lo que facilita identificar el contexto.
+
+````java
+class Lec05NestedTest {
+
+    private static final Logger log = LoggerFactory.getLogger(Lec05NestedTest.class);
+
+    @Nested
+    class JavaVersionTest {
+
+        @Test
+        void failTheTest() {
+            // JUnit 5
+            Assertions.fail("Fallando para ver el comportamiento");
+        }
+    }
+}
+````
+
+📸 Resultado en consola:
+
+![08.png](assets/08.png)
+

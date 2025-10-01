@@ -179,3 +179,67 @@ public interface ExamService {
 🔑 Resumen hasta aquí:
 > Hemos creado la base de nuestro proyecto con una entidad (`Exam`), un repositorio (`ExamRepository`) y un servicio
 > (`ExamService`). El siguiente paso será implementar estas interfaces y empezar a probarlas con Mockito 🧪.
+
+## ⚙️ Implementando la capa Service
+
+Para poder realizar nuestras pruebas con `Mockito`, necesitamos una implementación concreta tanto del `ExamRepository`
+como del `ExamService`.
+
+### 📂 Implementación del ExamRepository
+
+El repositorio será nuestra fuente de datos simulada. En lugar de conectarnos a una base de datos real, devolveremos
+una lista de exámenes `hardcodeada`.
+
+````java
+public class ExamRepositoryImpl implements ExamRepository {
+    @Override
+    public List<Exam> findAll() {
+        return List.of(
+                new Exam(1L, "Aritmética"),
+                new Exam(2L, "Geometría"),
+                new Exam(3L, "Álgebra"),
+                new Exam(4L, "Trigonometría"),
+                new Exam(5L, "Programación"),
+                new Exam(6L, "Bases de Datos"),
+                new Exam(7L, "Estructura de datos"),
+                new Exam(8L, "Java 17")
+        );
+    }
+}
+````
+
+📌 Nota:
+> En un proyecto real, `ExamRepository` se conectaría a una base de datos mediante `JDBC`, `JPA`, `Hibernate`, etc.
+> Aquí lo implementamos de forma estática para centrarnos en las pruebas con `Mockito`.
+
+### 📂 Implementación del ExamService
+
+El servicio se encarga de la lógica de negocio. En este caso, implementaremos el método `findExamByName(String name)`
+que busca un examen dentro de la lista proporcionada por el repositorio.
+
+````java
+public class ExamServiceImpl implements ExamService {
+
+    private final ExamRepository examRepository;
+
+    public ExamServiceImpl(ExamRepository examRepository) {
+        this.examRepository = examRepository;
+    }
+
+    @Override
+    public Exam findExamByName(String name) {
+        return this.examRepository.findAll().stream()
+                .filter(exam -> exam.getName().equals(name))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No existe el examen " + name));
+    }
+}
+````
+
+🔑 Puntos importantes a destacar
+
+- `Inyección de dependencias`: `ExamServiceImpl` recibe un `ExamRepository` en su constructor. Esto nos permitirá
+  mockear el repositorio en las pruebas unitarias, aislando la lógica del servicio.
+- `Uso de Streams en Java`: `findExamByName` filtra la lista de exámenes y devuelve el primero que coincida con el
+  nombre. Si no encuentra ninguno, lanza una excepción `NoSuchElementException`.
+- `Buena práctica para pruebas`: Al no depender de una BD real, nuestras pruebas serán rápidas y fáciles de ejecutar.

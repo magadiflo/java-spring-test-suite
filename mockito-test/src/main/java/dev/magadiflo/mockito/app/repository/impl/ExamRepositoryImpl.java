@@ -1,0 +1,22 @@
+package dev.magadiflo.mockito.app.repository.impl;
+
+import dev.magadiflo.mockito.app.model.Exam;
+import dev.magadiflo.mockito.app.repository.ExamRepository;
+
+import java.util.List;
+
+public class ExamRepositoryImpl implements ExamRepository {
+    @Override
+    public List<Exam> findAll() {
+        return List.of(
+                new Exam(1L, "Aritmética"),
+                new Exam(2L, "Geometría"),
+                new Exam(3L, "Álgebra"),
+                new Exam(4L, "Trigonometría"),
+                new Exam(5L, "Programación"),
+                new Exam(6L, "Bases de Datos"),
+                new Exam(7L, "Estructura de datos"),
+                new Exam(8L, "Java 17")
+        );
+    }
+}

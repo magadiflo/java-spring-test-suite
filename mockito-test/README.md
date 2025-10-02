@@ -1257,3 +1257,67 @@ class ExamServiceImplExtensionTest {
 - Evita mezclar matchers y valores reales en una misma invocación, porque `Mockito` podría quejarse
   Ej.: `verify(repo).saveExam(eq(exam), true)` → aquí ambos deben ser matchers, es decir en realidad debería ser así
   `verify(repo).saveExam(eq(exam), eq(true))`, ambos parámetros son `Argument Matchers` y `Mockito` ya no protesta.
+
+## Argument Matchers personalizados con clases
+
+Hasta ahora hemos usado `Argument Matchers` provistos por `Mockito` (`any()`, `eq()`, `isNull()`, `argThat(...)` con
+expresiones lambda, etc.). Sin embargo, en ocasiones necesitamos encapsular validaciones más específicas o generar
+mensajes de error más claros cuando las verificaciones fallen. Para eso podemos crear nuestros propios matchers.
+
+### Creando un ArgumentMatcher personalizado
+
+Podemos implementar la interfaz `ArgumentMatcher<T>` para definir nuestra lógica de validación. En este ejemplo,
+verificamos que el ID de un examen sea un número positivo y no nulo:
+
+````java
+public class ValidExamIdMatcher implements ArgumentMatcher<Long> {
+    private Long examId;
+
+    @Override
+    public boolean matches(Long examId) {
+        this.examId = examId;
+        return this.examId != null && this.examId > 0;
+    }
+
+    @Override
+    public String toString() {
+        return String.format("El id del examen enviado fue %d, se esperaba que fuera un entero positivo", this.examId);
+    }
+}
+````
+
+Detalles importantes:
+
+- `matches(...)`: Define la lógica para aceptar o rechazar el argumento.
+- `toString()`: Sobrescribir este método es muy útil, ya que si la verificación falla, `Mockito` mostrará este mensaje,
+  haciendo más fácil identificar el error.
+- Tipo genérico (`Long`): Debe coincidir con el tipo del argumento del método a verificar. En nuestro caso,
+  `findQuestionByExamId(Long examId)`.
+
+### Uso en un test
+
+Ahora aplicamos nuestro `ValidExamIdMatcher` en un test unitario:
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldVerifyCorrectExamIdIsUsedWhenFetchingQuestions_ArgumentMatcher() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getExamsWithNegativeIds());
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).thenReturn(ExamFixtures.getQuestions());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        Mockito.verify(this.examRepository).findAll();
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.argThat(new ValidExamIdMatcher()));
+    }
+}
+````
+
+### Ventajas de un matcher personalizado
+
+1. Reutilización: Podemos usar `ValidExamIdMatcher` en múltiples tests sin repetir lógica.
+2. Mensajes de error claros: Gracias al `toString()` sobreescrito, los fallos serán más descriptivos.
+3. Mayor expresividad: El test se vuelve más legible, ya que el matcher describe la intención del chequeo.
+

@@ -4,6 +4,7 @@ import dev.magadiflo.mockito.app.fixtures.ExamFixtures;
 import dev.magadiflo.mockito.app.model.Exam;
 import dev.magadiflo.mockito.app.repository.ExamRepository;
 import dev.magadiflo.mockito.app.repository.QuestionRepository;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -167,5 +168,17 @@ class ExamServiceImplExtensionTest {
         Mockito.verify(this.examRepository).findAll();
         Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.argThat(arg -> arg != null && arg.equals(1L)));
         Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.eq(1L));
+    }
+
+    @Test
+    @Disabled
+    void shouldVerifyCorrectExamIdIsUsedWhenFetchingQuestions_ArgumentMatcher() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getExamsWithNegativeIds());
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).thenReturn(ExamFixtures.getQuestions());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        Mockito.verify(this.examRepository).findAll();
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.argThat(new ValidExamIdMatcher()));
     }
 }

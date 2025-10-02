@@ -4,6 +4,7 @@ import dev.magadiflo.mockito.app.fixtures.ExamFixtures;
 import dev.magadiflo.mockito.app.model.Exam;
 import dev.magadiflo.mockito.app.repository.ExamRepository;
 import dev.magadiflo.mockito.app.repository.QuestionRepository;
+import dev.magadiflo.mockito.app.util.ValidExamIdMatcher;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

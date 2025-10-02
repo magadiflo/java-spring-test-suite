@@ -1506,3 +1506,5 @@ class ExamServiceImplExtensionTest {
 - `Con anotación`: se declara una sola vez como atributo con `@Captor` y `Mockito` lo gestiona.
 
 Ambas formas son válidas, pero `@Captor` hace el test más limpio y elimina repetición de código.
+
+## 

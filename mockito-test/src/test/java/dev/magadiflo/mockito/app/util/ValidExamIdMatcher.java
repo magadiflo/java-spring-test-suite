@@ -1,4 +1,4 @@
-package dev.magadiflo.mockito.app.service.impl;
+package dev.magadiflo.mockito.app.util;
 
 import org.mockito.ArgumentMatcher;
 

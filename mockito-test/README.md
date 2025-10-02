@@ -735,3 +735,118 @@ class ExamenServiceImplTest {
 - ✅ Mantenimiento sencillo → si cambian los datos, se actualiza en un solo lugar.
 - ✅ Claridad → los tests se enfocan en la lógica, no en la preparación de datos.
 - ✅ Consistencia → todos los tests usan los mismos datos base.
+
+## 🧪 Probando nuevas dependencias mock
+
+En esta sección vamos a probar el método `findExamByNameWithQuestions(String name)`, que ahora depende de dos
+repositorios:
+
+- `ExamRepository` → Obtiene el examen por nombre.
+- `QuestionRepository` → Busca las preguntas asociadas al examen.
+
+### ✅ Caso 1: Encontrar examen con preguntas
+
+````java
+class ExamServiceImplTest {
+
+    private ExamRepository examRepository;
+    private QuestionRepository questionRepository;
+    private ExamService examService;
+
+    @BeforeEach
+    void setUp() {
+        this.examRepository = Mockito.mock(ExamRepository.class);
+        this.questionRepository = Mockito.mock(QuestionRepository.class);
+        this.examService = new ExamServiceImpl(this.examRepository, this.questionRepository);
+    }
+
+    @Test
+    void shouldReturnExamWithQuestionsWhenSearchingByName() {
+        // (1) Stub del repositorio de exámenes
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        // (2) Stub del repositorio de preguntas (para cualquier ID)
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).thenReturn(ExamFixtures.getQuestions());
+
+        // (3) Ejecución del método a probar
+        Exam exam = this.examService.findExamByNameWithQuestions("Geometría");
+
+        // Verificación
+        assertThat(exam.getQuestions())
+                .hasSize(10)
+                .contains("Pregunta 10");
+
+    }
+}
+````
+
+📌 Explicación paso a paso:
+
+1. `(1) Stub del examRepository.findAll()` → simulamos que devuelve todos los exámenes (`ExamFixtures.getAllExams()`).
+2. `(2) Stub del questionRepository.findQuestionByExamId(anyLong())` → simulamos que devuelve siempre una lista de 10
+   preguntas (`ExamFixtures.getQuestions()`).
+3. `(3) Ejecutamos el método real findExamByNameWithQuestions("Geometría")`
+    - Internamente:
+        - Busca el examen en el repositorio de exámenes.
+        - Si existe, consulta sus preguntas en questionRepository.
+        - Retorna un objeto Exam completo con preguntas.
+
+### Diferencias entre Stub, Mock y Spy en Mockito
+
+- `Stub`: Configurar la salida de un mock (qué debe devolver). Objeto que simula una respuesta predefinida.
+- `Mock`: Objeto creado por Mockito. Lo usamos tanto para stubbing como para verificación.
+- `Spy`: Es un objeto real "parcialmente espiado". Ejecuta el código verdadero pero podemos sobreescribir ciertos
+  métodos.
+
+⚡ Aunque en el día a día muchos dicen `mockear` para todo, lo correcto es:
+
+- `Stubear` cuando configuramos la salida.
+- Verificar cuando comprobamos la interacción.
+- El término `mock` se refiere al objeto completo creado por `Mockito`.
+
+### ❌ Caso 2: No se encuentra el examen
+
+Ahora probemos el escenario en que no existen exámenes en el repositorio. En este caso, el método debe lanzar una
+excepción `NoSuchElementException`.
+
+````java
+class ExamServiceImplTest {
+
+    private ExamRepository examRepository;
+    private QuestionRepository questionRepository;
+    private ExamService examService;
+
+    @BeforeEach
+    void setUp() {
+        this.examRepository = Mockito.mock(ExamRepository.class);
+        this.questionRepository = Mockito.mock(QuestionRepository.class);
+        this.examService = new ExamServiceImpl(this.examRepository, this.questionRepository);
+    }
+
+    @Test
+    void shouldFailToFindExamByNameAndThrowExceptionWhenRepositoryIsEmpty() {
+        // Stub: repositorio de exámenes vacío
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getEmptyExams());
+
+        // 🚨 No es necesario stubear questionRepository en este caso
+
+        // Verificación de excepción
+        assertThatThrownBy(() -> this.examService.findExamByNameWithQuestions("Aritmética"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No existe el examen Aritmética");
+    }
+}
+````
+
+💡 Observa que aquí no necesitamos stubear `questionRepository`. ¿Por qué? Porque la excepción ocurre antes de llegar a
+la consulta de preguntas.
+
+````bash
+Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).thenReturn(ExamFixtures.getQuestions());
+````
+
+🎯 Conclusiones
+
+- Con múltiples mocks, podemos simular el comportamiento de diferentes repositorios de los que depende nuestro servicio.
+- Solo se mockean las dependencias necesarias para el flujo que se está probando.
+- Los `Fixtures (ExamFixtures)` reducen la duplicación de datos y hacen los tests más claros.

@@ -9,7 +9,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import java.util.List;
 import java.util.NoSuchElementException;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -45,6 +44,29 @@ class ExamServiceImplTest {
         Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getEmptyExams());
 
         assertThatThrownBy(() -> this.examService.findExamByName("Aritmética"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No existe el examen Aritmética");
+
+    }
+
+    @Test
+    void shouldReturnExamWithQuestionsWhenSearchingByName() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).thenReturn(ExamFixtures.getQuestions());
+
+        Exam exam = this.examService.findExamByNameWithQuestions("Geometría");
+
+        assertThat(exam.getQuestions())
+                .hasSize(10)
+                .contains("Pregunta 10");
+
+    }
+
+    @Test
+    void shouldFailToFindExamByNameAndThrowExceptionWhenRepositoryIsEmpty() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getEmptyExams());
+
+        assertThatThrownBy(() -> this.examService.findExamByNameWithQuestions("Aritmética"))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessage("No existe el examen Aritmética");
 

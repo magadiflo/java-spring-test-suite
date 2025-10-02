@@ -497,3 +497,106 @@ class ExamServiceImplTest {
 
 - `Ventaja adicional`: Si en el futuro el `ExamServiceImpl` tuviera más dependencias, solo tendríamos que configurarlas
   una vez dentro de `setUp()` en lugar de repetirlo en cada test.
+
+## ➕ Agregando nuevas dependencias mock
+
+Hasta ahora nuestro servicio `ExamServiceImpl` dependía únicamente de `ExamRepository`. Sin embargo, en un escenario
+más realista, un examen debe estar asociado a un conjunto de preguntas. Para manejar esta nueva relación, crearemos un
+nuevo repositorio y actualizaremos la lógica del servicio.
+
+### 🗂️ 1. Creación del repositorio de preguntas
+
+Definimos una nueva interfaz `QuestionRepository` con un método que permitirá obtener las preguntas de un examen a
+partir de su identificador:
+
+````java
+public interface QuestionRepository {
+    List<String> findQuestionByExamId(Long examId);
+}
+````
+
+### 🗂️ 2. Extensión del contrato del servicio
+
+Ampliamos la interfaz ExamService para que ahora, además de buscar un examen por nombre, podamos obtener también sus
+preguntas:
+
+````java
+public interface ExamService {
+    Exam findExamByName(String name);
+
+    Exam findExamByNameWithQuestions(String name);
+}
+````
+
+### 🗂️ 3. Implementación en ExamServiceImpl
+
+En la clase de implementación debemos:
+
+- Agregar una nueva dependencia: `QuestionRepository`.
+- Modificar el constructor para inyectar esa dependencia.
+- Implementar el nuevo método `findExamByNameWithQuestions(String name)`.
+
+````java
+public class ExamServiceImpl implements ExamService {
+
+    private final ExamRepository examRepository;
+    private final QuestionRepository questionRepository;
+
+    public ExamServiceImpl(ExamRepository examRepository, QuestionRepository questionRepository) {
+        this.examRepository = examRepository;
+        this.questionRepository = questionRepository;
+    }
+
+    @Override
+    public Exam findExamByName(String name) {
+        return this.examRepository.findAll().stream()
+                .filter(exam -> exam.getName().equals(name))
+                .findFirst()
+                .orElseThrow(() -> new NoSuchElementException("No existe el examen " + name));
+    }
+
+    @Override
+    public Exam findExamByNameWithQuestions(String name) {
+        Exam exam = this.findExamByName(name);
+        List<String> questions = this.questionRepository.findQuestionByExamId(exam.getId());
+        exam.setQuestions(questions);
+        return exam;
+    }
+}
+````
+
+📌 Claves del nuevo método:
+
+- Primero reutiliza `findExamByName()` para localizar el examen.
+- Luego consulta el `QuestionRepository` para obtener sus preguntas.
+- Finalmente, retorna el examen con la lista de preguntas asociadas.
+- Si el examen no existe, lanza una `NoSuchElementException` como antes.
+
+````java
+class ExamServiceImplTest {
+
+    private ExamRepository examRepository;
+    private QuestionRepository questionRepository;
+    private ExamService examService;
+
+    @BeforeEach
+    void setUp() {
+        this.examRepository = Mockito.mock(ExamRepository.class);
+        this.questionRepository = Mockito.mock(QuestionRepository.class);
+        this.examService = new ExamServiceImpl(this.examRepository, this.questionRepository);
+    }
+    //...
+}
+````
+
+### 🚀 Conclusión
+
+Con este cambio hemos:
+
+- Introducido un nuevo repositorio para manejar preguntas.
+- Ampliado el contrato del servicio (`ExamService`).
+- Adaptado la implementación para trabajar con múltiples dependencias.
+- Preparado la clase de pruebas para simular ambas dependencias con `Mockito`.
+
+Esto sienta las bases para los próximos tests, donde ya no solo validaremos la existencia del examen, sino también la
+correcta asociación de preguntas.

@@ -2,6 +2,7 @@ package dev.magadiflo.mockito.app.service.impl;
 
 import dev.magadiflo.mockito.app.model.Exam;
 import dev.magadiflo.mockito.app.repository.ExamRepository;
+import dev.magadiflo.mockito.app.repository.QuestionRepository;
 import dev.magadiflo.mockito.app.service.ExamService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,12 +17,14 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class ExamServiceImplTest {
 
     private ExamRepository examRepository;
+    private QuestionRepository questionRepository;
     private ExamService examService;
 
     @BeforeEach
     void setUp() {
         this.examRepository = Mockito.mock(ExamRepository.class);
-        this.examService = new ExamServiceImpl(this.examRepository);
+        this.questionRepository = Mockito.mock(QuestionRepository.class);
+        this.examService = new ExamServiceImpl(this.examRepository, this.questionRepository);
     }
 
     @Test

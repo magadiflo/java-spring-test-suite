@@ -1444,3 +1444,65 @@ Mockito.when(this.questionRepository.findQuestionByExamId(1L)).thenReturn(ExamFi
 > Funciona porque Mockito devuelve una lista vacía por defecto para el mock
 > `questionRepository.findQuestionByExamId(...)`, y nuestro test no necesita usar ese retorno, solo comprobar que el
 > método se llamó con el id correcto. El `ArgumentCaptor` no depende del valor retornado, solo de la invocación misma.
+
+## 🎯 Argument Capture con anotación `@Captor`
+
+En la lección anterior vimos cómo crear manualmente un `ArgumentCaptor` dentro del propio método de test.
+Ahora, para simplificar el código y hacerlo más legible, podemos apoyarnos en la anotación `@Captor`, que nos permite
+inyectar directamente un `ArgumentCaptor` en la clase de prueba.
+
+📌 Ventaja principal:
+
+> Ya no necesitas declarar el captor dentro del test con `ArgumentCaptor.forClass(...)`, sino que lo defines una sola
+> vez como atributo y `Mockito` lo inicializa por ti.
+
+### 📝 Ejemplo de uso con @Captor
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+
+    @Mock
+    private ExamRepository examRepository;
+    @Mock
+    private QuestionRepository questionRepository;
+    @InjectMocks
+    private ExamServiceImpl examService;
+
+    @Captor
+    private ArgumentCaptor<Long> examIdCaptor; //Se inicializa automáticamente
+
+    @Test
+    void shouldCaptureCorrectExamIdWhenFetchingQuestionsByName() {
+        // Given
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        // When
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        // Then
+        Mockito.verify(this.questionRepository).findQuestionByExamId(this.examIdCaptor.capture());
+        assertThat(this.examIdCaptor.getValue()).isEqualTo(1L);
+    }
+}
+````
+
+🔍 Explicación paso a paso
+
+1. `@Captor`. Declara el `ArgumentCaptor` como atributo de la clase de prueba. Mockito lo inyecta al iniciar el contexto
+   de prueba.
+2. `Stub del repositorio`. Con `when(this.examRepository.findAll()).thenReturn(...)` simulamos que existen exámenes en
+   la base de datos.
+3. `Ejecución real del servicio`. Se invoca `findExamByNameWithQuestions("Aritmética")`, que internamente obtiene el
+   examen y luego llama al repositorio de preguntas.
+4. `Captura del argumento`. Con `examIdCaptor.capture()` interceptamos el valor real usado en la invocación
+   `findQuestionByExamId(...)`.
+5. `Assertion`. Verificamos que el id capturado (`captor.getValue()`) coincide con el esperado: `1L`.
+
+💡 Diferencia con la versión manual
+
+- `Manual`: se declara dentro del test `ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);`
+- `Con anotación`: se declara una sola vez como atributo con `@Captor` y `Mockito` lo gestiona.
+
+Ambas formas son válidas, pero `@Captor` hace el test más limpio y elimina repetición de código.

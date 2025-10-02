@@ -7,10 +7,7 @@ import dev.magadiflo.mockito.app.repository.QuestionRepository;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
+import org.mockito.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.mockito.stubbing.Answer;
@@ -29,6 +26,9 @@ class ExamServiceImplExtensionTest {
     private QuestionRepository questionRepository;  // Interfaz
     @InjectMocks
     private ExamServiceImpl examService;            // Implementación concreta
+
+    @Captor
+    private ArgumentCaptor<Long> examIdCaptor;
 
     @Test
     void shouldReturnOptionalExamWithCorrectIdAndNameWhenRepositoryIsMocked() {
@@ -193,5 +193,15 @@ class ExamServiceImplExtensionTest {
 
         Mockito.verify(this.questionRepository).findQuestionByExamId(captor.capture());
         assertThat(captor.getValue()).isEqualTo(1L);
+    }
+
+    @Test
+    void shouldCaptureCorrectExamIdWhenFetchingQuestionsByName() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        Mockito.verify(this.questionRepository).findQuestionByExamId(this.examIdCaptor.capture());
+        assertThat(this.examIdCaptor.getValue()).isEqualTo(1L);
     }
 }

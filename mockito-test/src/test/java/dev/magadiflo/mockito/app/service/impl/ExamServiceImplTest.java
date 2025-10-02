@@ -60,6 +60,8 @@ class ExamServiceImplTest {
                 .hasSize(10)
                 .contains("Pregunta 10");
 
+        Mockito.verify(this.examRepository).findAll();
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.anyLong());
     }
 
     @Test
@@ -70,5 +72,17 @@ class ExamServiceImplTest {
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessage("No existe el examen Aritmética");
 
+    }
+
+    @Test
+    void shouldThrowExceptionAndSkipQuestionLookupWhenExamIsNotFound() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        assertThatThrownBy(() -> this.examService.findExamByNameWithQuestions("Lenguaje"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No existe el examen Lenguaje");
+
+        Mockito.verify(this.examRepository).findAll();
+        Mockito.verify(this.questionRepository, Mockito.never()).findQuestionByExamId(Mockito.anyLong());
     }
 }

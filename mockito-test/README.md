@@ -850,3 +850,56 @@ Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).th
 - Con múltiples mocks, podemos simular el comportamiento de diferentes repositorios de los que depende nuestro servicio.
 - Solo se mockean las dependencias necesarias para el flujo que se está probando.
 - Los `Fixtures (ExamFixtures)` reducen la duplicación de datos y hacen los tests más claros.
+
+## Probando con verify de Mockito
+
+`Mockito` no solo nos permite `stubear` (definir respuestas de métodos mockeados), sino también verificar si dichos
+métodos fueron invocados y cuántas veces.
+
+### Caso 1: Verificar llamadas exitosas
+
+````java
+class ExamServiceImplTest {
+    @Test
+    void shouldReturnExamWithQuestionsWhenSearchingByName() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).thenReturn(ExamFixtures.getQuestions());
+
+        Exam exam = this.examService.findExamByNameWithQuestions("Geometría");
+
+        assertThat(exam.getQuestions())
+                .hasSize(10)
+                .contains("Pregunta 10");
+
+        // Verificaciones
+        Mockito.verify(this.examRepository).findAll(); //(1)
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.anyLong()); //(2)
+    }
+}
+````
+
+- `(1)` Se verifica que `findAll()` fue invocado exactamente una vez (`valor por defecto`).
+- `(2)` Se verifica que `findQuestionByExamId(anyLong())` también fue invocado exactamente una vez.
+
+### Caso 2: Verificar que un método NO fue llamado
+
+````java
+class ExamServiceImplTest {
+    @Test
+    void shouldThrowExceptionAndSkipQuestionLookupWhenExamIsNotFound() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        assertThatThrownBy(() -> this.examService.findExamByNameWithQuestions("Lenguaje"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No existe el examen Lenguaje");
+
+        // Verificaciones
+        Mockito.verify(this.examRepository).findAll(); //(1)
+        Mockito.verify(this.questionRepository, Mockito.never()).findQuestionByExamId(Mockito.anyLong()); //(2)
+    }
+}
+````
+
+- `(1)` Se verifica que `findAll()` fue invocado una vez.
+- `(2)` Se verifica que `findQuestionByExamId(anyLong())` nunca fue invocado gracias a `Mockito.never()`.
+

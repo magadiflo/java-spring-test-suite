@@ -1125,3 +1125,53 @@ class ExamServiceImplExtensionTest {
 - Como `saveQuestions` retorna `void`, se usa `doNothing()` para simular que no haga nada.
 - Se verifica que ambos repositorios fueron invocados correctamente.
 
+## 🔢 Test del id incremental en el método guardar usando Invocation Argument
+
+Cuando guardamos un examen, este inicialmente no tiene id (es `null`). En un escenario real, al persistir en la base
+de datos, esta le asigna un id autogenerado. Podemos simular ese comportamiento en nuestros tests con `Answer<T>`
+de `Mockito`.
+
+### 🧪 Ejemplo de test
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldAssignIdAndPersistExamWithQuestionsCorrectly() {
+        Exam exam = ExamFixtures.getNewExam();  // Examen nuevo sin id
+        exam.setQuestions(ExamFixtures.getQuestions());
+
+        Mockito.when(this.examRepository.saveExam(Mockito.any(Exam.class))).then(new Answer<Exam>() {
+            Long sequence = 8L;  // Secuencia inicial
+
+            @Override
+            public Exam answer(InvocationOnMock invocation) throws Throwable {
+                Exam examToSave = invocation.getArgument(0);
+                examToSave.setId(sequence++); // Simula autoincrement
+                return examToSave;
+            }
+        });
+        Mockito.doNothing().when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        Exam savedExam = this.examService.saveExam(exam);
+
+        assertThat(savedExam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(8L, "Kubernetes", ExamFixtures.getQuestions());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
+}
+````
+
+### 📌 ¿Qué hace el new `Answer<Exam>() {...}`?
+
+1. Intercepta la llamada a `examRepository.saveExam(any(Exam.class))`.
+2. Obtiene el argumento recibido: `Exam examToSave = invocation.getArgument(0)`.
+3. Le asigna un Id secuencial.
+4. Retorna el examen ya modificado → lo que simula que la base de datos devuelve el objeto con un id autogenerado.
+
+Además de usar `Answer<T>`, también podríamos explorar el uso de `thenAnswer(...)` con expresiones lambda para
+simplificar el código, sin necesidad de clases anónimas.

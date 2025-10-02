@@ -9,12 +9,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.invocation.InvocationOnMock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.stubbing.Answer;
 
 import java.util.NoSuchElementException;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class) // Habilita las anotaciones de mockito: @Mock, @InjectMocks
 class ExamServiceImplExtensionTest {
@@ -112,6 +113,33 @@ class ExamServiceImplExtensionTest {
                 .isNotNull()
                 .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
                 .containsExactly(9L, "Docker", ExamFixtures.getQuestions());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
+
+    @Test
+    void shouldAssignIdAndPersistExamWithQuestionsCorrectly() {
+        Exam exam = ExamFixtures.getNewExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+
+        Mockito.when(this.examRepository.saveExam(Mockito.any(Exam.class))).then(new Answer<Exam>() {
+            Long sequence = 8L;
+
+            @Override
+            public Exam answer(InvocationOnMock invocation) throws Throwable {
+                Exam examToSave = invocation.getArgument(0);
+                examToSave.setId(sequence++);
+                return examToSave;
+            }
+        });
+        Mockito.doNothing().when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        Exam savedExam = this.examService.saveExam(exam);
+
+        assertThat(savedExam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(8L, "Kubernetes", ExamFixtures.getQuestions());
         Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
         Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
     }

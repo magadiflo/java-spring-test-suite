@@ -15,7 +15,8 @@ import org.mockito.stubbing.Answer;
 
 import java.util.NoSuchElementException;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 @ExtendWith(MockitoExtension.class) // Habilita las anotaciones de mockito: @Mock, @InjectMocks
 class ExamServiceImplExtensionTest {
@@ -142,5 +143,17 @@ class ExamServiceImplExtensionTest {
                 .containsExactly(8L, "Kubernetes", ExamFixtures.getQuestions());
         Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
         Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
+
+    @Test
+    void shouldThrowIllegalArgumentExceptionWhenExamIdIsNullAndQuestionsAreRequested() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getExamsWithNullIds());
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.isNull())).thenThrow(IllegalArgumentException.class);
+
+        assertThatThrownBy(() -> this.examService.findExamByNameWithQuestions("Aritmética"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        Mockito.verify(this.examRepository).findAll();
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.isNull());
     }
 }

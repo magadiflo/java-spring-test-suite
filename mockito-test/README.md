@@ -1175,3 +1175,42 @@ class ExamServiceImplExtensionTest {
 
 Además de usar `Answer<T>`, también podríamos explorar el uso de `thenAnswer(...)` con expresiones lambda para
 simplificar el código, sin necesidad de clases anónimas.
+
+## 🚨 Comprobaciones de excepciones usando `when(...).thenThrow(...)`
+
+En este tipo de pruebas queremos validar que, bajo ciertas condiciones inválidas, nuestro servicio lance la excepción
+esperada.
+
+Para eso, Mockito nos permite configurar un mock para que arroje una excepción en lugar de devolver un valor normal.
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldThrowIllegalArgumentExceptionWhenExamIdIsNullAndQuestionsAreRequested() {
+        // (1) El repositorio devuelve exámenes con id = null
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getExamsWithNullIds());
+
+        // (2) Si se llama al método con id = null, lanza IllegalArgumentException
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.isNull())).thenThrow(IllegalArgumentException.class);
+
+        // (3) Verificamos que al invocar el servicio, se lanza la excepción
+        assertThatThrownBy(() -> this.examService.findExamByNameWithQuestions("Aritmética"))
+                .isInstanceOf(IllegalArgumentException.class);
+
+        // (4) Confirmamos que los mocks fueron invocados
+        Mockito.verify(this.examRepository).findAll();
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.isNull());
+    }
+}
+````
+
+📌 Explicación paso a paso
+
+1. `Simulamos la lista de exámenes`: `findAll()` devuelve exámenes con `id = null` → para provocar el error más
+   adelante.
+2. `Simulamos la excepción`: Configuramos que si se llama a `findQuestionByExamId(null)` → lance
+   `IllegalArgumentException`.
+3. `Validamos con AssertJ`: Usamos `assertThatThrownBy(...)` para comprobar que la excepción lanzada es la esperada.
+4. `Verificaciones finales`: Con `verify(...)` nos aseguramos de que los mocks fueron efectivamente utilizados.

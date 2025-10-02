@@ -1,5 +1,6 @@
 package dev.magadiflo.mockito.app.service.impl;
 
+import dev.magadiflo.mockito.app.fixtures.ExamFixtures;
 import dev.magadiflo.mockito.app.model.Exam;
 import dev.magadiflo.mockito.app.repository.ExamRepository;
 import dev.magadiflo.mockito.app.repository.QuestionRepository;
@@ -29,18 +30,7 @@ class ExamServiceImplTest {
 
     @Test
     void shouldReturnOptionalExamWithCorrectIdAndNameWhenRepositoryIsMocked() {
-        List<Exam> exams = List.of(
-                new Exam(1L, "Aritmética"),
-                new Exam(2L, "Geometría"),
-                new Exam(3L, "Álgebra"),
-                new Exam(4L, "Trigonometría"),
-                new Exam(5L, "Programación"),
-                new Exam(6L, "Bases de Datos"),
-                new Exam(7L, "Estructura de datos"),
-                new Exam(8L, "Java 17")
-        );
-
-        Mockito.when(this.examRepository.findAll()).thenReturn(exams);
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
 
         Exam exam = this.examService.findExamByName("Aritmética");
 
@@ -52,7 +42,7 @@ class ExamServiceImplTest {
 
     @Test
     void shouldThrowNoSuchElementExceptionWithCorrectMessageWhenExamIsNotFound() {
-        Mockito.when(this.examRepository.findAll()).thenReturn(List.of());
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getEmptyExams());
 
         assertThatThrownBy(() -> this.examService.findExamByName("Aritmética"))
                 .isInstanceOf(NoSuchElementException.class)

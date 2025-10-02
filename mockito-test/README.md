@@ -600,3 +600,138 @@ Con este cambio hemos:
 
 Esto sienta las bases para los próximos tests, donde ya no solo validaremos la existencia del examen, sino también la
 correcta asociación de preguntas.
+
+## 🛠️ Refactorizando ExamServiceImplTest
+
+En nuestra clase de pruebas `ExamServiceImplTest` notamos que repetimos constantemente la creación de listas de
+exámenes y preguntas.
+
+Esto viola el principio `DRY (Don't Repeat Yourself)`, ya que duplicamos código de preparación de datos y, en
+consecuencia, dificultamos el mantenimiento.
+
+### 💡 Solución: Patrón Test Fixtures
+
+Un `Test Fixture` es un conjunto de datos predefinidos y reutilizables que facilita la escritura de pruebas limpias y
+consistentes. La idea es centralizar la creación de datos de prueba en una sola clase para que todos los tests puedan
+reutilizarlos.
+
+Ubicación sugerida para la clase `ExamFixtures`:
+
+````bash
+src/test/java/dev/magadiflo/mockito/app/fixtures/ExamFixtures.java 
+````
+
+### 📝 Implementación de ExamFixtures
+
+````java
+
+public class ExamFixtures {
+    public static List<Exam> getAllExams() {
+        return List.of(
+                new Exam(1L, "Aritmética"),
+                new Exam(2L, "Geometría"),
+                new Exam(3L, "Álgebra"),
+                new Exam(4L, "Trigonometría"),
+                new Exam(5L, "Programación"),
+                new Exam(6L, "Bases de Datos"),
+                new Exam(7L, "Estructura de datos"),
+                new Exam(8L, "Java 17")
+        );
+    }
+
+    public static List<Exam> getEmptyExams() {
+        return List.of();
+    }
+
+    public static List<Exam> getExamsWithNegativeIds() {
+        return List.of(
+                new Exam(-1L, "Aritmética"),
+                new Exam(-2L, "Geometría"),
+                new Exam(-3L, "Álgebra")
+        );
+    }
+
+    public static List<Exam> getExamsWithNullIds() {
+        return List.of(
+                new Exam(null, "Aritmética"),
+                new Exam(null, "Geometría"),
+                new Exam(null, "Álgebra")
+        );
+    }
+
+    public static Exam getValidExam() {
+        return new Exam(9L, "Docker");
+    }
+
+    public static Exam getNewExam() {
+        return new Exam(null, "Kubernetes");
+    }
+
+    public static Exam getDefaultExam() {
+        return new Exam(1L, "Aritmética");
+    }
+
+    public static List<String> getQuestions() {
+        return List.of(
+                "Pregunta 1", "Pregunta 2", "Pregunta 3",
+                "Pregunta 4", "Pregunta 5", "Pregunta 6",
+                "Pregunta 7", "Pregunta 8", "Pregunta 9",
+                "Pregunta 10"
+        );
+    }
+
+    public static List<String> getFewQuestions() {
+        return List.of(
+                "Pregunta 1", "Pregunta 2", "Pregunta 3",
+                "Pregunta 4", "Pregunta 5"
+        );
+    }
+
+    public static List<String> getEmptyQuestions() {
+        return List.of();
+    }
+}
+````
+
+### 🔒 Inmutabilidad de los datos
+
+Las listas retornadas por `List.of()` son `inmutables`. Esto significa que cualquier intento de modificarlas lanzará
+una excepción `UnsupportedOperationException`.
+
+Este comportamiento es intencional:
+
+- ✔️ Previene efectos secundarios entre pruebas.
+- ✔️ Nos asegura que los datos se mantengan consistentes.
+
+📌 Si en algún caso necesitamos una lista mutable, basta con crear una copia:
+
+````java
+List<Exam> mutableExams = new ArrayList<>(getAllExams());
+````
+
+### 🧪 Uso en los tests
+
+Ahora, en lugar de duplicar la creación de listas en cada método de prueba, simplemente reutilizamos los `Fixtures`:
+
+````java
+class ExamenServiceImplTest {
+    @Test
+    void shouldReturnOptionalExamWithCorrectIdAndNameWhenRepositoryIsMocked() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+        //...
+    }
+
+    @Test
+    void shouldThrowNoSuchElementExceptionWithCorrectMessageWhenExamIsNotFound() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getEmptyExams());
+        //...
+    }
+}
+````
+
+🚀 Beneficios de usar Fixtures
+
+- ✅ Reutilización de datos → menos código repetido.
+- ✅ Mantenimiento sencillo → si cambian los datos, se actualiza en un solo lugar.
+- ✅ Claridad → los tests se enfocan en la lógica, no en la preparación de datos.
+- ✅ Consistencia → todos los tests usan los mismos datos base.

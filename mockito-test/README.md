@@ -1008,3 +1008,120 @@ Con cualquiera de las dos formas (`openMocks` o `@ExtendWith`), eliminamos la ne
 los mocks y la inyección de dependencias se maneja automáticamente. Esto hace los tests más limpios, legibles y
 fáciles de mantener.
 
+## 📝 Realizando más pruebas con los repositorios
+
+Hasta este punto, nuestros repositorios solo permitían lecturas (`findAll`, `findQuestionByExamId`). Ahora, simularemos
+también operaciones de escritura (guardar datos).
+
+### Nuevos métodos en las interfaces
+
+````java
+public interface ExamRepository {
+    List<Exam> findAll();
+
+    Exam saveExam(Exam exam);
+}
+````
+
+````java
+public interface QuestionRepository {
+    List<String> findQuestionByExamId(Long examId);
+
+    void saveQuestions(List<String> questions);
+}
+````
+
+````java
+public interface ExamService {
+    Exam findExamByName(String name);
+
+    Exam findExamByNameWithQuestions(String name);
+
+    Exam saveExam(Exam exam);
+}
+````
+
+### Implementación en ExamServiceImpl
+
+````java
+public class ExamServiceImpl implements ExamService {
+
+    private final ExamRepository examRepository;
+    private final QuestionRepository questionRepository;
+
+    @Override
+    public Exam saveExam(Exam exam) {
+        List<String> questions = exam.getQuestions();
+        if (!questions.isEmpty()) {
+            this.questionRepository.saveQuestions(questions);
+        }
+        return this.examRepository.saveExam(exam);
+    }
+}
+
+````
+
+📌 Lógica aplicada:
+
+1. Si el examen tiene preguntas, primero se persisten las preguntas.
+2. Luego, se guarda el examen en el repositorio.
+
+### Caso 1: Guardar un examen sin preguntas
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldSaveExamWithoutQuestionsAndSkipQuestionPersistence() {
+        Mockito.when(this.examRepository.saveExam(Mockito.any(Exam.class))).thenReturn(ExamFixtures.getValidExam());
+
+        Exam exam = this.examService.saveExam(ExamFixtures.getValidExam());
+
+        assertThat(exam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(9L, "Docker", ExamFixtures.getEmptyExams());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository, Mockito.never()).saveQuestions(Mockito.anyList());
+    }
+}
+````
+
+🔍 Explicación:
+
+- Se mockea la respuesta de `saveExam`.
+- Se verifica que sí se haya llamado a `saveExam`.
+- Se verifica que nunca se haya llamado a `saveQuestions`, porque no hay preguntas.
+
+### Caso 2: Guardar un examen con preguntas
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldSaveExamWithQuestionsAndPersistBothExamAndQuestions() {
+        Exam exam = ExamFixtures.getValidExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+        Mockito.when(this.examRepository.saveExam(Mockito.any(Exam.class))).thenReturn(exam);
+        Mockito.doNothing().when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        Exam examSaved = this.examService.saveExam(exam);
+
+        assertThat(examSaved)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(9L, "Docker", ExamFixtures.getQuestions());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
+}
+````
+
+🔍 Explicación:
+
+- Se mockea `saveExam` para devolver el mismo examen.
+- Como `saveQuestions` retorna `void`, se usa `doNothing()` para simular que no haga nada.
+- Se verifica que ambos repositorios fueron invocados correctamente.
+

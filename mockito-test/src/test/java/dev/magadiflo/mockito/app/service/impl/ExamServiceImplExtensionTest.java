@@ -84,4 +84,35 @@ class ExamServiceImplExtensionTest {
         Mockito.verify(this.examRepository).findAll();
         Mockito.verify(this.questionRepository, Mockito.never()).findQuestionByExamId(Mockito.anyLong());
     }
+
+    @Test
+    void shouldSaveExamWithoutQuestionsAndSkipQuestionPersistence() {
+        Mockito.when(this.examRepository.saveExam(Mockito.any(Exam.class))).thenReturn(ExamFixtures.getValidExam());
+
+        Exam exam = this.examService.saveExam(ExamFixtures.getValidExam());
+
+        assertThat(exam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(9L, "Docker", ExamFixtures.getEmptyExams());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository, Mockito.never()).saveQuestions(Mockito.anyList());
+    }
+
+    @Test
+    void shouldSaveExamWithQuestionsAndPersistBothExamAndQuestions() {
+        Exam exam = ExamFixtures.getValidExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+        Mockito.when(this.examRepository.saveExam(Mockito.any(Exam.class))).thenReturn(exam);
+        Mockito.doNothing().when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        Exam examSaved = this.examService.saveExam(exam);
+
+        assertThat(examSaved)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(9L, "Docker", ExamFixtures.getQuestions());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
 }

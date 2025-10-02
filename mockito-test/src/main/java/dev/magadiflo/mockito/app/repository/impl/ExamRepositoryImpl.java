@@ -10,4 +10,9 @@ public class ExamRepositoryImpl implements ExamRepository {
     public List<Exam> findAll() {
         return List.of();
     }
+
+    @Override
+    public Exam saveExam(Exam exam) {
+        return null;
+    }
 }

@@ -6,4 +6,6 @@ public interface ExamService {
     Exam findExamByName(String name);
 
     Exam findExamByNameWithQuestions(String name);
+
+    Exam saveExam(Exam exam);
 }

@@ -798,11 +798,36 @@ class ExamServiceImplTest {
 - `Spy`: Es un objeto real "parcialmente espiado". Ejecuta el código verdadero pero podemos sobreescribir ciertos
   métodos.
 
-⚡ Aunque en el día a día muchos dicen `mockear` para todo, lo correcto es:
+### ¿Qué significa stubear?
 
-- `Stubear` cuando configuramos la salida.
-- Verificar cuando comprobamos la interacción.
-- El término `mock` se refiere al objeto completo creado por `Mockito`.
+`Stubear` viene de `stub`, que en inglés significa “suplente”, “pieza de relleno”. En pruebas unitarias, stubear un
+método es:
+
+> Configurar de antemano qué valor debe devolver un método de un mock cuando se le invoque con ciertos parámetros.
+
+En `Mockito` se hace con construcciones como:
+
+````bash
+when(repo.findAll()).thenReturn(List.of(...));
+when(service.doSomething("x")).thenThrow(new RuntimeException());
+````
+
+Aquí no nos interesa el comportamiento real, sino que el mock “supla” con una respuesta predefinida.
+
+### ¿Por qué muchos dicen "mockear" en lugar de "stubear"?
+
+Porque `Mockito` crea `mocks`, y sobre esos mocks nosotros:
+
+1. `Stubbeamos` → configuramos qué debe devolver.
+2. `Verificamos` → comprobamos que se llamaron con ciertos argumentos.
+
+En la jerga diaria, la gente suele decir `“mockear el repo”` tanto para `crear` el mock como para `stubear` un método,
+aunque no es lo más preciso.
+
+✅ Definición resumida:
+> - `Stubear` = decirle a un método de un mock qué debe devolver cuando se invoque.
+> - `Mockear` = crear el objeto falso.
+> - `Spy` = envolver un objeto real para espiar llamadas (y a veces stubear parcialmente).
 
 ### ❌ Caso 2: No se encuentra el examen
 
@@ -1321,3 +1346,101 @@ class ExamServiceImplExtensionTest {
 2. Mensajes de error claros: Gracias al `toString()` sobreescrito, los fallos serán más descriptivos.
 3. Mayor expresividad: El test se vuelve más legible, ya que el matcher describe la intención del chequeo.
 
+## Capturando argumentos con `ArgumentCaptor`
+
+En `Mockito`, los `ArgumentMatchers` (`any()`, `eq()`, `argThat()`, etc.) sirven para comprobar si un método se
+llamó con determinados valores. Sin embargo, en ocasiones necesitamos obtener el valor real del argumento pasado al
+método para realizar más afirmaciones (`assertions`) sobre él.
+
+Para eso usamos `ArgumentCaptor`.
+
+### Ejemplo práctico
+
+Queremos asegurarnos de que, al buscar el examen `Aritmética`, el repositorio de preguntas haya sido invocado con el
+`id = 1`.
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldCaptureExamIdUsedToFetchQuestionsWithArgumentCaptor() {
+        // (1) Stub: devolvemos lista de exámenes
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        // (2) Creamos captor para Long
+        ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
+
+        // (3) Ejecutamos el método bajo prueba
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        // (4) Capturamos el argumento real usado en la llamada
+        Mockito.verify(this.questionRepository).findQuestionByExamId(captor.capture());
+
+        // (5) Assertions sobre el valor capturado
+        assertThat(captor.getValue()).isEqualTo(1L);
+    }
+}
+````
+
+Explicación paso a paso
+
+1. `Stub del repositorio de exámenes`: aseguramos que `findAll()` devuelva nuestra lista conocida
+   (`ExamFixtures.getAllExams()`).
+2. `Definimos un captor` para el tipo de dato que queremos capturar (`Long`).
+3. `Ejecutamos el método bajo prueba`, que internamente usará el repositorio de preguntas.
+4. `Verificación con captura`: al verificar la llamada a `findQuestionByExamId(..)`, capturamos el valor del argumento
+   real.
+4. `Afirmación sobre el valor capturado`: comprobamos que realmente se llamó con `1L`.
+
+📌 Conclusión
+> `ArgumentCaptor` es especialmente útil cuando queremos validar valores dinámicos o estructuras complejas que no
+> podemos cubrir fácilmente con `eq()` o `argThat()`. Es la herramienta recomendada cuando necesitamos inspeccionar
+> argumentos después de la verificación.
+
+### 1. Lo que estamos stubbeando
+
+Aquí le estamos diciendo a `examRepository.findAll()` que devuelva una lista fija de exámenes
+(`ExamFixtures.getAllExams()`), para que nuestro servicio pueda encontrar `Aritmética` y obtener el `id = 1L`.
+
+````bash
+Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+````
+
+### 2. Lo que NO estamos stubbeando
+
+````bash
+this.questionRepository.findQuestionByExamId(exam.getId());
+````
+
+Nuestro método de test anterior no tiene un `when(...).thenReturn(...)` para el
+`this.questionRepository.findQuestionByExamId(...)`, entonces `¿Qué hace Mockito en este caso?`.
+Cuando un método de un mock no está stubeado, `Mockito` devuelve un valor por defecto para ese tipo de dato:
+
+- Para `primitivos numéricos` → `0`
+- Para `boolean` → `false`
+- Para `objetos` → `null`
+- Para `listas` o `colecciones` → `Collections.emptyList()` (o sea, una lista vacía, no null).
+
+### 3. Por qué el test igual funciona
+
+En nuestro test no nos importa el resultado del método `findQuestionByExamId(...)`. El test se centra en capturar el
+argumento con `ArgumentCaptor` y hacer un `assertThat(captor.getValue()).isEqualTo(1L)`.
+
+Eso quiere decir que aunque `questionRepository.findQuestionByExamId(...)` devuelva una lista vacía, no afecta nada
+porque nunca estamos verificando las preguntas devueltas, solo verificamos que `el argumento usado en la invocación` sea
+correcto.
+
+### 4. Si lo hubieramos necesitado
+
+Si en nuestro test quisieramos también verificar que las preguntas se agregaron al examen (por ejemplo,
+`assertThat(savedExam.getQuestions()).containsExactly(...)`), entonces sí necesitaríamos stubear:
+
+````bash
+Mockito.when(this.questionRepository.findQuestionByExamId(1L)).thenReturn(ExamFixtures.getQuestions());
+````
+
+✅ Conclusión:
+> Funciona porque Mockito devuelve una lista vacía por defecto para el mock
+> `questionRepository.findQuestionByExamId(...)`, y nuestro test no necesita usar ese retorno, solo comprobar que el
+> método se llamó con el id correcto. El `ArgumentCaptor` no depende del valor retornado, solo de la invocación misma.

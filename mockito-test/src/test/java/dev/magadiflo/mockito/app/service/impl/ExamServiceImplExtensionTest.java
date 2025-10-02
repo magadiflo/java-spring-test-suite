@@ -7,6 +7,7 @@ import dev.magadiflo.mockito.app.repository.QuestionRepository;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
@@ -180,5 +181,17 @@ class ExamServiceImplExtensionTest {
 
         Mockito.verify(this.examRepository).findAll();
         Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.argThat(new ValidExamIdMatcher()));
+    }
+
+    @Test
+    void shouldCaptureExamIdUsedToFetchQuestionsWithArgumentCaptor() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+        ArgumentCaptor<Long> captor = ArgumentCaptor.forClass(Long.class);
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+
+        Mockito.verify(this.questionRepository).findQuestionByExamId(captor.capture());
+        assertThat(captor.getValue()).isEqualTo(1L);
     }
 }

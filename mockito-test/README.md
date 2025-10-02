@@ -903,3 +903,108 @@ class ExamServiceImplTest {
 - `(1)` Se verifica que `findAll()` fue invocado una vez.
 - `(2)` Se verifica que `findQuestionByExamId(anyLong())` nunca fue invocado gracias a `Mockito.never()`.
 
+## Inyección de dependencias con @Mock, @InjectMocks y @ExtendWith
+
+Hasta ahora, nosotros mismos creábamos manualmente los mocks de los repositorios y los inyectábamos a la clase
+bajo prueba en un `@BeforeEach`. Ejemplo:
+
+````java
+class ExamServiceImplTest {
+
+    // Todos son interfaces
+    private ExamRepository examRepository;
+    private QuestionRepository questionRepository;
+    private ExamService examService;
+
+    @BeforeEach
+    void setUp() {
+        this.examRepository = Mockito.mock(ExamRepository.class);
+        this.questionRepository = Mockito.mock(QuestionRepository.class);
+        this.examService = new ExamServiceImpl(this.examRepository, this.questionRepository);
+    }
+}
+````
+
+Esto funciona, pero `Mockito` ofrece anotaciones que simplifican este proceso.
+
+### Usando anotaciones de Mockito
+
+Con `@Mock` y `@InjectMocks`, la configuración se vuelve mucho más limpia:
+
+````java
+class ExamServiceImplOpenMocksTest {
+    @Mock
+    private ExamRepository examRepository;          // Interfaz
+    @Mock
+    private QuestionRepository questionRepository;  // Interfaz
+    @InjectMocks
+    private ExamServiceImpl examService;            // Implementación Concreta
+}
+````
+
+📌 Importante:
+
+- `@Mock` crea un mock de la dependencia.
+- `@InjectMocks` crea una instancia real de la clase y automáticamente le inyecta las dependencias anotadas con `@Mock`.
+- Debemos usar la implementación concreta (`ExamServiceImpl`) y no la interfaz (`ExamService`) que implementa, ya que
+  `Mockito` necesita saber en qué constructor inyectar los mocks.
+
+### Habilitando las anotaciones de Mockito
+
+Para que `@Mock` y `@InjectMocks` funcionen, hay que habilitar el soporte de anotaciones. Tenemos dos formas:
+
+1. Con `MockitoAnnotations.openMocks(this)`
+
+````java
+class ExamServiceImplOpenMocksTest {
+    @Mock
+    private ExamRepository examRepository;          // Interfaz
+    @Mock
+    private QuestionRepository questionRepository;  // Interfaz
+    @InjectMocks
+    private ExamServiceImpl examService;            // Implementación Concreta
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);         // Habilita las anotaciones de mockito: @Mock, @InjectMocks
+    }
+}
+````
+
+2. Con `@ExtendWith(MockitoExtension.class)`
+
+Otra forma más moderna y recomendada es usar la extensión de `JUnit 5`:
+
+Agregamos la dependencia:
+
+````xml
+
+<dependency>
+    <groupId>org.mockito</groupId>
+    <artifactId>mockito-junit-jupiter</artifactId>
+    <version>5.20.0</version>
+    <scope>test</scope>
+</dependency>
+````
+
+Y anotamos la clase de test:
+
+````java
+
+@ExtendWith(MockitoExtension.class) // Habilita las anotaciones de mockito: @Mock, @InjectMocks
+class ExamServiceImplExtensionTest {
+    @Mock
+    private ExamRepository examRepository;          // Interfaz
+    @Mock
+    private QuestionRepository questionRepository;  // Interfaz
+    @InjectMocks
+    private ExamServiceImpl examService;            // Implementación concreta
+}
+````
+
+### ✅ Conclusión
+
+Con cualquiera de las dos formas (`openMocks` o `@ExtendWith`), eliminamos la necesidad de inicializar manualmente
+los mocks y la inyección de dependencias se maneja automáticamente. Esto hace los tests más limpios, legibles y
+fáciles de mantener.
+

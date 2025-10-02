@@ -412,3 +412,88 @@ class ExamenServiceImplTest {
     - Pruebas más rápidas ⚡
     - Código desacoplado 🧩
     - Escenarios flexibles 🎭
+
+## ♻️ Refactorizando nuestra clase ExamServiceImpl
+
+Al analizar nuestros tests iniciales, notamos que hay código repetido en varios métodos, específicamente:
+
+- La creación del mock del repositorio:
+    ````java
+    ExamRepository examRepository = Mockito.mock(ExamRepository.class); 
+    ````
+
+- La creación de la instancia del servicio que depende de ese repositorio:
+    ````java
+    ExamService examService = new ExamServiceImpl(examRepository);
+    ````
+
+Como recordamos de `JUnit 5`, podemos usar el ciclo de vida de pruebas con `@BeforeEach` para inicializar los objetos
+necesarios antes de cada test.
+
+Esto es ideal porque:
+
+- Evitamos repetición de código.
+- Mantenemos nuestros tests más claros y concisos.
+- Reutilizamos las dependencias en todos los métodos de prueba.
+
+### 📝 Refactor aplicado
+
+````java
+class ExamServiceImplTest {
+
+    private ExamRepository examRepository;
+    private ExamService examService;
+
+    @BeforeEach
+    void setUp() {
+        this.examRepository = Mockito.mock(ExamRepository.class);
+        this.examService = new ExamServiceImpl(this.examRepository);
+    }
+
+    @Test
+    void shouldReturnOptionalExamWithCorrectIdAndNameWhenRepositoryIsMocked() {
+        List<Exam> exams = List.of(
+                new Exam(1L, "Aritmética"),
+                new Exam(2L, "Geometría"),
+                new Exam(3L, "Álgebra"),
+                new Exam(4L, "Trigonometría"),
+                new Exam(5L, "Programación"),
+                new Exam(6L, "Bases de Datos"),
+                new Exam(7L, "Estructura de datos"),
+                new Exam(8L, "Java 17")
+        );
+
+        Mockito.when(this.examRepository.findAll()).thenReturn(exams);
+
+        Exam exam = this.examService.findExamByName("Aritmética");
+
+        assertThat(exam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName)
+                .containsExactly(1L, "Aritmética");
+    }
+
+    @Test
+    void shouldThrowNoSuchElementExceptionWithCorrectMessageWhenExamIsNotFound() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(List.of());
+
+        assertThatThrownBy(() -> this.examService.findExamByName("Aritmética"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No existe el examen Aritmética");
+
+    }
+}
+````
+
+🔎 Observaciones clave
+
+- Uso de `@BeforeEach`: Se ejecuta antes de cada método de prueba, garantizando que los mocks y la instancia del
+  servicio estén listos y limpios en cada ejecución.
+
+
+- `Variables de clase`: Declaramos `examRepository` y `examService` como atributos privados globales en el test,
+  de modo que cada método pueda reutilizarlos.
+
+
+- `Ventaja adicional`: Si en el futuro el `ExamServiceImpl` tuviera más dependencias, solo tendríamos que configurarlas
+  una vez dentro de `setUp()` en lugar de repetirlo en cada test.

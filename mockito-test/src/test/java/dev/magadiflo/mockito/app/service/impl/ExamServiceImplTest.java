@@ -3,6 +3,7 @@ package dev.magadiflo.mockito.app.service.impl;
 import dev.magadiflo.mockito.app.model.Exam;
 import dev.magadiflo.mockito.app.repository.ExamRepository;
 import dev.magadiflo.mockito.app.service.ExamService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
@@ -13,11 +14,18 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class ExamServiceImplTest {
+
+    private ExamRepository examRepository;
+    private ExamService examService;
+
+    @BeforeEach
+    void setUp() {
+        this.examRepository = Mockito.mock(ExamRepository.class);
+        this.examService = new ExamServiceImpl(this.examRepository);
+    }
+
     @Test
     void shouldReturnOptionalExamWithCorrectIdAndNameWhenRepositoryIsMocked() {
-        ExamRepository examRepository = Mockito.mock(ExamRepository.class);
-        ExamService examService = new ExamServiceImpl(examRepository);
-
         List<Exam> exams = List.of(
                 new Exam(1L, "Aritmética"),
                 new Exam(2L, "Geometría"),
@@ -29,9 +37,9 @@ class ExamServiceImplTest {
                 new Exam(8L, "Java 17")
         );
 
-        Mockito.when(examRepository.findAll()).thenReturn(exams);
+        Mockito.when(this.examRepository.findAll()).thenReturn(exams);
 
-        Exam exam = examService.findExamByName("Aritmética");
+        Exam exam = this.examService.findExamByName("Aritmética");
 
         assertThat(exam)
                 .isNotNull()
@@ -41,12 +49,9 @@ class ExamServiceImplTest {
 
     @Test
     void shouldThrowNoSuchElementExceptionWithCorrectMessageWhenExamIsNotFound() {
-        ExamRepository examRepository = Mockito.mock(ExamRepository.class);
-        ExamService examService = new ExamServiceImpl(examRepository);
+        Mockito.when(this.examRepository.findAll()).thenReturn(List.of());
 
-        Mockito.when(examRepository.findAll()).thenReturn(List.of());
-
-        assertThatThrownBy(() -> examService.findExamByName("Aritmética"))
+        assertThatThrownBy(() -> this.examService.findExamByName("Aritmética"))
                 .isInstanceOf(NoSuchElementException.class)
                 .hasMessage("No existe el examen Aritmética");
 

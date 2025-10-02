@@ -205,4 +205,16 @@ class ExamServiceImplExtensionTest {
         Mockito.verify(this.questionRepository).findQuestionByExamId(this.examIdCaptor.capture());
         assertThat(this.examIdCaptor.getValue()).isEqualTo(1L);
     }
+
+    @Test
+    void shouldThrowExceptionWhenSavingQuestionsFailsDuringExamPersistence() {
+        Exam exam = ExamFixtures.getNewExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+
+        Mockito.doThrow(IllegalArgumentException.class)
+                .when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        assertThatThrownBy(() -> this.examService.saveExam(exam))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
 }

@@ -1507,4 +1507,44 @@ class ExamServiceImplExtensionTest {
 
 Ambas formas son válidas, pero `@Captor` hace el test más limpio y elimina repetición de código.
 
-## 
+## 💥 `doThrow` → Lanzando excepciones en métodos void
+
+Cuando usamos `Mockito` para stubear métodos que devuelven un valor, lo normal es apoyarnos en la sintaxis:
+
+````bash
+Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+````
+
+Pero... 🤔 `¿qué ocurre si el método que queremos simular es un void?`. En ese caso no podemos usar
+`when(...).thenReturn(...)`, porque no hay un valor que retornar.
+
+👉 Para esos escenarios entran en juego los métodos de la familia `do..()` (`doThrow`, `doNothing`, `doAnswer`, etc.).
+
+### 📝 Ejemplo práctico con doThrow
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+
+    @Test
+    void shouldThrowExceptionWhenSavingQuestionsFailsDuringExamPersistence() {
+        Exam exam = ExamFixtures.getNewExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+
+        Mockito.doThrow(IllegalArgumentException.class)
+                .when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        assertThatThrownBy(() -> this.examService.saveExam(exam))
+                .isInstanceOf(IllegalArgumentException.class);
+    }
+}
+````
+
+🔍 Explicación paso a paso
+
+1. `Stub del método void`. Usamos `doThrow(...)` para indicar que, al invocar
+   `questionRepository.saveQuestions(anyList())` se lanzará una excepción `IllegalArgumentException`.
+2. `Ejecución del servicio`. Al llamar a `this.examService.saveExam(exam)`, internamente se intenta guardar el examen
+   y también sus preguntas → lo que dispara la excepción configurada.
+3. `Afirmación`. Con `assertThatThrownBy(...)` verificamos que efectivamente la excepción lanzada sea del tipo esperado.

@@ -156,4 +156,16 @@ class ExamServiceImplExtensionTest {
         Mockito.verify(this.examRepository).findAll();
         Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.isNull());
     }
+
+    @Test
+    void shouldVerifyCorrectExamIdIsUsedWhenFetchingQuestions() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).thenReturn(ExamFixtures.getQuestions());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        Mockito.verify(this.examRepository).findAll();
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.argThat(arg -> arg != null && arg.equals(1L)));
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.eq(1L));
+    }
 }

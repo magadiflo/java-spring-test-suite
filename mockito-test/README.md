@@ -1214,3 +1214,46 @@ class ExamServiceImplExtensionTest {
    `IllegalArgumentException`.
 3. `Validamos con AssertJ`: Usamos `assertThatThrownBy(...)` para comprobar que la excepción lanzada es la esperada.
 4. `Verificaciones finales`: Con `verify(...)` nos aseguramos de que los mocks fueron efectivamente utilizados.
+
+## 🎯 Argument Matchers en Mockito: argThat() vs eq()
+
+Los `Argument Matchers` permiten verificar no solo que un método se llamó, sino también con qué argumentos exactos fue
+invocado. Esto hace que las pruebas sean más flexibles y expresivas.
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldVerifyCorrectExamIdIsUsedWhenFetchingQuestions() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+        Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.anyLong())).thenReturn(ExamFixtures.getQuestions());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        Mockito.verify(this.examRepository).findAll();
+
+        // (1) Usando argThat con lógica personalizada
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.argThat(arg -> arg != null && arg.equals(1L)));
+
+        // (2) Usando eq() para igualdad exacta
+        Mockito.verify(this.questionRepository).findQuestionByExamId(Mockito.eq(1L));
+    }
+}
+````
+
+📌 Diferencias clave
+
+| Matcher              | Uso típico                                                        | Ventaja                                             |
+|----------------------|-------------------------------------------------------------------|-----------------------------------------------------|
+| `eq(value)`          | Verificar un valor **exacto** (`eq(1L)`)                          | Más simple, claro, ideal para casos directos        |
+| `argThat(predicate)` | Verificar con **expresiones lógicas** (`argThat(arg -> arg > 0)`) | Permite lógica compleja, condiciones personalizadas |
+
+✅ Buenas prácticas
+
+- Usa `eq()` cuando solo quieras comparar valores exactos → más legible.
+- Usa `argThat()` cuando necesites condiciones adicionales (ej. no nulo, mayor que cero, empieza con cierto texto,
+  etc.).
+- Evita mezclar matchers y valores reales en una misma invocación, porque `Mockito` podría quejarse
+  Ej.: `verify(repo).saveExam(eq(exam), true)` → aquí ambos deben ser matchers, es decir en realidad debería ser así
+  `verify(repo).saveExam(eq(exam), eq(true))`, ambos parámetros son `Argument Matchers` y `Mockito` ya no protesta.

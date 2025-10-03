@@ -1674,3 +1674,81 @@ class ExamServiceImplExtensionTest {
 - `Invocation.getArgument(index)` → nos permite capturar los argumentos pasados al método del mock.
 - Útil para casos dinámicos, donde el resultado depende del argumento recibido.
 
+## ⚡ `doCallRealMethod`: ejecutar el método real en un mock
+
+En la mayoría de los casos, cuando usamos `Mockito` creamos mocks de interfaces o clases abstractas y definimos su
+comportamiento con `when(...).thenReturn(...)`, `doThrow(...)`, etc. Pero, ¿qué pasa si queremos
+`que un mock ejecute su implementación real de un método` en lugar de un comportamiento simulado? 🤔
+
+Para eso tenemos `doCallRealMethod()`, el cual permite invocar directamente el método real de un `mock (no el stub)`.
+Eso sí, necesitamos que el mock se cree a partir de una clase concreta, ya que las interfaces y clases abstractas no
+tienen implementación real.
+
+### 🛠️ Paso 1: crear una implementación concreta
+
+Creamos una implementación concreta de `QuestionRepository` que tenga un método real para probar:
+
+````java
+public class QuestionRepositoryImpl implements QuestionRepository {
+    @Override
+    public List<String> findQuestionByExamId(Long examId) {
+        return List.of(
+                "Pregunta 1 (real)",
+                "Pregunta 2 (real)",
+                "Pregunta 3 (real)",
+                "Pregunta 4 (real)",
+                "Pregunta 5 (real)"
+        );
+    }
+
+    @Override
+    public void saveQuestions(List<String> questions) {
+        // No implementado porque no lo usamos en este test
+    }
+}
+````
+
+### 🛠️ Paso 2: usar doCallRealMethod en el test
+
+En este caso, dejamos `ExamRepository` como un mock normal (`interfaz`), pero `QuestionRepository` lo cambiamos a la
+implementación concreta para poder usar el método real.
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplDoCallRealMethodTest {
+
+    @Mock
+    private ExamRepository examRepository;              // Interfaz (simulada)
+    @Mock
+    private QuestionRepositoryImpl questionRepository;  // Clase concreta (para usar doCallRealMethod)
+    @InjectMocks
+    private ExamServiceImpl examService;                // Clase concreta bajo prueba
+
+    @Test
+    void shouldInvokeRealMethodToFetchQuestionsAndReturnExpectedExam() {
+        // given
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+        Mockito.doCallRealMethod().when(this.questionRepository).findQuestionByExamId(Mockito.anyLong());
+
+        // when
+        Exam exam = this.examService.findExamByNameWithQuestions("Aritmética");
+
+        // then
+        assertThat(exam)
+                .extracting(Exam::getId, Exam::getName)
+                .containsExactly(1L, "Aritmética");
+        assertThat(exam.getQuestions())
+                .hasSize(5)
+                .contains("Pregunta 1 (real)", "Pregunta 4 (real)", "Pregunta 5 (real)");
+    }
+}
+````
+
+🔎 Puntos clave
+
+- `ExamRepository` se mantiene como mock puro porque solo lo necesitamos stubear (`when(...).thenReturn(...)`).
+- `QuestionRepositoryImpl` es una implementación concreta, lo cual permite que `doCallRealMethod()` invoque realmente
+  su método `findQuestionByExamId(...)`.
+- Con esto logramos un mix entre mocks y lógica real, lo cual es muy útil cuando quieres probar parcialmente
+  comportamientos sin renunciar a las ventajas de Mockito.

@@ -1960,3 +1960,82 @@ class ExamServiceImplSpyAnnotationTest {
     }
 }
 ````
+
+## ⏱️ Verificando el orden de las invocaciones de los mocks
+
+`Mockito` no solo nos permite comprobar si se llamaron ciertos métodos, sino también verificar en qué orden se
+realizaron las invocaciones. Esto asegura que la secuencia lógica de llamadas en nuestro código se cumple exactamente
+como esperamos.
+
+Para ello usamos la clase `InOrder`, que se inicializa con los mocks cuyo orden queremos verificar.
+
+### 📌 Ejemplo 1: Verificando el orden en un único mock
+
+En este caso solo queremos comprobar que las llamadas a `questionRepository` suceden en el orden correcto para dos
+exámenes distintos:
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplInvocationsTest {
+
+    @Mock
+    private ExamRepository examRepository;          // Interfaz
+    @Mock
+    private QuestionRepository questionRepository;  // Interfaz
+    @InjectMocks
+    private ExamServiceImpl examService;            // Implementación concreta
+
+    @Test
+    void shouldVerifyQuestionRepositoryIsCalledInOrderForMultipleExamNames() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+        this.examService.findExamByNameWithQuestions("Programación");
+
+        InOrder inOrder = Mockito.inOrder(this.questionRepository);
+
+        inOrder.verify(this.questionRepository).findQuestionByExamId(1L);
+        inOrder.verify(this.questionRepository).findQuestionByExamId(5L);
+    }
+}
+````
+
+✅ Aquí garantizamos que primero se consultaron las preguntas del examen con `id = 1L` y después las del examen
+con `id = 5L`.
+
+### 📌 Ejemplo 2: Verificando el orden en múltiples mocks
+
+Si queremos comprobar también que se llamó primero al `examRepository` y luego al `questionRepository`, podemos
+incluir ambos mocks dentro de la verificación:
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplInvocationsTest {
+    @Test
+    void shouldVerifyExamAndQuestionRepositoriesAreCalledInOrderForEachExamName() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+        this.examService.findExamByNameWithQuestions("Programación");
+
+        // Verificamos el orden entre ambos repositorios
+        InOrder inOrder = Mockito.inOrder(this.examRepository, this.questionRepository);
+
+        // Para Aritmética
+        inOrder.verify(this.examRepository).findAll();
+        inOrder.verify(this.questionRepository).findQuestionByExamId(1L);
+
+        // Para Programación
+        inOrder.verify(this.examRepository).findAll();
+        inOrder.verify(this.questionRepository).findQuestionByExamId(5L);
+    }
+}
+````
+
+✨ Conclusión:
+
+- Usa `InOrder` cuando el orden de llamadas importa.
+- Puedes verificar tanto un único mock como varios a la vez.
+- Si el orden es incorrecto, el test fallará incluso si las llamadas se realizaron.

@@ -1902,3 +1902,61 @@ class ExamServiceImplSpyTest {
   mockeados.
 
 👉 Esto nos da lo mejor de los dos mundos: objetos reales espiados con posibilidad de sobreescribir lo que queramos.
+
+## 🕵️ Implementando espías con Anotación @Spy
+
+Además de crear spies manualmente con `Mockito.spy(...)`, también podemos usar la anotación `@Spy` para simplificar la
+configuración de nuestros tests. La ventaja de esta forma es que la creación de los objetos espiados se hace
+automáticamente y podemos combinarlos con `@InjectMocks`, tal como ocurre con `@Mock`.
+
+⚠️ Importante:
+
+- A diferencia de `@Mock`, las propiedades anotadas con `@Spy` deben ser implementaciones concretas, ya que el spy
+  requiere de un objeto real sobre el cual “espiar”.
+- `@InjectMocks` funciona tanto con `@Mock` como con `@Spy`, por lo que no cambia la forma de inyectar dependencias.
+
+De esta manera, podemos mantener el mismo comportamiento de los ejemplos anteriores (`spy()` manual), pero con una
+configuración mucho más declarativa y ordenada:
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplSpyAnnotationTest {
+
+    @Spy
+    private ExamRepositoryImpl examRepository;          // Implementación concreta
+    @Spy
+    private QuestionRepositoryImpl questionRepository;  // Implementación concreta
+    @InjectMocks
+    private ExamServiceImpl examService;                // Implementación concreta
+
+    @Test
+    void shouldReturnRealExamWithQuestionsUsingSpiedRepositories() {
+        Exam exam = examService.findExamByNameWithQuestions("R_Aritmética");
+
+        assertThat(exam)
+                .extracting(Exam::getId, Exam::getName)
+                .containsExactly(1L, "R_Aritmética");
+        assertThat(exam.getQuestions())
+                .isNotEmpty()
+                .hasSize(5)
+                .contains("Pregunta 3 (real)", "Pregunta 5 (real)");
+    }
+
+    @Test
+    void shouldReturnExamWithAllQuestionsUsingSpiedRepositoriesAndStubbedData() {
+        Mockito.doReturn(ExamFixtures.getAllExams()).when(examRepository).findAll();
+        Mockito.doReturn(ExamFixtures.getQuestions()).when(questionRepository).findQuestionByExamId(Mockito.anyLong());
+
+        Exam exam = examService.findExamByNameWithQuestions("Aritmética");
+
+        assertThat(exam)
+                .extracting(Exam::getId, Exam::getName)
+                .containsExactly(1L, "Aritmética");
+        assertThat(exam.getQuestions())
+                .isNotEmpty()
+                .hasSize(10)
+                .contains("Pregunta 3", "Pregunta 5");
+    }
+}
+````

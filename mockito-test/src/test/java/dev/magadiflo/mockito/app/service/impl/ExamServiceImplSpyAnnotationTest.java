@@ -7,17 +7,26 @@ import dev.magadiflo.mockito.app.repository.QuestionRepository;
 import dev.magadiflo.mockito.app.repository.impl.ExamRepositoryImpl;
 import dev.magadiflo.mockito.app.repository.impl.QuestionRepositoryImpl;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
 import org.mockito.Mockito;
+import org.mockito.Spy;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-class ExamServiceImplSpyTest {
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplSpyAnnotationTest {
+
+    @Spy
+    private ExamRepositoryImpl examRepository;          // Implementación concreta
+    @Spy
+    private QuestionRepositoryImpl questionRepository;  // Implementación concreta
+    @InjectMocks
+    private ExamServiceImpl examService;                // Implementación concreta
+
     @Test
     void shouldReturnRealExamWithQuestionsUsingSpiedRepositories() {
-        ExamRepository examRepository = Mockito.spy(ExamRepositoryImpl.class);
-        QuestionRepository questionRepository = Mockito.spy(QuestionRepositoryImpl.class);
-        ExamServiceImpl examService = new ExamServiceImpl(examRepository, questionRepository);
-
         Exam exam = examService.findExamByNameWithQuestions("R_Aritmética");
 
         assertThat(exam)
@@ -31,10 +40,6 @@ class ExamServiceImplSpyTest {
 
     @Test
     void shouldReturnExamWithAllQuestionsUsingSpiedRepositoriesAndStubbedData() {
-        ExamRepository examRepository = Mockito.spy(ExamRepositoryImpl.class);
-        QuestionRepository questionRepository = Mockito.spy(QuestionRepositoryImpl.class);
-        ExamServiceImpl examService = new ExamServiceImpl(examRepository, questionRepository);
-
         Mockito.doReturn(ExamFixtures.getAllExams()).when(examRepository).findAll();
         Mockito.doReturn(ExamFixtures.getQuestions()).when(questionRepository).findQuestionByExamId(Mockito.anyLong());
 

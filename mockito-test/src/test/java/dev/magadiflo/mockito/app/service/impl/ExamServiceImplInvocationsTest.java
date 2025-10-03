@@ -11,6 +11,10 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.util.NoSuchElementException;
+
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
 @ExtendWith(MockitoExtension.class)
 class ExamServiceImplInvocationsTest {
 
@@ -51,5 +55,32 @@ class ExamServiceImplInvocationsTest {
         // Para Programación
         inOrder.verify(this.examRepository).findAll();
         inOrder.verify(this.questionRepository).findQuestionByExamId(5L);
+    }
+
+    @Test
+    void shouldVerifyQuestionRepositoryIsCalledExactlyOnceWithMultipleVerificationModes() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        Mockito.verify(this.questionRepository).findQuestionByExamId(1L); // Por defecto
+        Mockito.verify(this.questionRepository, Mockito.times(1)).findQuestionByExamId(1L);
+        Mockito.verify(this.questionRepository, Mockito.atLeast(1)).findQuestionByExamId(1L);
+        Mockito.verify(this.questionRepository, Mockito.atLeastOnce()).findQuestionByExamId(1L);
+        Mockito.verify(this.questionRepository, Mockito.atMost(1)).findQuestionByExamId(1L);
+        Mockito.verify(this.questionRepository, Mockito.atMostOnce()).findQuestionByExamId(1L);
+    }
+
+    @Test
+    void name() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        assertThatThrownBy(() -> this.examService.findExamByNameWithQuestions("Lenguaje"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No existe el examen Lenguaje");
+
+        Mockito.verify(this.examRepository, Mockito.times(1)).findAll();
+        Mockito.verify(this.questionRepository, Mockito.never()).findQuestionByExamId(Mockito.anyLong());
+        Mockito.verifyNoInteractions(this.questionRepository);
     }
 }

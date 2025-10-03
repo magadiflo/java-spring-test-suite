@@ -2039,3 +2039,80 @@ class ExamServiceImplInvocationsTest {
 - Usa `InOrder` cuando el orden de llamadas importa.
 - Puedes verificar tanto un único mock como varios a la vez.
 - Si el orden es incorrecto, el test fallará incluso si las llamadas se realizaron.
+
+## Verificando el número de invocaciones de los mocks
+
+Hasta ahora hemos usado `Mockito.verify(...)` en su forma más simple:
+
+````bash
+Mockito.verify(this.questionRepository).findQuestionsByExamId(1L);
+````
+
+Esto por defecto valida que el método se haya ejecutado exactamente una vez. Pero, ¿qué pasa si queremos asegurarnos
+de que se llamó más de una vez, al menos una vez, nunca, etc.?
+
+Mockito nos ofrece diferentes modos de verificación para estos casos.
+
+### 📌 Ejemplo 1: Verificar múltiples formas de "una vez"
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplInvocationsTest {
+    @Test
+    void shouldVerifyQuestionRepositoryIsCalledExactlyOnceWithMultipleVerificationModes() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        this.examService.findExamByNameWithQuestions("Aritmética");
+
+        // Todas estas formas equivalen a "llamado exactamente una vez"
+        Mockito.verify(this.questionRepository).findQuestionByExamId(1L); // Por defecto
+        Mockito.verify(this.questionRepository, Mockito.times(1)).findQuestionByExamId(1L);
+        Mockito.verify(this.questionRepository, Mockito.atLeast(1)).findQuestionByExamId(1L);
+        Mockito.verify(this.questionRepository, Mockito.atLeastOnce()).findQuestionByExamId(1L);
+        Mockito.verify(this.questionRepository, Mockito.atMost(1)).findQuestionByExamId(1L);
+        Mockito.verify(this.questionRepository, Mockito.atMostOnce()).findQuestionByExamId(1L);
+    }
+}
+````
+
+### 📌 Ejemplo 2: Verificar que un método nunca se llamó
+
+En este caso, como el examen no existe, esperamos que `questionRepository.findQuestionByExamId(...)`
+no se invoque jamás:
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplInvocationsTest {
+    @Test
+    void name() {
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        assertThatThrownBy(() -> this.examService.findExamByNameWithQuestions("Lenguaje"))
+                .isInstanceOf(NoSuchElementException.class)
+                .hasMessage("No existe el examen Lenguaje");
+
+        // ✅ Se llamó 1 vez a findAll()
+        Mockito.verify(this.examRepository, Mockito.times(1)).findAll();
+        // 🚫 Nunca se debe llamar a findQuestionByExamId()
+        Mockito.verify(this.questionRepository, Mockito.never()).findQuestionByExamId(Mockito.anyLong());
+        // 🚫 También podemos verificar que no hubo ninguna interacción con el mock completo
+        Mockito.verifyNoInteractions(this.questionRepository);
+    }
+}
+````
+
+### Resumen de modos de verificación en Mockito
+
+| Método de verificación              | Significado                                                              |
+|-------------------------------------|--------------------------------------------------------------------------|
+| `verify(mock)`                      | Verifica que se llamó **exactamente una vez**.                           |
+| `verify(mock, times(n))`            | Verifica que se llamó exactamente `n` veces.                             |
+| `verify(mock, atLeast(n))`          | Verifica que se llamó al menos `n` veces.                                |
+| `verify(mock, atLeastOnce())`       | Verifica que se llamó **al menos una vez**.                              |
+| `verify(mock, atMost(n))`           | Verifica que se llamó como máximo `n` veces.                             |
+| `verify(mock, atMostOnce())`        | Verifica que se llamó **como máximo una vez**.                           |
+| `verify(mock, never())`             | Verifica que **nunca** se llamó.                                         |
+| `verifyNoInteractions(mock)`        | Verifica que **no hubo ninguna interacción** con ese mock.               |
+| `verifyNoMoreInteractions(mock...)` | Verifica que no hubo **más invocaciones** después de las ya verificadas. |

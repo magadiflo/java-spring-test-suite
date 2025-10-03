@@ -1853,3 +1853,52 @@ class ExamServiceImplSpyTest {
 
 Con este enfoque, `ExamServiceImpl` está trabajando con lógica real de repositorios, pero seguimos teniendo el poder de
 verificar invocaciones o incluso sobreescribir métodos específicos si lo necesitamos.
+
+## 🕵️ Implementando espías con Spy - Simulando llamadas
+
+En la lección anterior usamos `spy()` para invocar directamente a los métodos reales de los repositorios. Sin embargo,
+la verdadera flexibilidad de un `Spy` es que podemos decidir `cuándo usar la lógica real y cuándo simularla`.
+
+En este caso, combinamos `spy()` con `Mockito.doReturn(...)` para sobrescribir el comportamiento de los métodos y así
+devolver datos simulados.
+
+- ⚠️ `Nota importante`: cuando trabajamos con `spy()`, no es recomendable usar `when(...).thenReturn(...)`,
+  ya que internamente podría intentar ejecutar el método real antes de aplicar el `stub`, causando efectos inesperados.
+- 👉 Por eso, en combinación con `spy()`, la forma correcta de simular es con `doReturn(...).when(...)`.
+
+````java
+class ExamServiceImplSpyTest {
+    @Test
+    void shouldReturnExamWithAllQuestionsUsingSpiedRepositoriesAndStubbedData() {
+        // given: spies sobre implementaciones reales
+        ExamRepository examRepository = Mockito.spy(ExamRepositoryImpl.class);
+        QuestionRepository questionRepository = Mockito.spy(QuestionRepositoryImpl.class);
+        ExamServiceImpl examService = new ExamServiceImpl(examRepository, questionRepository);
+
+        // sobreescribimos comportamientos reales con datos simulados
+        Mockito.doReturn(ExamFixtures.getAllExams()).when(examRepository).findAll();
+        Mockito.doReturn(ExamFixtures.getQuestions()).when(questionRepository).findQuestionByExamId(Mockito.anyLong());
+
+        // when
+        Exam exam = examService.findExamByNameWithQuestions("Aritmética");
+
+        // then: usamos los datos mockeados en lugar de los reales
+        assertThat(exam)
+                .extracting(Exam::getId, Exam::getName)
+                .containsExactly(1L, "Aritmética");
+        assertThat(exam.getQuestions())
+                .isNotEmpty()
+                .hasSize(10)
+                .contains("Pregunta 3", "Pregunta 5");
+    }
+}
+````
+
+🔎 Diferencia con la lección anterior
+
+- Lección anterior `(Spy real)`: los métodos de `ExamRepositoryImpl` y `QuestionRepositoryImpl` devolvían datos reales
+  de sus implementaciones.
+- Lección actual `(Spy + Stub)`: usamos `doReturn(...).when(...)` para interceptar esos mismos métodos y devolver datos
+  mockeados.
+
+👉 Esto nos da lo mejor de los dos mundos: objetos reales espiados con posibilidad de sobreescribir lo que queramos.

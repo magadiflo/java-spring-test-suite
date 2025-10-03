@@ -1156,7 +1156,7 @@ Cuando guardamos un examen, este inicialmente no tiene id (es `null`). En un esc
 de datos, esta le asigna un id autogenerado. Podemos simular ese comportamiento en nuestros tests con `Answer<T>`
 de `Mockito`.
 
-### 🧪 Ejemplo de test
+### 🧪 Ejemplo de test usando `when(...).then(new Answer<Exam>() {...})`
 
 ````java
 
@@ -1200,6 +1200,46 @@ class ExamServiceImplExtensionTest {
 
 Además de usar `Answer<T>`, también podríamos explorar el uso de `thenAnswer(...)` con expresiones lambda para
 simplificar el código, sin necesidad de clases anónimas.
+
+### 🧪 Ejemplo de test usando `when(...).thenAnswer(...)`
+
+En `Mockito`, el método `thenAnswer(...)` es una forma más expresiva y moderna de definir comportamientos dinámicos en
+un mock. A diferencia de `thenReturn(...)`, que siempre devuelve un valor fijo, con `thenAnswer(...)` podemos acceder
+al `invocation` context (argumentos, mock invocado, etc.) y generar una respuesta en tiempo de ejecución.
+
+Esto resulta útil cuando queremos simular escenarios más realistas, como la asignación de un ID incremental al guardar
+una entidad o retornar valores diferentes según el argumento recibido.
+
+En el siguiente ejemplo, usamos `thenAnswer(...)` para interceptar la llamada al repositorio y asignar un ID simulado
+al examen antes de devolverlo, tal como lo haría una base de datos real:
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldAssignIdAndPersistExamWithQuestionsUsingThenAnswer() {
+        Exam exam = ExamFixtures.getNewExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+
+        Mockito.when(this.examRepository.saveExam(Mockito.any(Exam.class))).thenAnswer(invocation -> {
+            Exam examToSave = invocation.getArgument(0);
+            examToSave.setId(8L); // Simula autoincrement (puedes manejar secuencia si quieres)
+            return examToSave;
+        });
+        Mockito.doNothing().when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        Exam savedExam = this.examService.saveExam(exam);
+
+        assertThat(savedExam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(8L, "Kubernetes", ExamFixtures.getQuestions());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
+}
+````
 
 ## 🚨 Comprobaciones de excepciones usando `when(...).thenThrow(...)`
 
@@ -1548,3 +1588,89 @@ class ExamServiceImplExtensionTest {
 2. `Ejecución del servicio`. Al llamar a `this.examService.saveExam(exam)`, internamente se intenta guardar el examen
    y también sus preguntas → lo que dispara la excepción configurada.
 3. `Afirmación`. Con `assertThatThrownBy(...)` verificamos que efectivamente la excepción lanzada sea del tipo esperado.
+
+## 🎭 Uso de `doAnswer` en Mockito
+
+Hasta ahora ya habíamos usado la interfaz `Answer` de manera explícita, por ejemplo para asignar un id incremental a un
+examen cuando era guardado. Sin embargo, `Mockito` también nos ofrece una forma más concisa y declarativa para el mismo
+propósito: `doAnswer(...)`.
+
+Básicamente, `doAnswer()` nos permite interceptar la llamada a un método de un mock, acceder a sus argumentos mediante
+el invocation y luego devolver un resultado calculado dinámicamente.
+
+### 📌 Ejemplo 1: Simular el guardado de un examen con ID asignado
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldAssignIdAndPersistExamWithQuestionsUsingDoAnswer() {
+        // given
+        Exam exam = ExamFixtures.getNewExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+
+        Mockito.doAnswer(invocation -> {
+            Exam examToSave = invocation.getArgument(0); // argumento en posición 0
+            examToSave.setId(10L); // simulamos que la BD le asigna un ID
+            return examToSave;
+        }).when(this.examRepository).saveExam(Mockito.any(Exam.class));
+
+        Mockito.doNothing().when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        // when
+        Exam savedExam = this.examService.saveExam(exam);
+
+        // then
+        assertThat(savedExam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(10L, "Kubernetes", ExamFixtures.getQuestions());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
+}
+````
+
+✅ Aquí el `doAnswer` actúa como un “simulador de BD”, asignando un ID al examen antes de devolverlo.
+
+### 📌 Ejemplo 2: Retornar valores diferentes según el argumento recibido
+
+A veces queremos que el mock devuelva respuestas distintas dependiendo del input. Para eso también podemos usar
+`doAnswer()`:
+
+````java
+
+@ExtendWith(MockitoExtension.class)
+class ExamServiceImplExtensionTest {
+    @Test
+    void shouldReturnExamWithFewQuestionsWhenIdMatchesConditionInDoAnswer() {
+        // given
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        Mockito.doAnswer(invocation -> {
+            Long examId = invocation.getArgument(0); // capturamos el id del examen
+            return examId == 5L
+                    ? ExamFixtures.getFewQuestions() // si es id = 5
+                    : ExamFixtures.getEmptyExams();  // en cualquier otro caso
+        }).when(this.questionRepository).findQuestionByExamId(Mockito.anyLong());
+
+        // when
+        Exam exam = this.examService.findExamByNameWithQuestions("Programación");
+
+        // then
+        assertThat(exam)
+                .hasFieldOrPropertyWithValue("id", 5L)
+                .hasFieldOrPropertyWithValue("name", "Programación")
+                .hasFieldOrPropertyWithValue("questions", ExamFixtures.getFewQuestions());
+    }
+}
+````
+
+✨ Conceptos clave
+
+- `doAnswer()` → se usa en lugar de `when(...).then(new Answer<Exam>() {...})` cuando necesitamos lógica más flexible
+  para decidir qué devolver.
+- `Invocation.getArgument(index)` → nos permite capturar los argumentos pasados al método del mock.
+- Útil para casos dinámicos, donde el resultado depende del argumento recibido.
+

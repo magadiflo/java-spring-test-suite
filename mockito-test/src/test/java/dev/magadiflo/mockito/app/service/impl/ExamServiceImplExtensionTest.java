@@ -15,8 +15,7 @@ import org.mockito.stubbing.Answer;
 
 import java.util.NoSuchElementException;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 @ExtendWith(MockitoExtension.class) // Habilita las anotaciones de mockito: @Mock, @InjectMocks
 class ExamServiceImplExtensionTest {
@@ -149,6 +148,28 @@ class ExamServiceImplExtensionTest {
     }
 
     @Test
+    void shouldAssignIdAndPersistExamWithQuestionsUsingThenAnswer() {
+        Exam exam = ExamFixtures.getNewExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+
+        Mockito.when(this.examRepository.saveExam(Mockito.any(Exam.class))).thenAnswer(invocation -> {
+            Exam examToSave = invocation.getArgument(0);
+            examToSave.setId(8L); // Simula autoincrement (puedes manejar secuencia si quieres)
+            return examToSave;
+        });
+        Mockito.doNothing().when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        Exam savedExam = this.examService.saveExam(exam);
+
+        assertThat(savedExam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(8L, "Kubernetes", ExamFixtures.getQuestions());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
+
+    @Test
     void shouldThrowIllegalArgumentExceptionWhenExamIdIsNullAndQuestionsAreRequested() {
         Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getExamsWithNullIds());
         Mockito.when(this.questionRepository.findQuestionByExamId(Mockito.isNull())).thenThrow(IllegalArgumentException.class);
@@ -216,5 +237,51 @@ class ExamServiceImplExtensionTest {
 
         assertThatThrownBy(() -> this.examService.saveExam(exam))
                 .isInstanceOf(IllegalArgumentException.class);
+    }
+
+    @Test
+    void name() {
+        // given
+        Exam exam = ExamFixtures.getNewExam();
+        exam.setQuestions(ExamFixtures.getQuestions());
+
+        Mockito.doAnswer(invocation -> {
+            Exam examToSave = invocation.getArgument(0);
+            examToSave.setId(10L);
+            return examToSave;
+        }).when(this.examRepository).saveExam(Mockito.any(Exam.class));
+
+        Mockito.doNothing().when(this.questionRepository).saveQuestions(Mockito.anyList());
+
+        // when
+        Exam savedExam = this.examService.saveExam(exam);
+
+        // then
+        assertThat(savedExam)
+                .isNotNull()
+                .extracting(Exam::getId, Exam::getName, Exam::getQuestions)
+                .containsExactly(10L, "Kubernetes", ExamFixtures.getQuestions());
+        Mockito.verify(this.examRepository).saveExam(Mockito.any(Exam.class));
+        Mockito.verify(this.questionRepository).saveQuestions(Mockito.anyList());
+    }
+
+    @Test
+    void name2() {
+        // given
+        Mockito.when(this.examRepository.findAll()).thenReturn(ExamFixtures.getAllExams());
+
+        Mockito.doAnswer(invocation -> {
+            Long examId = invocation.getArgument(0);
+            return examId == 5L ? ExamFixtures.getFewQuestions() : ExamFixtures.getEmptyExams();
+        }).when(this.questionRepository).findQuestionByExamId(Mockito.anyLong());
+
+        // when
+        Exam exam = this.examService.findExamByNameWithQuestions("Programación");
+
+        // then
+        assertThat(exam)
+                .hasFieldOrPropertyWithValue("id", 5L)
+                .hasFieldOrPropertyWithValue("name", "Programación")
+                .hasFieldOrPropertyWithValue("questions", ExamFixtures.getFewQuestions());
     }
 }

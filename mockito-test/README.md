@@ -1752,3 +1752,104 @@ class ExamServiceImplDoCallRealMethodTest {
   su método `findQuestionByExamId(...)`.
 - Con esto logramos un mix entre mocks y lógica real, lo cual es muy útil cuando quieres probar parcialmente
   comportamientos sin renunciar a las ventajas de Mockito.
+
+## 🕵️ Implementando espías con Spy - Llamadas reales
+
+Un `Spy` es similar a un `Mock`, pero con una diferencia clave:
+> Puede comportarse como un objeto real, permitiendo invocar las implementaciones originales de sus métodos.
+> Al igual que el `Mock`, también nos da la opción de simular el comportamiento de cualquier método, pero con mayor
+> flexibilidad.
+
+La diferencia principal es que con `Mock` es obligatorio simular los métodos, lo que lo hace ideal para enfoques de
+desarrollo como `TDD (Test Driven Development)`, donde aún no existe una implementación funcional. En cambio,
+el `Spy` permite invocar métodos reales ya implementados, lo que resulta útil cuando queremos mantener la coherencia
+entre lo ya desarrollado y la nueva funcionalidad que estamos testeando.
+
+Este enfoque es especialmente valioso en escenarios donde:
+
+- Ya existen métodos funcionales que queremos reutilizar en nuestras pruebas.
+- Buscamos validar la integración parcial sin romper la lógica existente.
+- Queremos combinar simulación y comportamiento real en un mismo objeto.
+
+En el siguiente ejemplo, usaremos `spy()` para obtener la implementación real de los métodos. Para ello,
+es necesario que los métodos `findAll()` de la clase `ExamRepositoryImpl` y `findQuestionsByExamId()`
+de la clase `QuestionRepositoryImpl` estén previamente implementados y retornen datos "reales", ya que serán
+invocados directamente durante las pruebas.
+
+### 🛠️ Paso 1: Implementaciones concretas
+
+Necesitamos implementaciones reales para que `spy()` pueda invocar sus métodos.
+
+````java
+public class ExamRepositoryImpl implements ExamRepository {
+    @Override
+    public List<Exam> findAll() {
+        return List.of(
+                new Exam(1L, "R_Aritmética"),
+                new Exam(2L, "R_Geometría"),
+                new Exam(3L, "R_Álgebra"),
+                new Exam(4L, "R_Trigonometría"),
+                new Exam(5L, "R_Programación"),
+                new Exam(6L, "R_Bases de Datos"),
+                new Exam(7L, "R_Estructura de datos"),
+                new Exam(8L, "R_Java 17")
+        );
+    }
+
+    @Override
+    public Exam saveExam(Exam exam) {
+        return null;
+    }
+}
+````
+
+````java
+public class QuestionRepositoryImpl implements QuestionRepository {
+    @Override
+    public List<String> findQuestionByExamId(Long examId) {
+        return List.of(
+                "Pregunta 1 (real)",
+                "Pregunta 2 (real)",
+                "Pregunta 3 (real)",
+                "Pregunta 4 (real)",
+                "Pregunta 5 (real)"
+        );
+    }
+
+    @Override
+    public void saveQuestions(List<String> questions) {
+        // No implementado porque no lo usamos en los test del doCallRealMethod
+    }
+}
+````
+
+### 🛠️ Paso 2: Crear Spies en el test
+
+Ahora creamos `spies` de los repositorios y verificamos que efectivamente se llaman sus métodos reales.
+
+````java
+class ExamServiceImplSpyTest {
+    @Test
+    void shouldReturnRealExamWithQuestionsUsingSpiedRepositories() {
+        // given: spies sobre implementaciones concretas
+        ExamRepository examRepository = Mockito.spy(ExamRepositoryImpl.class);
+        QuestionRepository questionRepository = Mockito.spy(QuestionRepositoryImpl.class);
+        ExamServiceImpl examService = new ExamServiceImpl(examRepository, questionRepository);
+
+        // when
+        Exam exam = examService.findExamByNameWithQuestions("R_Aritmética");
+
+        // then
+        assertThat(exam)
+                .extracting(Exam::getId, Exam::getName)
+                .containsExactly(1L, "R_Aritmética");
+        assertThat(exam.getQuestions())
+                .isNotEmpty()
+                .hasSize(5)
+                .contains("Pregunta 3 (real)", "Pregunta 5 (real)");
+    }
+}
+````
+
+Con este enfoque, `ExamServiceImpl` está trabajando con lógica real de repositorios, pero seguimos teniendo el poder de
+verificar invocaciones o incluso sobreescribir métodos específicos si lo necesitamos.

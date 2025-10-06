@@ -160,3 +160,87 @@ código de `MapStruct`.
     <!--/MapStruct-->
 </plugins>
 ````
+
+---
+
+# 🏗️ Fase 1 — Construcción del Proyecto Base (sin tests aún)
+
+---
+
+## 🏦 Modelo de Datos
+
+En esta primera parte definimos las entidades base del dominio:
+
+- ➡️ Bank (banco)
+- ➡️ Account (cuenta bancaria)
+
+Ambas entidades están modeladas con `JPA (Jakarta Persistence API)` y usan `Lombok` para eliminar código repetitivo
+(getters, setters, constructores, builder).
+
+### 🏛️ Entidad: Bank
+
+Representa un banco dentro del sistema. Cada banco administra múltiples cuentas y realiza transferencias entre ellas.
+
+````java
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Data
+@Entity
+@Table(name = "banks")
+public class Bank {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true, length = 100)
+    private String name;
+
+    @Column(nullable = false)
+    private Integer totalTransfers;
+}
+````
+
+### 💰 Entidad: Account
+
+Representa una cuenta bancaria con su titular y saldo disponible.
+
+````java
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Data
+@Entity
+@Table(name = "accounts")
+public class Account {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, length = 100)
+    private String holder;
+
+    @Column(nullable = false, precision = 19, scale = 2)
+    private BigDecimal balance;
+}
+````
+
+**Campos:**
+
+- `id`: Identificador único autogenerado.
+- `holder`: Nombre del titular de la cuenta (máx. 100 caracteres).
+- `balance`: Saldo monetario con alta precisión decimal.
+
+#### 💡 Detalle sobre `precision` y `scale`
+
+- `precision = 19` → número total de dígitos significativos permitidos (enteros + decimales).
+- `scale = 2` → cantidad de dígitos decimales (por ejemplo: centavos).
+- Esto permite representar valores monetarios muy grandes, manteniendo la exactitud decimal.
+
+> En términos prácticos, `según la configuración JPA definida en esta entidad`, el campo `balance` podrá almacenar
+> hasta `17 dígitos enteros y 2 decimales`, por ejemplo: `99999999999999999.99`.
+>
+> Cabe resaltar que esta restricción proviene de la configuración `precision` y `scale` en la anotación `@Column`,
+> no del tipo `BigDecimal` en sí.

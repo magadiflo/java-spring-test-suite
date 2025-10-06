@@ -167,19 +167,43 @@ código de `MapStruct`.
 
 ---
 
-## 🏦 Modelo de Datos (Capa de Persistencia)
+## 🏦 Modelo de Datos — Entidades JPA
 
-En esta primera parte definimos las entidades base del dominio:
+En esta primera parte definimos las `entidades del dominio principal` del sistema bancario:
 
 - ➡️ Bank (banco)
 - ➡️ Account (cuenta bancaria)
 
 Ambas entidades están modeladas con `JPA (Jakarta Persistence API)` y usan `Lombok` para eliminar código repetitivo
-(getters, setters, constructores, builder).
+(getters, setters, constructores, builder, etc.).
+
+### 🔗 Relación Bidireccional `Bank ↔ Account`
+
+El modelo de datos incluye una relación bidireccional entre `Bank` y `Account`:
+
+- Un `Bank` puede tener múltiples `Account` asociadas.
+- Cada `Account` pertenece a un único `Bank`.
+
+````
+Bank
+ └─── Account
+        ↳ bank_id (FK) 
+````
+
+- `Bank → Account`. Relación `@OneToMany` con `cascade = ALL` y `orphanRemoval = true`, lo que implica:
+    - Si se elimina una cuenta de la lista, se elimina de la base.
+    - Si se elimina el banco, se eliminan sus cuentas.
+    - Ideal para mantener integridad y evitar cuentas huérfanas.
+
+
+- `Account → Bank`. Relación `@ManyToOne` con `@JoinColumn(name = "bank_id")`, que:
+    - Define la clave foránea en la tabla `accounts`.
+    - Permite acceder al banco desde una cuenta.
 
 ### 🏛️ Entidad: Bank
 
-Representa un banco dentro del sistema. Cada banco administra múltiples cuentas y realiza transferencias entre ellas.
+Representa un banco dentro del sistema. Cada banco administra múltiples cuentas y registra el número total de
+transferencias realizadas.
 
 ````java
 
@@ -199,12 +223,56 @@ public class Bank {
 
     @Column(nullable = false)
     private Integer totalTransfers;
+
+    @ToString.Exclude           // Evita ciclo infinito en toString()
+    @EqualsAndHashCode.Exclude  // No usar la lista en equals/hashCode
+    @Builder.Default            // Mantiene la inicialización (new ArrayList<>()) con @Builder
+    @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, mappedBy = "bank")
+    private List<Account> accounts = new ArrayList<>();
+
+    // Métodos helper para mantener sincronizada la relación bidireccional
+    public void addAccount(Account account) {
+        this.accounts.add(account);
+        account.setBank(this);
+    }
+
+    public void removeAccount(Account account) {
+        this.accounts.remove(account);
+        account.setBank(null);
+    }
 }
 ````
 
+| Campo            | Tipo            | Descripción                                      |
+|------------------|-----------------|--------------------------------------------------|
+| `id`             | `Long`          | Identificador único del banco.                   |
+| `name`           | `String`        | Nombre del banco (único, obligatorio).           |
+| `totalTransfers` | `Integer`       | Total de transferencias realizadas por el banco. |
+| `accounts`       | `List<Account>` | Lista de cuentas asociadas al banco.             |
+
+#### 🔗 Relación con Account
+
+- Anotación: `@OneToMany(mappedBy = "bank")`
+- Define el lado inverso de la relación (la entidad `Account` contiene la `FK` `bank_id`).
+- `cascade = CascadeType.ALL` → Esta propiedad indica que todas las operaciones de persistencia realizadas sobre la
+  entidad padre (`Bank`) se propagan automáticamente a sus hijos (`Account`). Es decir, se propaga las operaciones
+  (persist, merge, remove, refresh, detach).
+- `orphanRemoval = true` → Esta propiedad indica que si una entidad hija (`Account`) se elimina de la colección del
+  padre (`Bank`), también se elimina de la base de datos, aunque no se haya llamado explícitamente a
+  `accountRepository.delete()`.
+- `addAccount() / removeAccount()` → Métodos de conveniencia para mantener la consistencia bidireccional. Garantizan
+  que ambas entidades se mantengan sincronizadas.
+
+| Práctica                                          | Justificación                                                               |
+|---------------------------------------------------|-----------------------------------------------------------------------------|
+| `addAccount(...)`, `removeAccount(...)`           | Mantienen sincronía entre objetos en memoria, evitando relaciones rotas.    |
+| `@ToString.Exclude`, `@EqualsAndHashCode.Exclude` | Previene ciclos infinitos y errores en colecciones bidireccionales.         |
+| `@Builder.Default`                                | Evita que `Lombok` sobrescriba la inicialización de la lista en el builder. |
+
 ### 💰 Entidad: Account
 
-Representa una cuenta bancaria con su titular y saldo disponible.
+Representa una cuenta bancaria asociada a un banco específico. Cada cuenta tiene un `titular (holder)` y
+un `saldo (balance)`.
 
 ````java
 
@@ -224,14 +292,21 @@ public class Account {
 
     @Column(nullable = false, precision = 19, scale = 2)
     private BigDecimal balance;
+
+    @ToString.Exclude                   // Evita ciclo infinito en toString()
+    @EqualsAndHashCode.Exclude          // No usar la relación en equals/hashCode
+    @ManyToOne(fetch = FetchType.LAZY)  // Mantener LAZY por buenas prácticas (default EAGER)
+    @JoinColumn(name = "bank_id")
+    private Bank bank;
 }
 ````
 
-**Campos:**
-
-- `id`: Identificador único autogenerado.
-- `holder`: Nombre del titular de la cuenta (máx. 100 caracteres).
-- `balance`: Saldo monetario con alta precisión decimal.
+| Campo     | Tipo         | Descripción                                            |
+|-----------|--------------|--------------------------------------------------------|
+| `id`      | `Long`       | Identificador único de la cuenta.                      |
+| `holder`  | `String`     | Nombre del titular (máx. 100 caracteres, obligatorio). |
+| `balance` | `BigDecimal` | Saldo monetario con alta precisión decimal.            |
+| `bank`    | `Bank`       | Banco al que pertenece esta cuenta `(FK)`.             |
 
 #### 💡 Detalle sobre `precision` y `scale`
 

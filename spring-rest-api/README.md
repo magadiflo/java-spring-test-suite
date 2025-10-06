@@ -167,7 +167,7 @@ código de `MapStruct`.
 
 ---
 
-## 🏦 Modelo de Datos
+## 🏦 Modelo de Datos (Capa de Persistencia)
 
 En esta primera parte definimos las entidades base del dominio:
 
@@ -244,3 +244,86 @@ public class Account {
 >
 > Cabe resaltar que esta restricción proviene de la configuración `precision` y `scale` en la anotación `@Column`,
 > no del tipo `BigDecimal` en sí.
+
+## 📦 Capa de Transferencia de Datos (DTOs)
+
+En esta sección definimos los `Data Transfer Objects (DTOs)`, los cuales representan los datos que se envían y reciben
+a través de la `API REST`.
+
+Los `DTOs` permiten desacoplar la capa de persistencia (`Entity`) de la capa de exposición (`Controller`),
+evitando exponer directamente nuestras entidades JPA y facilitando la validación, serialización y versionado.
+
+### 🧾 AccountRequest
+
+Este DTO se utiliza para crear o actualizar cuentas bancarias. Incluye validaciones de entrada que garantizan la
+integridad de los datos enviados por el cliente.
+
+````java
+public record AccountRequest(@NotBlank
+                             @Size(max = 100)
+                             String holder,
+
+                             @NotNull
+                             @Min(0)
+                             @Digits(integer = 17, fraction = 2)
+                             BigDecimal balance) {
+}
+````
+
+✅ Validaciones aplicadas
+
+| Anotación                             | Significado                                                                                                         |
+|---------------------------------------|---------------------------------------------------------------------------------------------------------------------|
+| `@NotBlank`                           | El nombre del titular no puede ser nulo ni vacío.                                                                   |
+| `@Size(max = 100)`                    | Longitud máxima de 100 caracteres para el nombre del titular.                                                       |
+| `@NotNull`                            | El saldo no puede ser nulo.                                                                                         |
+| `@Min(0)`                             | El saldo inicial no puede ser negativo.                                                                             |
+| `@Digits(integer = 17, fraction = 2)` | El número puede tener hasta **17 enteros y 2 decimales**, consistente con la configuración de la entidad `Account`. |
+
+### 🔁 TransactionRequest
+
+DTO que representa una solicitud de transferencia bancaria. Es decir, cuando un cliente solicita mover dinero de una
+cuenta origen a una cuenta destino dentro de un banco específico.
+
+````java
+public record TransactionRequest(@NotNull
+                                 @Positive
+                                 Long bankId,
+
+                                 @NotNull
+                                 @Positive
+                                 Long sourceAccountId,
+
+                                 @NotNull
+                                 @Positive
+                                 Long targetAccountId,
+
+                                 @NotNull
+                                 @Positive
+                                 @Digits(integer = 17, fraction = 2)
+                                 BigDecimal amount) {
+}
+````
+
+✅ Validaciones aplicadas
+
+| Campo             | Validaciones                             | Descripción                                             |
+|-------------------|------------------------------------------|---------------------------------------------------------|
+| `bankId`          | `@NotNull`, `@Positive`                  | Identificador del banco que realiza la transacción.     |
+| `sourceAccountId` | `@NotNull`, `@Positive`                  | ID de la cuenta de origen (de donde sale el dinero).    |
+| `targetAccountId` | `@NotNull`, `@Positive`                  | ID de la cuenta de destino (a donde llega el dinero).   |
+| `amount`          | `@NotNull`, `@Positive`, `@Digits(17,2)` | Monto a transferir, con precisión monetaria controlada. |
+
+⚙️ Estas validaciones garantizan que los IDs sean válidos y que el monto sea siempre positivo.
+
+### 💳 AccountResponse
+
+Este DTO representa la respuesta devuelta por la API cuando se consulta o crea una cuenta bancaria. Contiene
+información pública y segura del recurso.
+
+````java
+public record AccountResponse(Long id,
+                              String holder,
+                              BigDecimal balance) {
+}
+````

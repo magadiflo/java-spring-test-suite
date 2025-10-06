@@ -322,83 +322,128 @@ public class Account {
 
 ## 📦 Capa de Transferencia de Datos (DTOs)
 
-En esta sección definimos los `Data Transfer Objects (DTOs)`, los cuales representan los datos que se envían y reciben
-a través de la `API REST`.
+En esta sección se definen los `Data Transfer Objects (DTOs)` — clases que representan la información que viaja entre
+el cliente y la API REST.
 
-Los `DTOs` permiten desacoplar la capa de persistencia (`Entity`) de la capa de exposición (`Controller`),
-evitando exponer directamente nuestras entidades JPA y facilitando la validación, serialización y versionado.
+Su propósito es aislar la capa de presentación del modelo de dominio, aplicando validaciones que garanticen la
+consistencia de los datos antes de llegar a la lógica de negocio.
 
-### 🧾 AccountRequest
+### 🧾 AccountCreateRequest
 
-Este DTO se utiliza para crear o actualizar cuentas bancarias. Incluye validaciones de entrada que garantizan la
-integridad de los datos enviados por el cliente.
+DTO utilizado para crear una nueva cuenta bancaria. Incluye validaciones que aseguran la integridad y coherencia de los
+datos enviados por el cliente.
 
 ````java
-public record AccountRequest(@NotBlank
-                             @Size(max = 100)
-                             String holder,
+public record AccountCreateRequest(@NotBlank(message = "El nombre del titular no puede estar vacío")
+                                   @Size(max = 100, message = "El nombre del titular no puede superar los 100 caracteres")
+                                   String holder,
 
-                             @NotNull
-                             @Min(0)
-                             @Digits(integer = 17, fraction = 2)
-                             BigDecimal balance) {
+                                   @NotNull(message = "El saldo inicial es obligatorio")
+                                   @DecimalMin(value = "0.00", message = "El saldo no puede ser negativo")
+                                   @Digits(integer = 17, fraction = 2, message = "El saldo debe tener hasta 17 dígitos enteros y 2 decimales")
+                                   BigDecimal balance,
+
+                                   @NotNull(message = "Debe especificarse el banco asociado")
+                                   @Positive(message = "El identificador del banco debe ser un número positivo")
+                                   Long bankId) {
 }
 ````
 
 ✅ Validaciones aplicadas
 
-| Anotación                             | Significado                                                                                                         |
-|---------------------------------------|---------------------------------------------------------------------------------------------------------------------|
-| `@NotBlank`                           | El nombre del titular no puede ser nulo ni vacío.                                                                   |
-| `@Size(max = 100)`                    | Longitud máxima de 100 caracteres para el nombre del titular.                                                       |
-| `@NotNull`                            | El saldo no puede ser nulo.                                                                                         |
-| `@Min(0)`                             | El saldo inicial no puede ser negativo.                                                                             |
-| `@Digits(integer = 17, fraction = 2)` | El número puede tener hasta **17 enteros y 2 decimales**, consistente con la configuración de la entidad `Account`. |
+| Anotación             | Descripción                                                                            |
+|-----------------------|----------------------------------------------------------------------------------------|
+| `@NotBlank`           | El nombre del titular no puede ser nulo ni contener solo espacios.                     |
+| `@Size(max = 100)`    | Restringe la longitud del nombre a un máximo de 100 caracteres.                        |
+| `@NotNull`            | El saldo y el banco asociado no pueden ser nulos.                                      |
+| `@DecimalMin("0.00")` | Evita valores negativos en el saldo inicial.                                           |
+| `@Digits(17, 2)`      | Mantiene la precisión monetaria alineada con la configuración de la entidad `Account`. |
+| `@Positive`           | Asegura que el identificador del banco sea mayor que cero.                             |
+
+🧩 `Nota`: Este DTO no expone información sensible ni lógica de negocio; se usa exclusivamente para entrada de datos.
 
 ### 🔁 TransactionRequest
 
-DTO que representa una solicitud de transferencia bancaria. Es decir, cuando un cliente solicita mover dinero de una
-cuenta origen a una cuenta destino dentro de un banco específico.
+DTO que representa una transferencia bancaria entre dos cuentas. Garantiza que ambas cuentas y el monto de la operación
+sean válidos antes de procesar la transacción.
 
 ````java
-public record TransactionRequest(@NotNull
-                                 @Positive
-                                 Long bankId,
-
-                                 @NotNull
-                                 @Positive
+public record TransactionRequest(@NotNull(message = "Debe especificarse el ID de la cuenta de origen")
+                                 @Positive(message = "El ID de la cuenta origen debe ser un número positivo")
                                  Long sourceAccountId,
 
-                                 @NotNull
-                                 @Positive
+                                 @NotNull(message = "Debe especificarse el ID de la cuenta de destino")
+                                 @Positive(message = "El ID de la cuenta destino debe ser un número positivo")
                                  Long targetAccountId,
 
-                                 @NotNull
-                                 @Positive
-                                 @Digits(integer = 17, fraction = 2)
+                                 @NotNull(message = "Debe especificar el monto a transferir")
+                                 @DecimalMin(value = "0.01", message = "El monto mínimo de transferencia es 0.01")
+                                 @Digits(integer = 17, fraction = 2, message = "El monto debe tener hasta 17 dígitos enteros y 2 decimales")
                                  BigDecimal amount) {
 }
 ````
 
-✅ Validaciones aplicadas
+🧠 Consideraciones de negocio
 
-| Campo             | Validaciones                             | Descripción                                             |
-|-------------------|------------------------------------------|---------------------------------------------------------|
-| `bankId`          | `@NotNull`, `@Positive`                  | Identificador del banco que realiza la transacción.     |
-| `sourceAccountId` | `@NotNull`, `@Positive`                  | ID de la cuenta de origen (de donde sale el dinero).    |
-| `targetAccountId` | `@NotNull`, `@Positive`                  | ID de la cuenta de destino (a donde llega el dinero).   |
-| `amount`          | `@NotNull`, `@Positive`, `@Digits(17,2)` | Monto a transferir, con precisión monetaria controlada. |
-
-⚙️ Estas validaciones garantizan que los IDs sean válidos y que el monto sea siempre positivo.
+- Las validaciones se realizan a nivel de DTO, antes de ejecutar la transacción.
+- En la capa de servicio se deberá comprobar que ambas cuentas pertenezcan al mismo banco.
+- El monto no puede ser negativo ni cero.
 
 ### 💳 AccountResponse
 
-Este DTO representa la respuesta devuelta por la API cuando se consulta o crea una cuenta bancaria. Contiene
-información pública y segura del recurso.
+Representa la información que se devuelve al cliente tras consultar o crear una cuenta.
+Contiene solo los datos públicos de la cuenta, sin exponer relaciones completas ni información sensible.
 
 ````java
 public record AccountResponse(Long id,
                               String holder,
-                              BigDecimal balance) {
+                              BigDecimal balance,
+                              String bankName) {
 }
 ````
+
+🔒 Este DTO se utiliza para responder peticiones REST, manteniendo un nivel seguro y controlado de exposición de datos.
+
+### ✏️ AccountUpdateRequest
+
+DTO para actualizar el titular de una cuenta bancaria existente. Mantiene las mismas validaciones del campo holder que
+el DTO de creación.
+
+````java
+public record AccountUpdateRequest(@NotBlank(message = "El nombre del titular no puede estar vacío")
+                                   @Size(max = 100, message = "El nombre del titular no puede superar los 100 caracteres")
+                                   String holder) {
+}
+````
+
+📘 Nota: Este patrón de DTO reducido se usa cuando solo se actualizan campos puntuales.
+
+### 💰 DepositRequest
+
+DTO utilizado para realizar depósitos en una cuenta existente.
+
+````java
+public record DepositRequest(@NotNull(message = "Debe especificar el monto a depositar")
+                             @DecimalMin(value = "0.01", message = "El monto mínimo es 0.01")
+                             @Digits(integer = 17, fraction = 2, message = "El monto debe tener hasta 17 dígitos enteros y 2 decimales")
+                             BigDecimal amount) {
+}
+````
+
+🪙 Se aplica el mismo criterio de precisión que en `Account.balance`, garantizando coherencia entre dominio y capa de
+entrada.
+
+### 💸 WithdrawalRequest
+
+DTO utilizado para realizar retiros desde una cuenta bancaria.
+
+````java
+public record WithdrawalRequest(@NotNull(message = "Debe especificar el monto a retirar")
+                                @DecimalMin(value = "0.01", message = "El monto mínimo es 0.01")
+                                @Digits(integer = 17, fraction = 2, message = "El monto debe tener hasta 17 dígitos enteros y 2 decimales")
+                                BigDecimal amount) {
+}
+````
+
+🚨 Las reglas de negocio sobre límites de retiro o fondos insuficientes se manejarán en la capa de servicio.
+

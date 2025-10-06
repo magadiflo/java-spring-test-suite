@@ -4,5 +4,6 @@ import java.math.BigDecimal;
 
 public record AccountResponse(Long id,
                               String holder,
-                              BigDecimal balance) {
+                              BigDecimal balance,
+                              String bankName) {
 }

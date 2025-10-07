@@ -447,3 +447,152 @@ public record WithdrawalRequest(@NotNull(message = "Debe especificar el monto a 
 
 🚨 Las reglas de negocio sobre límites de retiro o fondos insuficientes se manejarán en la capa de servicio.
 
+## 🧩 Capa de Persistencia (Repositorios)
+
+Los repositorios son los encargados de la interacción directa con la base de datos, utilizando el poder de
+`Spring Data JPA`. Extienden de `JpaRepository`, lo que nos brinda operaciones `CRUD` por defecto
+(`findAll`, `findById`, `save`, `deleteById`, etc.), pero además se han definido consultas personalizadas para
+cubrir escenarios específicos y reforzar el aprendizaje práctico.
+
+### 💾 AccountRepository
+
+Repositorio que gestiona las operaciones sobre la entidad `Account`. Incluye consultas tanto `JPQL` como `nativas`,
+con el fin de practicar distintos enfoques en el acceso a datos.
+
+````java
+public interface AccountRepository extends JpaRepository<Account, Long> {
+
+    /**
+     * Obtiene todas las cuentas junto con el nombre del banco asociado.
+     * <p>
+     * Utiliza una proyección DTO ({@link dev.magadiflo.app.dto.AccountResponse})
+     * directamente en la consulta JPQL.
+     * </p>
+     */
+    @Query("""
+            SELECT new dev.magadiflo.app.dto.AccountResponse(a.id, a.holder, a.balance, b.name)
+            FROM Account AS a
+                JOIN a.bank AS b
+            """)
+    List<AccountResponse> getAllAccounts();
+
+    /**
+     * Busca una cuenta por el nombre del titular.
+     * <p>
+     * Ejemplo de consulta JPQL con un parámetro nombrado.
+     * </p>
+     */
+    @Query(value = """
+            SELECT a
+            FROM Account AS a
+            WHERE a.holder = :holder
+            """)
+    Optional<Account> findAccountByHolder(String holder);
+
+    /**
+     * Inserta una nueva cuenta utilizando una consulta SQL nativa.
+     * <p>
+     * Este método usa parámetros con SpEL (Spring Expression Language) para acceder
+     * a las propiedades del objeto {@code account}. Aunque la sintaxis parezca referirse
+     * directamente a los campos privados (p. ej. {@code :#{#account.holder}}),
+     * en realidad SpEL invoca los getters públicos generados por Lombok
+     * (por ejemplo, {@code getHolder()}).
+     * </p>
+     *
+     * @param account la entidad a insertar
+     * @return el número de filas afectadas (normalmente 1 si la inserción fue exitosa)
+     * @implNote Este método debe ejecutarse dentro de un contexto {@code @Transactional}
+     */
+    @Modifying
+    @Query(value = """
+            INSERT INTO accounts(holder, balance, bank_id)
+            VALUES(:#{#account.holder}, :#{#account.balance}, :#{#account.bank.id})
+            """, nativeQuery = true)
+    int saveAccount(Account account);
+
+    /**
+     * Actualiza el nombre del titular de una cuenta.
+     * <p>
+     * Ejemplo de consulta nativa usando la anotación {@code @NativeQuery},
+     * introducida en Spring Data JPA 3.4+ como atajo de {@code @Query(nativeQuery = true)}.
+     * Utiliza SpEL para acceder a las propiedades del objeto {@code account}.
+     * </p>
+     *
+     * @param account la entidad con los datos actualizados (debe contener id y holder)
+     * @return el número de filas afectadas (1 si la actualización fue exitosa, 0 si no se encontró la cuenta)
+     * @implNote Este método debe ejecutarse dentro de un contexto {@code @Transactional}
+     */
+    @Modifying
+    @NativeQuery(value = """
+            UPDATE accounts
+            SET holder = :#{#account.holder}
+            WHERE id = :#{#account.id}
+            """)
+    int updateAccountHolder(Account account);
+
+    /**
+     * Elimina una cuenta por su identificador.
+     * <p>
+     * Se define manualmente como práctica de consultas {@code @Modifying} con DELETE,
+     * aunque {@link JpaRepository} ya provee el método {@code deleteById()}.
+     * Utiliza una consulta SQL nativa con parámetro nombrado.
+     * </p>
+     *
+     * @param accountId el identificador de la cuenta a eliminar
+     * @return el número de filas afectadas (1 si la eliminación fue exitosa, 0 si no se encontró la cuenta)
+     * @implNote Este método debe ejecutarse dentro de un contexto {@code @Transactional}
+     */
+    @Modifying
+    @Query(value = """
+            DELETE FROM accounts
+            WHERE id = :accountId
+            """, nativeQuery = true)
+    int deleteAccountById(Long accountId);
+}
+````
+
+✅ Notas técnicas y buenas prácticas
+
+- Se usa `proyección directa hacia un record DTO` (`AccountResponse`) para evitar carga innecesaria de entidades.
+- Las consultas con `@NativeQuery` permiten ejecutar `SQL` real, ideal para pruebas o sintaxis dependiente de la
+  base de datos.
+- Los parámetros `:#{#account...}` son una característica avanzada de `Spring Expression Language (SpEL)` para mapear
+  atributos complejos en consultas.
+- `@Modifying` indica operaciones de escritura (`INSERT`, `UPDATE`, `DELETE`).
+
+### 🏦 BankRepository
+
+Repositorio que maneja las operaciones sobre la entidad `Bank`. Aunque hereda todas las operaciones básicas de
+`JpaRepository`, se agregan dos `Query Methods` útiles para validaciones y búsquedas.
+
+````java
+public interface BankRepository extends JpaRepository<Bank, Long> {
+    /**
+     * Busca un banco por su nombre.
+     *
+     * @param name nombre del banco
+     * @return un {@link Optional} que contiene el banco si existe
+     */
+    Optional<Bank> findByName(String name);
+
+    /**
+     * Verifica si existe un banco con el nombre indicado.
+     *
+     * @param name nombre del banco
+     * @return {@code true} si el banco existe, {@code false} en caso contrario
+     */
+    boolean existsByName(String name);
+}
+````
+
+✅ Ventajas de los `Query Methods`
+
+- `Spring Data JPA` interpreta automáticamente el nombre del método y genera la consulta.
+- Simplifican búsquedas comunes sin necesidad de escribir `JPQL` ni `SQL`.
+
+### 📘 En resumen:
+
+- Hemos integrado consultas `JPQL`, `nativas` y `query methods` — un enfoque muy realista y completo.
+- Incluímos `proyecciones DTO` modernas.
+- Aprovechamos nuevas características de `Spring Data JPA 3.4+`, como `@NativeQuery`.
+- Mantienes la orientación didáctica sin perder profesionalismo.

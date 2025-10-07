@@ -596,3 +596,79 @@ public interface BankRepository extends JpaRepository<Bank, Long> {
 - Incluímos `proyecciones DTO` modernas.
 - Aprovechamos nuevas características de `Spring Data JPA 3.4+`, como `@NativeQuery`.
 - Mantienes la orientación didáctica sin perder profesionalismo.
+
+## 🛑 Manejo de excepciones personalizado
+
+Centralizar el manejo de errores para devolver respuestas consistentes, claras y útiles al consumidor de la API. Se
+implementa mediante:
+
+- Excepciones personalizadas para representar errores específicos del dominio.
+- `@RestControllerAdvice` para interceptar excepciones y construir respuestas HTTP con mensajes personalizados.
+
+### 📦 Excepciones personalizadas
+
+````java
+/**
+ * Excepción base para entidades no encontradas en el sistema.
+ * <p>
+ * Sirve como padre para excepciones más específicas como
+ * {@link AccountNotFoundException} y {@link BankNotFoundException}.
+ * </p>
+ */
+public class EntityNotFoundException extends RuntimeException {
+    public EntityNotFoundException(String message) {
+        super(message);
+    }
+}
+````
+
+````java
+public class AccountNotFoundException extends EntityNotFoundException {
+    public AccountNotFoundException(Long accountId) {
+        super("No se encontró la cuenta con ID: %d".formatted(accountId));
+    }
+
+    public AccountNotFoundException(String holder) {
+        super("No se encontró la cuenta del titular: %s".formatted(holder));
+    }
+}
+````
+
+````java
+public class BankNotFoundException extends EntityNotFoundException {
+    public BankNotFoundException(Long bankId) {
+        super("No se encontró el banco con ID: %d".formatted(bankId));
+    }
+
+    public BankNotFoundException(String bankName) {
+        super("No se encontró el banco con nombre: %s".formatted(bankName));
+    }
+}
+````
+
+````java
+public class InsufficientBalanceException extends RuntimeException {
+    public InsufficientBalanceException(Long accountId, String holder) {
+        super("Saldo insuficiente en la cuenta del titular %s (ID: %d)".formatted(holder, accountId));
+    }
+}
+````
+
+````java
+/**
+ * Excepción lanzada cuando una transacción no cumple con las reglas de negocio.
+ * <p>
+ * Ejemplos de uso:
+ * <ul>
+ *   <li>Transferencia entre cuentas de diferentes bancos</li>
+ *   <li>Transferencia de una cuenta a sí misma</li>
+ *   <li>Monto de transferencia inválido</li>
+ * </ul>
+ * </p>
+ */
+public class InvalidTransactionException extends RuntimeException {
+    public InvalidTransactionException(String message) {
+        super(message);
+    }
+}
+````

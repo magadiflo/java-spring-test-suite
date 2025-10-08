@@ -823,3 +823,67 @@ public class GlobalExceptionHandler {
     }
 }
 ````
+
+## 🧩 Interfaz `AccountService`
+
+Define las operaciones disponibles para la gestión de cuentas bancarias, organizadas por tipo de responsabilidad.
+El objetivo es mantener una capa de servicio clara, reutilizable y desacoplada del controlador y del repositorio.
+
+### 🔍 Consultas
+
+- `findAllAccounts()`: Retorna todas las cuentas con nombre del banco.
+- `findAccountById(Long)`: Consulta una cuenta por su ID.
+- `findAccountByHolder(String)`: Consulta una cuenta por nombre del titular.
+- `getAccountBalance(Long)`: Retorna el saldo actual de una cuenta.
+
+### ✏️ Operaciones CRUD
+
+- `createAccount(AccountCreateRequest)`: Crea una nueva cuenta sin retornar nada.
+- `saveAccount(AccountCreateRequest)`: Crea una nueva cuenta y lo retorna con el ID generado.
+- `updateAccount(Long, AccountUpdateRequest)`: Actualiza la cuenta.
+- `deleteAccount(Long)`: Elimina una cuenta por ID.
+
+### 🔁 Operaciones transaccionales
+
+- `deposit(Long, DepositRequest)`: Realiza un depósito.
+- `withdraw(Long, WithdrawalRequest)`: Realiza un retiro.
+- `transfer(TransactionRequest)`: Transfiere saldo entre cuentas.
+
+### 📊 Reportes / métricas
+
+- `countTotalTransfersToBank(Long)`: Retorna el total de transferencias realizadas a un banco.
+
+> Todos los métodos que modifican o consultan cuentas retornan `AccountResponse`, excepto los que no requieren
+> respuesta (`transfer`, `deleteAccount`).
+
+````java
+public interface AccountService {
+    // ========= CONSULTAS =========
+    List<AccountResponse> findAllAccounts();
+
+    AccountResponse findAccountById(Long accountId);
+
+    AccountResponse findAccountByHolder(String holder);
+
+    BigDecimal getAccountBalance(Long accountId);
+
+    // ========= OPERACIONES CRUD =========
+    void createAccount(AccountCreateRequest accountRequest);
+
+    AccountResponse saveAccount(AccountCreateRequest accountRequest);
+
+    AccountResponse updateAccount(Long accountId, AccountUpdateRequest accountRequest);
+
+    void deleteAccount(Long accountId);
+
+    // ========= OPERACIONES TRANSACCIONALES =========
+    AccountResponse deposit(Long accountId, DepositRequest request);
+
+    AccountResponse withdraw(Long accountId, WithdrawalRequest request);
+
+    void transfer(TransactionRequest request);
+
+    // ========= REPORTES / CONSULTAS AGREGADAS =========
+    int countTotalTransfersToBank(Long bankId);
+}
+````

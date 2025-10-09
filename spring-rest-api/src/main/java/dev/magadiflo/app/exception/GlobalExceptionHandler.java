@@ -74,6 +74,19 @@ public class GlobalExceptionHandler {
     }
 
     // ========== EXCEPCIONES INESPERADAS (TÉCNICAS) - NIVEL ERROR ==========
+    @ExceptionHandler(DatabaseOperationException.class)
+    public ResponseEntity<ErrorResponse> handleDatabaseOperation(DatabaseOperationException ex, HttpServletRequest request) {
+        log.error("Error de operación de base de datos: {} | Path: {}", ex.getMessage(), request.getRequestURI(), ex);
+
+        ErrorResponse errorResponse = ErrorResponse.create(
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
+                "Error al procesar la operación en la base de datos",
+                request.getRequestURI()
+        );
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ErrorResponse> handleGenericException(Exception ex, HttpServletRequest request) {
         log.error("Error inesperado del sistema: {} | Path: {} | Exception: {}",
@@ -85,7 +98,7 @@ public class GlobalExceptionHandler {
         ErrorResponse errorResponse = ErrorResponse.create(
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 HttpStatus.INTERNAL_SERVER_ERROR.getReasonPhrase(),
-                "Ocurrió un error interno del servidor. Por favor, contacte al administrador.",
+                "Ocurrió un error interno del servidor. Por favor, contacte al administrador",
                 request.getRequestURI()
         );
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errorResponse);

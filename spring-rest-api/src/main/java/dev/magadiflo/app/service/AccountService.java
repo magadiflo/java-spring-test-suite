@@ -21,8 +21,6 @@ public interface AccountService {
     BigDecimal getAccountBalance(Long accountId);
 
     // ========= OPERACIONES CRUD =========
-    void createAccount(AccountCreateRequest accountRequest);
-
     AccountResponse saveAccount(AccountCreateRequest accountRequest);
 
     AccountResponse updateAccount(Long accountId, AccountUpdateRequest accountRequest);

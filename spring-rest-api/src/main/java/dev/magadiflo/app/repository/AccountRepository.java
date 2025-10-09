@@ -40,27 +40,6 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findAccountByHolder(String holder);
 
     /**
-     * Inserta una nueva cuenta utilizando una consulta SQL nativa.
-     * <p>
-     * Este método usa parámetros con SpEL (Spring Expression Language) para acceder
-     * a las propiedades del objeto {@code account}. Aunque la sintaxis parezca referirse
-     * directamente a los campos privados (p. ej. {@code :#{#account.holder}}),
-     * en realidad SpEL invoca los getters públicos generados por Lombok
-     * (por ejemplo, {@code getHolder()}).
-     * </p>
-     *
-     * @param account la entidad a insertar
-     * @return el número de filas afectadas (normalmente 1 si la inserción fue exitosa)
-     * @implNote Este método debe ejecutarse dentro de un contexto {@code @Transactional}
-     */
-    @Modifying
-    @Query(value = """
-            INSERT INTO accounts(holder, balance, bank_id)
-            VALUES(:#{#account.holder}, :#{#account.balance}, :#{#account.bank.id})
-            """, nativeQuery = true)
-    int saveAccount(Account account);
-
-    /**
      * Actualiza el nombre del titular de una cuenta.
      * <p>
      * Ejemplo de consulta nativa usando la anotación {@code @NativeQuery},

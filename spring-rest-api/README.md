@@ -1111,3 +1111,104 @@ public class AccountServiceImpl implements AccountService {
     }
 }
 ````
+
+## 📘 Controlador AccountController
+
+Controlador principal para la gestión de cuentas bancarias dentro de la API REST. Expone los endpoints CRUD y las
+operaciones financieras (depósitos, retiros y transferencias).
+
+Cada método del controlador se apoya en el servicio `AccountService`, el cual encapsula la lógica de negocio y
+validaciones transaccionales.
+
+````java
+
+@Slf4j
+@RequiredArgsConstructor
+@RestController
+@RequestMapping(path = "/api/v1/accounts")
+public class AccountController {
+
+    private final AccountService accountService;
+
+    @GetMapping
+    public ResponseEntity<List<AccountResponse>> findAllAccounts() {
+        return ResponseEntity.ok(this.accountService.findAllAccounts());
+    }
+
+    @GetMapping(path = "/{accountId}")
+    public ResponseEntity<AccountResponse> findAccountById(@PathVariable Long accountId) {
+        return ResponseEntity.ok(this.accountService.findAccountById(accountId));
+    }
+
+    @GetMapping(path = "/search")
+    public ResponseEntity<AccountResponse> searchByHolder(@RequestParam String holder) {
+        return ResponseEntity.ok(this.accountService.findAccountByHolder(holder));
+    }
+
+    @GetMapping(path = "/{accountId}/balance")
+    public ResponseEntity<BigDecimal> getAccountBalance(@PathVariable Long accountId) {
+        return ResponseEntity.ok(this.accountService.getAccountBalance(accountId));
+    }
+
+    @PostMapping
+    public ResponseEntity<AccountResponse> saveAccount(@Valid @RequestBody AccountCreateRequest request) {
+        AccountResponse account = this.accountService.saveAccount(request);
+        URI location = ServletUriComponentsBuilder
+                .fromCurrentRequest()
+                .path("/{accountId}")
+                .buildAndExpand(account.id())
+                .toUri();
+        return ResponseEntity.created(location).body(account);
+    }
+
+    @PutMapping(path = "/{accountId}")
+    public ResponseEntity<AccountResponse> updateAccount(@PathVariable Long accountId, @Valid @RequestBody AccountUpdateRequest request) {
+        return ResponseEntity.ok(this.accountService.updateAccount(accountId, request));
+    }
+
+    @DeleteMapping(path = "/{accountId}")
+    public ResponseEntity<Void> deleteAccount(@PathVariable Long accountId) {
+        this.accountService.deleteAccount(accountId);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping(path = "/{accountId}/deposit")
+    public ResponseEntity<AccountResponse> deposit(@PathVariable Long accountId, @Valid @RequestBody DepositRequest request) {
+        return ResponseEntity.ok(this.accountService.deposit(accountId, request));
+    }
+
+    @PostMapping(path = "/{accountId}/withdraw")
+    public ResponseEntity<AccountResponse> withdraw(@PathVariable Long accountId, @Valid @RequestBody WithdrawalRequest request) {
+        return ResponseEntity.ok(this.accountService.withdraw(accountId, request));
+    }
+
+    @PostMapping(path = "/transfer")
+    public ResponseEntity<Void> transfer(@Valid @RequestBody TransactionRequest request) {
+        this.accountService.transfer(request);
+        return ResponseEntity.noContent().build();
+    }
+}
+````
+
+### 🏦 BankController
+
+Controlador encargado de exponer la información relacionada con los bancos, particularmente la cantidad total de
+transferencias realizadas.
+
+````java
+
+@Slf4j
+@RequiredArgsConstructor
+@RestController
+@RequestMapping(path = "/api/v1/banks")
+public class BankController {
+
+    private final AccountService accountService;
+
+    @GetMapping(path = "/{bankId}")
+    public ResponseEntity<Integer> countTotalTransfersToBank(@PathVariable Long bankId) {
+        return ResponseEntity.ok(this.accountService.countTotalTransfersToBank(bankId));
+    }
+
+}
+````

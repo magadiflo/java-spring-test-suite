@@ -840,6 +840,7 @@ public interface AccountMapper {
     @Mapping(target = "bankName", source = "bank.name")
     AccountResponse toAccountResponse(Account account);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "bank", source = "bank")
     Account toAccount(AccountCreateRequest request, Bank bank);
 
@@ -855,9 +856,12 @@ public interface AccountMapper {
 - `@Mapper(componentModel = MappingConstants.ComponentModel.SPRING)`. Esto permite que Spring detecte automáticamente
   la implementación generada y la gestione como un bean `(@Component)`.
 - `MapStruct` genera la implementación automáticamente en `target/generated-sources/annotations`.
-- Si es necesario depurar el mapeo, se puede habilitar la opción `-Amapstruct.defaultComponentModel=spring` en el
-  `maven-compiler-plugin`.
-- Los mapeos que ignoran campos deben justificarse (por ejemplo, id y balance no deben ser alterados desde el cliente).
+- Colocar `@Mapping(target = "id", ignore = true)` en nuestro método `toAccount(...)` es la forma correcta y necesaria
+  de indicarle a `MapStruct`:
+    1. Ignora el campo `id` en el destino (`Account`).
+    2. Evita que tome el valor de cualquier campo `id` coincidente de las fuentes (específicamente `Bank.id`).
+- De esta manera, el nuevo objeto `Account` se crea con `id = null`, lo que asegura la correcta operación de inserción
+  en la base de datos.
 
 ## 🧩 Interfaz `AccountService`
 
@@ -1622,3 +1626,159 @@ script SQL (`sql/data-dev.sql`) hayan hecho su trabajo.
 Estas tablas fueron generadas a partir de las entidades JPA `Bank` y `Account`, en función de la estrategia definida
 en `spring.jpa.hibernate.ddl-auto=update`.
 
+## Verificando funcionamiento de endpoints
+
+````bash
+$ curl -v http://localhost:8080/api/v1/accounts | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Oct 2025 17:30:15 GMT
+<
+[
+  {
+    "id": 1,
+    "holder": "Juan Pérez",
+    "balance": 5000.00,
+    "bankName": "Banco Continental"
+  },
+  {
+    "id": 2,
+    "holder": "María García",
+    "balance": 3000.00,
+    "bankName": "Banco Continental"
+  },
+  {
+    "id": 3,
+    "holder": "Carlos López",
+    "balance": 7500.00,
+    "bankName": "Banco de Crédito"
+  },
+  {
+    "id": 4,
+    "holder": "Ana Martínez",
+    "balance": 2000.00,
+    "bankName": "Interbank"
+  }
+]
+````
+
+````bash
+$ curl -v http://localhost:8080/api/v1/accounts/1 | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Oct 2025 17:34:07 GMT
+<
+{
+  "id": 1,
+  "holder": "Juan Pérez",
+  "balance": 5000.00,
+  "bankName": "Banco Continental"
+}
+````
+
+````bash
+$ curl -v http://localhost:8080/api/v1/accounts/2/balance | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Oct 2025 17:39:23 GMT
+<
+3000.00
+````
+
+````bash
+$ curl -v -X POST -H "Content-type: application/json" -d "{\"holder\": \"Rafael\", \"balance\": 0, \"bankId\": 1}" http://localhost:8080/api/v1/accounts | jq
+>
+< HTTP/1.1 201
+< Location: http://localhost:8080/api/v1/accounts/5
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Oct 2025 17:57:36 GMT
+<
+{
+  "id": 5,
+  "holder": "Rafael",
+  "balance": 0,
+  "bankName": "Banco Continental"
+}
+````
+
+````bash
+$ curl -v -X PUT -H "Content-type: application/json" -d "{\"holder\": \"Lesly\"}" http://localhost:8080/api/v1/accounts/5 | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Oct 2025 18:14:29 GMT
+<
+{
+  "id": 5,
+  "holder": "Lesly",
+  "balance": 0.00,
+  "bankName": "Banco Continental"
+}
+````
+
+````bash
+$ curl -v -X DELETE http://localhost:8080/api/v1/accounts/6 | jq
+>
+< HTTP/1.1 204
+< Date: Fri, 10 Oct 2025 18:16:20 GMT
+<
+````
+
+````bash
+$ curl -v -X POST -H "Content-type: application/json" -d "{\"amount\": 5000}" http://localhost:8080/api/v1/accounts/5/deposit | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Oct 2025 18:18:13 GMT
+<
+{
+  "id": 5,
+  "holder": "Lesly",
+  "balance": 5000.00,
+  "bankName": "Banco Continental"
+}
+````
+
+````bash
+$ curl -v -X POST -H "Content-type: application/json" -d "{\"amount\": 3000}" http://localhost:8080/api/v1/accounts/5/withdraw | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Oct 2025 18:19:35 GMT
+<
+{
+  "id": 5,
+  "holder": "Lesly",
+  "balance": 2000.00,
+  "bankName": "Banco Continental"
+}
+````
+
+````bash
+$ curl -v -X POST -H "Content-type: application/json" -d "{\"sourceAccountId\": 1, \"targetAccountId\": 5, \"amount\": 4000}" http://localhost:8080/api/v1/accounts/transfer | jq
+>
+< HTTP/1.1 204
+< Date: Fri, 10 Oct 2025 18:23:29 GMT
+<
+````
+
+````bash
+$ curl -v http://localhost:8080/api/v1/banks/1 | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Fri, 10 Oct 2025 18:25:19 GMT
+<
+1
+````

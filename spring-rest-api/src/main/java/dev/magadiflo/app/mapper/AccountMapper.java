@@ -15,6 +15,7 @@ public interface AccountMapper {
     @Mapping(target = "bankName", source = "bank.name")
     AccountResponse toAccountResponse(Account account);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "bank", source = "bank")
     Account toAccount(AccountCreateRequest request, Bank bank);
 

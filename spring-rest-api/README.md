@@ -10,6 +10,10 @@ Además, hemos agregado `Swagger (OpenAPI)` para documentar y probar fácilmente
 
 ---
 
+# 🏗️ Fase 1 — Construcción del Proyecto Base (sin tests aún)
+
+---
+
 ## ⚙️ Dependencias Iniciales
 
 El proyecto fue generado desde
@@ -160,12 +164,6 @@ código de `MapStruct`.
     <!--/MapStruct-->
 </plugins>
 ````
-
----
-
-# 🏗️ Fase 1 — Construcción del Proyecto Base (sin tests aún)
-
----
 
 ## 🏦 Modelo de Datos — Entidades JPA
 
@@ -1211,4 +1209,269 @@ public class BankController {
     }
 
 }
+````
+
+## ⚙️ Gestión de configuraciones por perfiles en entornos reales
+
+En un entorno empresarial, las aplicaciones `Spring Boot` se despliegan bajo distintos perfiles de ejecución
+(`dev`, `qa`, `prod`, etc.), cada uno con configuraciones específicas que garantizan estabilidad, seguridad y
+trazabilidad.
+
+`Spring Boot` permite aislar la configuración de cada entorno en archivos separados, aplicando automáticamente
+el perfil activo definido en el archivo `application.yml` principal.
+
+📂 Estructura de configuración:
+
+````
+src/
+└── main/
+    └── resources/
+        ├── application.yml             # Perfil por defecto
+        ├── application-dev.yml         # Entorno de desarrollo
+        ├── application-qa.yml          # Entorno de pruebas QA
+        └── application-prod.yml        # Entorno de producción
+````
+
+### 🧩 1. Perfil Default (`application.yml`)
+
+Este archivo actúa como `configuración base`, aplicable a todos los entornos. Define parámetros generales y el
+perfil activo por defecto.
+
+````yml
+server:
+  port: 8080
+
+spring:
+  application:
+    name: spring-rest-api
+
+  profiles:
+    active: dev   # Activa el perfil de desarrollo por defecto
+
+  jpa:
+    open-in-view: false  # Desactiva "Open Session in View" (buena práctica)
+````
+
+💡 Notas profesionales
+
+- `open-in-view: false` evita fugas de sesión y problemas de `LazyInitialization` (recomendación estándar en empresas).
+- `profiles.active: dev` indica el perfil que Spring Boot cargará por defecto durante el desarrollo local.
+- Este archivo `no debe contener credenciales` ni configuraciones sensibles; solo configuraciones transversales.
+
+### 🧪 2. Perfil de Desarrollo (`application-dev.yml`)
+
+Perfil utilizado en el entorno de desarrollo local, con logging detallado, inicialización automática de datos y
+generación dinámica del esquema.
+
+````yml
+server:
+  error:
+    include-message: always  # Muestra mensajes de error en respuestas HTTP (útil para depurar)
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/db_spring_rest_api_dev?serverTimezone=America/Lima
+    username: dev_user
+    password: dev_password
+
+  jpa:
+    hibernate:
+      ddl-auto: update # Hibernate crea/actualiza tablas
+    properties:
+      hibernate:
+        format_sql: true
+        use_sql_comments: true  # Agrega comentarios en SQL generado
+    defer-datasource-initialization: true # Espera a que Hibernate cree tablas antes de ejecutar scripts SQL
+
+  sql:
+    init:
+      mode: always # Ejecuta siempre scripts al iniciar
+      data-locations: classpath:sql/data-dev.sql # Ruta al script de datos iniciales
+
+logging:
+  level:
+    root: INFO
+    dev.magadiflo.app: DEBUG                              # Tu paquete principal con máximo detalle
+    org.hibernate.SQL: DEBUG                              # SQL generado
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # Parámetros de SQL
+    org.springframework.web: DEBUG                        # Requests HTTP
+    org.springframework.transaction: DEBUG                # Transacciones
+    org.springframework.data.jpa: DEBUG                   # Consultas JPA
+````
+
+💡 Notas profesionales
+
+- `ddl-auto: update` solo debe usarse en desarrollo, nunca en QA o producción.
+- Los scripts de inicialización (`sql/init/data-dev.sql`) facilitan datos base para pruebas locales.
+- El nivel `DEBUG/TRACE` en logs permite visualizar cada interacción de la capa de persistencia.
+- En empresas, los entornos `dev` suelen incluir herramientas como `H2` o `contenedores Docker` de `MySQL` para
+  aislamiento rápido.
+
+### 🧾 3. Perfil de Calidad (QA) (`application-qa.yml`)
+
+Este entorno simula el comportamiento de producción, pero en un ambiente de `control de calidad` donde se ejecutan
+pruebas de integración, UAT y validaciones de negocio.
+
+````yml
+server:
+  error:
+    include-message: always
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/db_spring_rest_api_qa?serverTimezone=America/Lima
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: validate # Valida el esquema contra las entidades, no lo modifica
+
+logging:
+  level:
+    root: INFO
+    dev.magadiflo.app: INFO
+    org.hibernate: WARN
+    org.hibernate.SQL: WARN
+    org.springframework.web: INFO
+    org.springframework.transaction: INFO
+    org.springframework.data.jpa: INFO
+````
+
+💡 Notas profesionales
+
+- `ddl-auto: validate` asegura que el esquema sea correcto sin alterarlo.
+- Esto es `clave en QA`: las migraciones se aplican con herramientas como `Flyway` o `Liquibase`.
+- Uso de variables de entorno (`${DB_USERNAME}`) evita exponer credenciales sensibles.
+- Nivel de log `INFO/WARN` reduce ruido y mejora la trazabilidad en pruebas.
+
+### 🚀 4. Perfil de Producción (`application-prod.yml`)
+
+Entorno de despliegue final. Prioriza seguridad, rendimiento y estabilidad. Aquí no se deben ejecutar scripts
+ni generar/modificar tablas automáticamente.
+
+````yml
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-exception: false
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=America/Lima&useSSL=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: none # No hace nada con el esquema de la BD.
+
+logging:
+  level:
+    root: WARN
+    dev.magadiflo.app: WARN
+    org.hibernate: ERROR
+    org.springframework: WARN
+````
+
+💡 Notas profesionales
+
+- `ddl-auto: none` es obligatorio en producción; las migraciones deben gestionarse con herramientas externas.
+- Variables de entorno `${DB_HOST}`, `${DB_PORT}`, etc., permiten integración `CI/CD` (`Jenkins`, `GitHub Actions`,
+  etc.).
+- Se ocultan los mensajes de error al cliente final (`include-message: never`) por seguridad.
+- Nivel de log `WARN/ERROR` evita sobrecarga en disco y protege información sensible.
+
+## 🧩 Script de datos iniciales (`data-dev.sql`)
+
+- 📂 Ruta del archivo: `src/main/resources/sql/data-dev.sql`
+- 💡 Contexto: Este script define un conjunto de datos iniciales que se cargarán automáticamente cuando la aplicación
+  se ejecute con el perfil `dev`. Se usa principalmente para:
+    - Disponer de información base durante el desarrollo.
+    - Probar endpoints sin necesidad de crear datos manualmente.
+    - Asegurar consistencia entre ejecuciones locales.
+
+### ⚙️ Comportamiento en el entorno dev
+
+Gracias a la configuración YAML:
+
+````yml
+spring:
+  sql:
+    init:
+      mode: always
+      data-locations: classpath:sql/data-dev.sql
+````
+
+El script se ejecuta automáticamente cada vez que la aplicación inicia, una vez que Hibernate ha generado o actualizado
+el esquema (`ddl-auto: update`). Esto garantiza que los datos iniciales siempre existan en la base de datos del entorno
+local.
+
+### 🧾 Contenido del script
+
+````sql
+-- ============================================
+-- LIMPIAR DATOS EXISTENTES Y RESETEAR IDS
+-- ============================================
+
+-- Desactivar verificación de llaves foráneas temporalmente
+SET FOREIGN_KEY_CHECKS = 0;
+
+-- Limpiar tablas (TRUNCATE resetea AUTO_INCREMENT automáticamente)
+TRUNCATE TABLE accounts;
+TRUNCATE TABLE banks;
+
+-- Reactivar verificación de llaves foráneas
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- ============================================
+-- INSERTAR DATOS INICIALES
+-- ============================================
+
+-- Bancos
+INSERT INTO banks(name, total_transfers) VALUES('Banco Continental', 0);
+INSERT INTO banks(name, total_transfers) VALUES('Banco de Crédito', 0);
+INSERT INTO banks(name, total_transfers) VALUES('Interbank', 0);
+
+-- Cuentas
+INSERT INTO accounts(holder, balance, bank_id) VALUES('Juan Pérez', 5000.00, 1);
+INSERT INTO accounts(holder, balance, bank_id) VALUES('María García', 3000.00, 1);
+INSERT INTO accounts(holder, balance, bank_id) VALUES('Carlos López', 7500.00, 2);
+INSERT INTO accounts(holder, balance, bank_id) VALUES('Ana Martínez', 2000.00, 3);
+````
+
+💬 Explicación paso a paso
+
+| Bloque                           | Descripción                                                                                                                                                                                                                                                                                      |
+|:---------------------------------|:-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 🧹 **Limpieza de datos previos** | Antes de insertar los registros iniciales, se desactivan temporalmente las restricciones de llaves foráneas (`FOREIGN_KEY_CHECKS = 0`), se vacían las tablas con `TRUNCATE`, y luego se reactivan. Esto evita errores por dependencias entre entidades y garantiza que los IDs empiecen desde 1. |
+| 🏦 **Inserción de bancos**       | Se crean tres bancos de prueba, cada uno con `total_transfers = 0`. Esto permite validar la lógica de transferencias interbancarias sin modificar datos manualmente.                                                                                                                             |
+| 💰 **Inserción de cuentas**      | Se asocian cuatro cuentas distribuidas entre los bancos creados. Estos datos permiten probar depósitos, retiros, consultas y transferencias entre cuentas del mismo banco.                                                                                                                       |
+
+## 🐬 Contenedor de Base de Datos MySQL para entorno dev
+
+- 📂 Archivo: `compose.yml`
+- 📦 Objetivo: Proveer una instancia `MySQL 8` local aislada para desarrollo, reproducible entre miembros del equipo
+  y alineada con las configuraciones del perfil `dev`.
+
+````yml
+services:
+  s-mysql:
+    image: mysql:8.0.41-debian
+    container_name: c-mysql
+    restart: unless-stopped
+    ports:
+      - '3306:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: magadiflo
+      MYSQL_DATABASE: db_spring_rest_api_dev
+      MYSQL_USER: dev_user
+      MYSQL_PASSWORD: dev_password
+    networks:
+      - docker-test-net
+
+networks:
+  docker-test-net:
+    name: docker-test-net
 ````

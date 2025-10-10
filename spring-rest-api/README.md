@@ -1475,3 +1475,29 @@ networks:
   docker-test-net:
     name: docker-test-net
 ````
+
+### 🐋 Levantando el contenedor de base de datos MySQL (Entorno dev)
+
+Antes de iniciar la aplicación Spring Boot, es necesario tener corriendo la base de datos MySQL en un contenedor Docker.
+Esto permite un entorno de desarrollo aislado, reproducible y coherente con entornos reales de despliegue.
+
+🚀 Ejecución del contenedor
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite (feature/spring-rest-api)
+$ docker compose -f ./docker/compose.yml up -d                                                                          
+[+] Running 2/2                                                                                                         
+ ✔ Network docker-test-net  Created                                                                                     
+ ✔ Container c-mysql        Started                                                                                     
+````
+
+🔍 Verificando el contenedor activo
+
+````bash
+$ docker container ls -a
+CONTAINER ID   IMAGE                 COMMAND                  CREATED          STATUS          PORTS                                         NAMES
+d0d5997e6ff1   mysql:8.0.41-debian   "docker-entrypoint.s…"   19 seconds ago   Up 18 seconds   0.0.0.0:3306->3306/tcp, [::]:3306->3306/tcp   c-mysql 
+````
+
+![01.png](assets/01.png)
+

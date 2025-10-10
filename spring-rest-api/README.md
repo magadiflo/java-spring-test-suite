@@ -1501,3 +1501,124 @@ d0d5997e6ff1   mysql:8.0.41-debian   "docker-entrypoint.s…"   19 seconds ago  
 
 ![01.png](assets/01.png)
 
+## 📘 Log de arranque de la aplicación Spring Boot (perfil dev)
+
+Cuando se ejecuta la aplicación, `Spring Boot` muestra una traza estructurada del proceso de inicialización.
+A continuación se documentan las etapas más relevantes del startup con base en el log capturado.
+
+````bash
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+
+ :: Spring Boot ::                (v3.5.6)
+
+2025-10-10T11:57:57.570-05:00  INFO 13988 --- [spring-rest-api] [           main] d.m.app.SpringRestApiApplication         : Starting SpringRestApiApplication using Java 21.0.6 with PID 13988 (D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-rest-api\target\classes started by magadiflo in D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite)
+2025-10-10T11:57:57.576-05:00 DEBUG 13988 --- [spring-rest-api] [           main] d.m.app.SpringRestApiApplication         : Running with Spring Boot v3.5.6, Spring v6.2.11
+2025-10-10T11:57:57.576-05:00  INFO 13988 --- [spring-rest-api] [           main] d.m.app.SpringRestApiApplication         : The following 1 profile is active: "dev"
+2025-10-10T11:57:58.976-05:00  INFO 13988 --- [spring-rest-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-10-10T11:57:59.056-05:00  INFO 13988 --- [spring-rest-api] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 66 ms. Found 2 JPA repository interfaces.
+2025-10-10T11:57:59.780-05:00  INFO 13988 --- [spring-rest-api] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2025-10-10T11:57:59.800-05:00  INFO 13988 --- [spring-rest-api] [           main] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2025-10-10T11:57:59.800-05:00  INFO 13988 --- [spring-rest-api] [           main] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.46]
+2025-10-10T11:57:59.893-05:00  INFO 13988 --- [spring-rest-api] [           main] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2025-10-10T11:57:59.896-05:00  INFO 13988 --- [spring-rest-api] [           main] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 2257 ms
+2025-10-10T11:58:00.153-05:00  INFO 13988 --- [spring-rest-api] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-10-10T11:58:00.250-05:00  INFO 13988 --- [spring-rest-api] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.29.Final
+2025-10-10T11:58:00.306-05:00  INFO 13988 --- [spring-rest-api] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-10-10T11:58:00.793-05:00  INFO 13988 --- [spring-rest-api] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-10-10T11:58:00.856-05:00  INFO 13988 --- [spring-rest-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-10-10T11:58:01.535-05:00  INFO 13988 --- [spring-rest-api] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection com.mysql.cj.jdbc.ConnectionImpl@43778371
+2025-10-10T11:58:01.536-05:00  INFO 13988 --- [spring-rest-api] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Start completed.
+2025-10-10T11:58:01.653-05:00  INFO 13988 --- [spring-rest-api] [           main] org.hibernate.orm.connections.pooling    : HHH10001005: Database info:
+	Database JDBC URL [Connecting through datasource 'HikariDataSource (HikariPool-1)']
+	Database driver: undefined/unknown
+	Database version: 8.0.41
+	Autocommit mode: undefined/unknown
+	Isolation level: undefined/unknown
+	Minimum pool size: undefined/unknown
+	Maximum pool size: undefined/unknown
+2025-10-10T11:58:02.716-05:00  INFO 13988 --- [spring-rest-api] [           main] o.h.e.t.j.p.i.JtaPlatformInitiator       : HHH000489: No JTA platform available (set 'hibernate.transaction.jta.platform' to enable JTA platform integration)
+2025-10-10T11:58:02.771-05:00 DEBUG 13988 --- [spring-rest-api] [           main] org.hibernate.SQL                        : 
+    create table accounts (
+        id bigint not null auto_increment,
+        balance decimal(19,2) not null,
+        holder varchar(100) not null,
+        bank_id bigint,
+        primary key (id)
+    ) engine=InnoDB
+2025-10-10T11:58:02.832-05:00 DEBUG 13988 --- [spring-rest-api] [           main] org.hibernate.SQL                        : 
+    create table banks (
+        id bigint not null auto_increment,
+        name varchar(100) not null,
+        total_transfers integer not null,
+        primary key (id)
+    ) engine=InnoDB
+2025-10-10T11:58:02.878-05:00 DEBUG 13988 --- [spring-rest-api] [           main] org.hibernate.SQL                        : 
+    alter table banks 
+       drop index UKgfnfs2s5a771weqm28yvb2h5
+2025-10-10T11:58:03.251-05:00 DEBUG 13988 --- [spring-rest-api] [           main] org.hibernate.SQL                        : 
+    alter table banks 
+       add constraint UKgfnfs2s5a771weqm28yvb2h5 unique (name)
+2025-10-10T11:58:03.292-05:00 DEBUG 13988 --- [spring-rest-api] [           main] org.hibernate.SQL                        : 
+    alter table accounts 
+       add constraint FKb78evw9x9jyy66ld572kl8rgx 
+       foreign key (bank_id) 
+       references banks (id)
+2025-10-10T11:58:03.525-05:00  INFO 13988 --- [spring-rest-api] [           main] j.LocalContainerEntityManagerFactoryBean : Initialized JPA EntityManagerFactory for persistence unit 'default'
+2025-10-10T11:58:03.583-05:00 DEBUG 13988 --- [spring-rest-api] [           main] .c.JpaMetamodelMappingContextFactoryBean : Initializing JpaMetamodelMappingContext…
+2025-10-10T11:58:03.607-05:00 DEBUG 13988 --- [spring-rest-api] [           main] .c.JpaMetamodelMappingContextFactoryBean : Finished initializing JpaMetamodelMappingContext
+2025-10-10T11:58:03.873-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.d.jpa.repository.query.NamedQuery    : Did not find named query Account.updateAccountHolder.count
+2025-10-10T11:58:03.916-05:00  INFO 13988 --- [spring-rest-api] [           main] o.s.d.j.r.query.QueryEnhancerFactory     : Hibernate is in classpath; If applicable, HQL parser will be used.
+2025-10-10T11:58:03.926-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.d.jpa.repository.query.NamedQuery    : Did not find named query Account.getAllAccounts.count
+2025-10-10T11:58:04.708-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.d.jpa.repository.query.NamedQuery    : Did not find named query Account.findAccountByHolder.count
+2025-10-10T11:58:04.739-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.d.jpa.repository.query.NamedQuery    : Did not find named query Account.deleteAccountById.count
+2025-10-10T11:58:04.756-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.d.jpa.repository.query.NamedQuery    : Looking up named query 'Bank.findByName'
+2025-10-10T11:58:04.756-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.d.jpa.repository.query.NamedQuery    : Did not find named query Bank.findByName
+2025-10-10T11:58:04.796-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.d.jpa.repository.query.NamedQuery    : Looking up named query 'Bank.existsByName'
+2025-10-10T11:58:04.796-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.d.jpa.repository.query.NamedQuery    : Did not find named query Bank.existsByName
+2025-10-10T11:58:05.236-05:00 DEBUG 13988 --- [spring-rest-api] [           main] s.w.s.m.m.a.RequestMappingHandlerMapping : 17 mappings in 'requestMappingHandlerMapping'
+2025-10-10T11:58:05.344-05:00 DEBUG 13988 --- [spring-rest-api] [           main] o.s.w.s.handler.SimpleUrlHandlerMapping  : Patterns [/webjars/**, /**, /swagger-ui*/*swagger-initializer.js, /swagger-ui*/**] in 'resourceHandlerMapping'
+2025-10-10T11:58:05.377-05:00 DEBUG 13988 --- [spring-rest-api] [           main] s.w.s.m.m.a.RequestMappingHandlerAdapter : ControllerAdvice beans: 0 @ModelAttribute, 0 @InitBinder, 1 RequestBodyAdvice, 1 ResponseBodyAdvice
+2025-10-10T11:58:05.446-05:00 DEBUG 13988 --- [spring-rest-api] [           main] .m.m.a.ExceptionHandlerExceptionResolver : ControllerAdvice beans: 2 @ExceptionHandler, 1 ResponseBodyAdvice
+2025-10-10T11:58:05.964-05:00  INFO 13988 --- [spring-rest-api] [           main] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat started on port 8080 (http) with context path '/'
+2025-10-10T11:58:05.972-05:00  INFO 13988 --- [spring-rest-api] [           main] d.m.app.SpringRestApiApplication         : Started SpringRestApiApplication in 9.204 seconds (process running for 10.501) 
+````
+
+- La ejecución confirma que el perfil activo es `dev`. Esto valida que la configuración está cargando desde
+  `application-dev.yml`, tal como definimos en el archivo `application.yml`.
+- `Spring Data` escanea los paquetes y detecta automáticamente 2 interfaces de repositorio JPA. Esto confirma que el
+  contexto de persistencia (repositories, entities y transaction manager) está correctamente configurado.
+- Escucha en el puerto `8080`, definido por defecto en el `application.yml`.
+- `HikariCP` (el pool de conexiones por defecto de Spring Boot) establece la conexión con el contenedor MySQL.
+- Se confirma la conexión exitosa al motor `MySQL 8.0.41`, levantado con `Docker Compose`.
+- `Hibernate` detecta el proveedor JPA y desactiva el segundo nivel de caché, según la configuración por defecto.
+- Debido a que en `application-dev.yml` se configuró `spring.jpa.hibernate.ddl-auto=update`, `Hibernate` crea o
+  actualiza automáticamente las tablas `accounts` y `banks`.
+- Spring inicializa el `EntityManagerFactory`, el núcleo de la gestión JPA. Esto confirma que las entidades,
+  repositorios y transacciones están correctamente integrados.
+- Se detectan 17 endpoints REST registrados por los controladores `AccountController` y `BankController`.
+- Finalmente, Tomcat confirma que el servidor está activo y escuchando en el context path raíz `/`.
+
+### ✅ Conclusión
+
+Este log confirma que el `entorno de desarrollo (dev)` está correctamente configurado y operativo:
+
+- 🔌 Conexión establecida con MySQL en contenedor Docker.
+- ⚙️ Creación automática de tablas mediante Hibernate.
+- 🌐 Registro exitoso de controladores REST.
+- 🚀 Aplicación iniciada en ~9 segundos.
+
+### 🧩 Verificación de creación de tablas y datos iniciales
+
+Una vez que la aplicación ha arrancado correctamente con el perfil `dev`, es momento de verificar que `Hibernate` y el
+script SQL (`sql/data-dev.sql`) hayan hecho su trabajo.
+
+![02.png](assets/02.png)
+
+Estas tablas fueron generadas a partir de las entidades JPA `Bank` y `Account`, en función de la estrategia definida
+en `spring.jpa.hibernate.ddl-auto=update`.
+

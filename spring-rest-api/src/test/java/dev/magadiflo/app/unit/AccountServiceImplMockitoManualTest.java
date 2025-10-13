@@ -147,4 +147,20 @@ class AccountServiceImplMockitoManualTest {
         assertThat(result).isEqualByComparingTo(account.getBalance());
         Mockito.verify(this.accountRepository).findById(1L);
     }
+
+    @Test
+    void shouldGetTotalTransfersWhenBankExists() {
+        // given
+        Bank bank = AccountTestFactory.createBank(1L, "BCP");
+        bank.setTotalTransfers(10);
+
+        Mockito.when(this.bankRepository.findById(1L)).thenReturn(Optional.of(bank));
+
+        // when
+        int result = this.accountServiceUnderTest.countTotalTransfersToBank(1L);
+
+        // then
+        assertThat(result).isEqualTo(10);
+        Mockito.verify(this.bankRepository).findById(1L);
+    }
 }

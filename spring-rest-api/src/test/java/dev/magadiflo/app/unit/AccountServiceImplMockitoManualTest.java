@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
 import java.math.BigDecimal;
+import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -162,5 +163,25 @@ class AccountServiceImplMockitoManualTest {
         // then
         assertThat(result).isEqualTo(10);
         Mockito.verify(this.bankRepository).findById(1L);
+    }
+
+    @Test
+    void shouldGetAllAccountsWhenAccountsExists() {
+        // given
+        List<AccountResponse> accountResponses = List.of(
+                new AccountResponse(1L, "Milagros", new BigDecimal("2000"), "BCP"),
+                new AccountResponse(2L, "Kiara", new BigDecimal("1000"), "BCP")
+        );
+        Mockito.when(this.accountRepository.getAllAccounts()).thenReturn(accountResponses);
+
+        // when
+        List<AccountResponse> result = this.accountServiceUnderTest.findAllAccounts();
+
+        // then
+        assertThat(result)
+                .isNotEmpty()
+                .hasSize(2)
+                .containsExactlyElementsOf(accountResponses);
+        Mockito.verify(this.accountRepository).getAllAccounts();
     }
 }

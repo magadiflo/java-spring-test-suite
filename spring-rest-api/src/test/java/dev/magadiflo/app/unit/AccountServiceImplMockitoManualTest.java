@@ -132,4 +132,19 @@ class AccountServiceImplMockitoManualTest {
         Mockito.verify(this.accountRepository).findById(1L);
         Mockito.verify(this.accountMapper, Mockito.never()).toAccountResponse(Mockito.any(Account.class));
     }
+
+    @Test
+    void shouldGetBalanceOfAnAccountWhenAccountExists() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        // when
+        BigDecimal result = this.accountServiceUnderTest.getAccountBalance(1L);
+
+        // then
+        assertThat(result).isEqualByComparingTo(account.getBalance());
+        Mockito.verify(this.accountRepository).findById(1L);
+    }
 }

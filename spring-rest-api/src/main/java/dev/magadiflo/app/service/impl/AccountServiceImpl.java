@@ -175,9 +175,6 @@ public class AccountServiceImpl implements AccountService {
             throw new InvalidTransactionException("No se puede hacer transferencia entre cuentas de diferentes bancos");
         }
 
-        Bank bank = sourceAccount.getBank();
-        bank.setTotalTransfers(bank.getTotalTransfers() + 1);
-
         // Aunque las entidades Account y Bank están en estado MANAGED dentro de esta transacción,
         // usamos save(...) explícitamente para reforzar la intención de persistencia,
         // facilitar la trazabilidad del flujo y permitir verificación en tests unitarios.
@@ -185,6 +182,9 @@ public class AccountServiceImpl implements AccountService {
         // de persistencia.
         this.accountRepository.save(this.makeAWithdrawal(sourceAccount, request.amount()));
         this.accountRepository.save(this.makeADeposit(targetAccount, request.amount()));
+
+        Bank bank = sourceAccount.getBank();
+        bank.setTotalTransfers(bank.getTotalTransfers() + 1);
         this.bankRepository.save(bank);
 
         log.info("Transferencia exitosa | De: {} (ID: {}) | Para: {} (ID: {}) | Monto: {} | Banco: {} | Total transferencias: {}",

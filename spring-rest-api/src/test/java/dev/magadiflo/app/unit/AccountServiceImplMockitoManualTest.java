@@ -1,5 +1,6 @@
 package dev.magadiflo.app.unit;
 
+import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
 import dev.magadiflo.app.dto.TransactionRequest;
 import dev.magadiflo.app.entity.Account;
@@ -20,8 +21,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Assertions.*;
 
 class AccountServiceImplMockitoManualTest {
 
@@ -183,5 +183,45 @@ class AccountServiceImplMockitoManualTest {
                 .hasSize(2)
                 .containsExactlyElementsOf(accountResponses);
         Mockito.verify(this.accountRepository).getAllAccounts();
+    }
+
+    @Test
+    void shouldSaveNewAccountWhenBankExists() {
+        // given
+        AccountCreateRequest accountRequest = AccountTestFactory.createAccountRequest("Milagros", new BigDecimal("2000"), 1L);
+        Bank bank = AccountTestFactory.createBank(1L, "BCP");
+        Account accountWithoutId = AccountTestFactory.createAccountWithoutId(accountRequest, bank);
+        Account accountWithId = AccountTestFactory.createAccountWithId(10L, accountRequest, bank);
+        AccountResponse expectedResponse = AccountTestFactory.toAccountResponse(accountWithId);
+
+        assertThat(accountWithoutId.getId()).isNull(); // Verificamos que no tenga ID antes del save
+
+        Mockito.when(this.bankRepository.findById(1L)).thenReturn(Optional.of(bank));
+        Mockito.when(this.accountMapper.toAccount(accountRequest, bank)).thenReturn(accountWithoutId);
+
+        Mockito.doAnswer(invocation -> {
+            Account saved = invocation.getArgument(0);
+            saved.setId(10L); // Simula el comportamiento de JPA: asigna el ID directamente al objeto original
+            return saved;
+        }).when(this.accountRepository).save(accountWithoutId);
+
+        Mockito.when(this.accountMapper.toAccountResponse(accountWithoutId)) // El objeto accountWithoutId ya tiene ID asignado
+                .thenReturn(expectedResponse);
+
+        // when
+        AccountResponse actualResponse = this.accountServiceUnderTest.saveAccount(accountRequest);
+
+        // then
+        assertThat(accountWithoutId.getId())
+                .isNotNull() // Verificación explícita del cambio de estado
+                .isEqualTo(10L);
+        assertThat(actualResponse)
+                .isNotNull()
+                .extracting(AccountResponse::id, AccountResponse::holder, AccountResponse::balance, AccountResponse::bankName)
+                .containsExactly(10L, "Milagros", new BigDecimal("2000"), "BCP");
+        Mockito.verify(this.bankRepository).findById(1L);
+        Mockito.verify(this.accountMapper).toAccount(accountRequest, bank);
+        Mockito.verify(this.accountRepository).save(accountWithoutId);
+        Mockito.verify(this.accountMapper).toAccountResponse(accountWithoutId);
     }
 }

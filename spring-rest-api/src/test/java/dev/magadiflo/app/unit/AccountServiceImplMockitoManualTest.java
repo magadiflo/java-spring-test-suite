@@ -1,5 +1,6 @@
 package dev.magadiflo.app.unit;
 
+import dev.magadiflo.app.dto.AccountResponse;
 import dev.magadiflo.app.dto.TransactionRequest;
 import dev.magadiflo.app.entity.Account;
 import dev.magadiflo.app.entity.Bank;
@@ -90,5 +91,29 @@ class AccountServiceImplMockitoManualTest {
         Mockito.verify(this.accountRepository, Mockito.never()).save(sourceAccount);
         Mockito.verify(this.accountRepository, Mockito.never()).save(targetAccount);
         Mockito.verify(this.bankRepository, Mockito.never()).save(bank);
+    }
+
+    @Test
+    void shouldReturnAccountResponseWhenAccountExists() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", account);
+        AccountResponse accountResponse = new AccountResponse(account.getId(), account.getHolder(), account.getBalance(), account.getBank().getName());
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        Mockito.when(this.accountMapper.toAccountResponse(account)).thenReturn(accountResponse);
+
+        // when
+        AccountResponse result = this.accountServiceUnderTest.findAccountById(1L);
+
+        // then
+        assertThat(result)
+                .isNotNull()
+                .isSameAs(accountResponse);
+        assertThat(result)
+                .extracting(AccountResponse::id, AccountResponse::holder, AccountResponse::balance, AccountResponse::bankName)
+                .containsExactly(1L, "Milagros", new BigDecimal("2000"), bank.getName());
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountMapper).toAccountResponse(account);
     }
 }

@@ -4,6 +4,7 @@ import dev.magadiflo.app.dto.AccountResponse;
 import dev.magadiflo.app.dto.TransactionRequest;
 import dev.magadiflo.app.entity.Account;
 import dev.magadiflo.app.entity.Bank;
+import dev.magadiflo.app.exception.AccountNotFoundException;
 import dev.magadiflo.app.exception.InsufficientBalanceException;
 import dev.magadiflo.app.factory.AccountTestFactory;
 import dev.magadiflo.app.mapper.AccountMapper;
@@ -115,5 +116,20 @@ class AccountServiceImplMockitoManualTest {
                 .containsExactly(1L, "Milagros", new BigDecimal("2000"), bank.getName());
         Mockito.verify(this.accountRepository).findById(1L);
         Mockito.verify(this.accountMapper).toAccountResponse(account);
+    }
+
+    @Test
+    void shouldThrowAccountNotFoundExceptionWhenAccountDoesNotExist() {
+        // given
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.findAccountById(1L))
+                .isInstanceOf(AccountNotFoundException.class)
+                .hasMessage("No se encontró la cuenta con ID: 1");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountMapper, Mockito.never()).toAccountResponse(Mockito.any(Account.class));
     }
 }

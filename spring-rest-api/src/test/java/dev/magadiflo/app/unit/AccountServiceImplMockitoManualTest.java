@@ -254,4 +254,24 @@ class AccountServiceImplMockitoManualTest {
         Mockito.verify(this.accountRepository).save(accountBeforeWithdrawal);
         Mockito.verify(this.accountMapper).toAccountResponse(accountBeforeWithdrawal);
     }
+
+    @Test
+    void shouldThrowInsufficientBalanceExceptionWhenAccountHasLowBalance() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("1000"));
+        WithdrawalRequest request = new WithdrawalRequest(new BigDecimal("1200"));
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(account));
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.withdraw(1L, request))
+                .isInstanceOf(InsufficientBalanceException.class)
+                .hasMessage("Saldo insuficiente en la cuenta del titular Milagros (ID: 1)");
+
+        // then
+        assertThat(account.getBalance()).isEqualByComparingTo("1000");
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository, Mockito.never()).save(Mockito.any());
+        Mockito.verify(this.accountMapper, Mockito.never()).toAccountResponse(Mockito.any());
+    }
 }

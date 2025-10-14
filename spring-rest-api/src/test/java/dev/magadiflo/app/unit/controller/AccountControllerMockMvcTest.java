@@ -23,7 +23,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AccountController.class)
-class AccountControllerTest {
+class AccountControllerMockMvcTest {
 
     @MockitoBean
     private AccountService accountService;
@@ -91,7 +91,7 @@ class AccountControllerTest {
     }
 
     @Test
-    void name() throws Exception {
+    void shouldReturnAccountDetailsWhenAccountExists() throws Exception {
         // given
         AccountResponse accountResponse = new AccountResponse(1L, "Milagros", new BigDecimal("2000"), "BCP");
         Mockito.when(this.accountService.findAccountById(1L)).thenReturn(accountResponse);
@@ -108,5 +108,15 @@ class AccountControllerTest {
                 .andExpect(jsonPath("$.bankName", Matchers.is("BCP")));
         Mockito.verify(this.accountService).findAccountById(1L);
         Mockito.verifyNoMoreInteractions(this.accountService);
+    }
+
+    @Test
+    void name() {
+        // given
+
+
+        // when
+
+        // then
     }
 }

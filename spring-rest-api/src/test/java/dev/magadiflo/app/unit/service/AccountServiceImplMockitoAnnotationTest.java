@@ -1,4 +1,4 @@
-package dev.magadiflo.app.unit;
+package dev.magadiflo.app.unit.service;
 
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
@@ -12,11 +12,13 @@ import dev.magadiflo.app.factory.AccountTestFactory;
 import dev.magadiflo.app.mapper.AccountMapper;
 import dev.magadiflo.app.repository.AccountRepository;
 import dev.magadiflo.app.repository.BankRepository;
-import dev.magadiflo.app.service.AccountService;
 import dev.magadiflo.app.service.impl.AccountServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -25,20 +27,16 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class AccountServiceImplMockitoManualTest {
-
+@ExtendWith(MockitoExtension.class)
+class AccountServiceImplMockitoAnnotationTest {
+    @Mock
     private AccountRepository accountRepository;
+    @Mock
     private BankRepository bankRepository;
+    @Mock
     private AccountMapper accountMapper;
-    private AccountService accountServiceUnderTest;
-
-    @BeforeEach
-    void setUp() {
-        this.accountRepository = Mockito.mock(AccountRepository.class);
-        this.bankRepository = Mockito.mock(BankRepository.class);
-        this.accountMapper = Mockito.mock(AccountMapper.class);
-        this.accountServiceUnderTest = new AccountServiceImpl(this.accountRepository, this.bankRepository, this.accountMapper);
-    }
+    @InjectMocks
+    private AccountServiceImpl accountServiceUnderTest;
 
     @Test
     void shouldTransferBalanceWhenAccountsAreFromSameBank() {

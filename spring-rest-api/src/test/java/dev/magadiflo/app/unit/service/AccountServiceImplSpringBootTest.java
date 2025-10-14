@@ -1,4 +1,4 @@
-package dev.magadiflo.app.unit;
+package dev.magadiflo.app.unit.service;
 
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
@@ -12,13 +12,13 @@ import dev.magadiflo.app.factory.AccountTestFactory;
 import dev.magadiflo.app.mapper.AccountMapper;
 import dev.magadiflo.app.repository.AccountRepository;
 import dev.magadiflo.app.repository.BankRepository;
+import dev.magadiflo.app.service.AccountService;
 import dev.magadiflo.app.service.impl.AccountServiceImpl;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -27,16 +27,16 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@ExtendWith(MockitoExtension.class)
-class AccountServiceImplMockitoAnnotationTest {
-    @Mock
+@SpringBootTest(classes = AccountServiceImpl.class)
+class AccountServiceImplSpringBootTest {
+    @MockitoBean
     private AccountRepository accountRepository;
-    @Mock
+    @MockitoBean
     private BankRepository bankRepository;
-    @Mock
+    @MockitoBean
     private AccountMapper accountMapper;
-    @InjectMocks
-    private AccountServiceImpl accountServiceUnderTest;
+    @Autowired
+    private AccountService accountServiceUnderTest;
 
     @Test
     void shouldTransferBalanceWhenAccountsAreFromSameBank() {

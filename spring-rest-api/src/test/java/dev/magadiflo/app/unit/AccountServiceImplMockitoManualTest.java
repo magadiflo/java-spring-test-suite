@@ -3,6 +3,7 @@ package dev.magadiflo.app.unit;
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
 import dev.magadiflo.app.dto.TransactionRequest;
+import dev.magadiflo.app.dto.WithdrawalRequest;
 import dev.magadiflo.app.entity.Account;
 import dev.magadiflo.app.entity.Bank;
 import dev.magadiflo.app.exception.AccountNotFoundException;
@@ -21,7 +22,8 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class AccountServiceImplMockitoManualTest {
 
@@ -223,5 +225,33 @@ class AccountServiceImplMockitoManualTest {
         Mockito.verify(this.accountMapper).toAccount(accountRequest, bank);
         Mockito.verify(this.accountRepository).save(accountWithoutId);
         Mockito.verify(this.accountMapper).toAccountResponse(accountWithoutId);
+    }
+
+    @Test
+    void shouldWithdrawAmountSuccessfullyWhenAccountExists() {
+        // given
+        Account accountBeforeWithdrawal = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Account accountAfterWithdrawal = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("1500"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", accountBeforeWithdrawal, accountAfterWithdrawal);
+        WithdrawalRequest request = new WithdrawalRequest(new BigDecimal("500"));
+        AccountResponse expectedResponse = AccountTestFactory.toAccountResponse(accountAfterWithdrawal);
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(accountBeforeWithdrawal));
+        Mockito.when(this.accountRepository.save(accountBeforeWithdrawal)).thenReturn(accountBeforeWithdrawal); // Ya mutado
+        Mockito.when(this.accountMapper.toAccountResponse(accountBeforeWithdrawal)).thenReturn(expectedResponse);
+
+        // when
+        AccountResponse actualResponse = this.accountServiceUnderTest.withdraw(1L, request);
+
+        // then
+        assertThat(accountBeforeWithdrawal.getBalance())
+                .isEqualByComparingTo("1500");
+        assertThat(actualResponse)
+                .isNotNull()
+                .extracting(AccountResponse::id, AccountResponse::holder, AccountResponse::balance, AccountResponse::bankName)
+                .containsExactly(1L, "Milagros", new BigDecimal("1500"), bank.getName());
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).save(accountBeforeWithdrawal);
+        Mockito.verify(this.accountMapper).toAccountResponse(accountBeforeWithdrawal);
     }
 }

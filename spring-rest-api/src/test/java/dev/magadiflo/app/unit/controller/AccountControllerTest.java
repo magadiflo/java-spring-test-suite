@@ -89,4 +89,24 @@ class AccountControllerTest {
         Mockito.verify(this.accountService).saveAccount(Mockito.any());
         Mockito.verifyNoMoreInteractions(this.accountService);
     }
+
+    @Test
+    void name() throws Exception {
+        // given
+        AccountResponse accountResponse = new AccountResponse(1L, "Milagros", new BigDecimal("2000"), "BCP");
+        Mockito.when(this.accountService.findAccountById(1L)).thenReturn(accountResponse);
+
+        // when
+        ResultActions result = this.mockMvc.perform(get("/api/v1/accounts/{accountId}", 1L));
+
+        // then
+        result.andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", Matchers.is(1)))
+                .andExpect(jsonPath("$.holder", Matchers.is("Milagros")))
+                .andExpect(jsonPath("$.balance", Matchers.is(2000)))
+                .andExpect(jsonPath("$.bankName", Matchers.is("BCP")));
+        Mockito.verify(this.accountService).findAccountById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountService);
+    }
 }

@@ -274,4 +274,20 @@ class AccountServiceImplMockitoManualTest {
         Mockito.verify(this.accountRepository, Mockito.never()).save(Mockito.any());
         Mockito.verify(this.accountMapper, Mockito.never()).toAccountResponse(Mockito.any());
     }
+
+    @Test
+    void shouldThrowAccountNotFoundExceptionWhenAccountDoesNotExistDuringWithdrawal() {
+        // given
+        WithdrawalRequest request = new WithdrawalRequest(new BigDecimal("1200"));
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.withdraw(1L, request))
+                .isInstanceOf(AccountNotFoundException.class)
+                .hasMessage("No se encontró la cuenta con ID: 1");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountRepository, this.accountMapper);
+    }
 }

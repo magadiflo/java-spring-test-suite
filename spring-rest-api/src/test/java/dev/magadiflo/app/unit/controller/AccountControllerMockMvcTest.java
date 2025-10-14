@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.magadiflo.app.controller.AccountController;
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
+import dev.magadiflo.app.exception.AccountNotFoundException;
 import dev.magadiflo.app.service.AccountService;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,10 @@ import java.util.List;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @WebMvcTest(AccountController.class)
 class AccountControllerMockMvcTest {
@@ -111,12 +115,23 @@ class AccountControllerMockMvcTest {
     }
 
     @Test
-    void name() {
+    void shouldReturn404WhenAccountNotFound() throws Exception {
         // given
-
+        Long accountId = 1L;
+        Mockito.when(this.accountService.findAccountById(accountId)).thenThrow(new AccountNotFoundException(accountId));
 
         // when
+        ResultActions result = this.mockMvc.perform(get("/api/v1/accounts/{accountId}", accountId));
 
         // then
+        result.andExpect(status().isNotFound())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(404))
+                .andExpect(jsonPath("$.error").value("Not Found"))
+                .andExpect(jsonPath("$.message").value("No se encontró la cuenta con ID: " + accountId))
+                .andExpect(jsonPath("$.path").value("/api/v1/accounts/" + accountId));
+        Mockito.verify(this.accountService).findAccountById(accountId);
+        Mockito.verifyNoMoreInteractions(this.accountService);
     }
 }

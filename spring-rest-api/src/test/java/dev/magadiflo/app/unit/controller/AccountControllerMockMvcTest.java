@@ -1,11 +1,13 @@
 package dev.magadiflo.app.unit.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.magadiflo.app.controller.AccountController;
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
 import dev.magadiflo.app.dto.TransactionRequest;
 import dev.magadiflo.app.exception.AccountNotFoundException;
+import dev.magadiflo.app.exception.InsufficientBalanceException;
 import dev.magadiflo.app.service.AccountService;
 import org.hamcrest.Matchers;
 import org.junit.jupiter.api.Test;
@@ -153,4 +155,28 @@ class AccountControllerMockMvcTest {
         Mockito.verify(this.accountService).transfer(Mockito.any());
         Mockito.verifyNoMoreInteractions(this.accountService);
     }
+
+    @Test
+    void shouldReturn400WhenBalanceIsInsufficient() throws Exception {
+        // given
+        var request = new TransactionRequest(1L, 2L, new BigDecimal("500"));
+        Mockito.doThrow(new InsufficientBalanceException(1L, "Milagros")).when(this.accountService).transfer(request);
+
+        // when
+        ResultActions result = this.mockMvc.perform(post("/api/v1/accounts/transfer")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(request)));
+
+        // then
+        result.andExpect(status().isBadRequest())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.timestamp").exists())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.error").value("Bad Request"))
+                .andExpect(jsonPath("$.message").value("Saldo insuficiente en la cuenta del titular Milagros (ID: 1)"))
+                .andExpect(jsonPath("$.path").value("/api/v1/accounts/transfer"));
+        Mockito.verify(this.accountService).transfer(Mockito.any());
+        Mockito.verifyNoMoreInteractions(this.accountService);
+    }
 }
+

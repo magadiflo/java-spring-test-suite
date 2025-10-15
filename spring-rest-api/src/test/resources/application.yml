@@ -1,3 +1,12 @@
 spring:
   application:
     name: spring-rest-api
+  profiles:
+    active: test-h2
+
+logging:
+  level:
+    root: WARN
+    dev.magadiflo.app: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

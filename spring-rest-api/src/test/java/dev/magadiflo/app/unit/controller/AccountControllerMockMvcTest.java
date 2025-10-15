@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.magadiflo.app.controller.AccountController;
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
+import dev.magadiflo.app.dto.TransactionRequest;
 import dev.magadiflo.app.exception.AccountNotFoundException;
 import dev.magadiflo.app.service.AccountService;
 import org.hamcrest.Matchers;
@@ -132,6 +133,24 @@ class AccountControllerMockMvcTest {
                 .andExpect(jsonPath("$.message").value("No se encontró la cuenta con ID: " + accountId))
                 .andExpect(jsonPath("$.path").value("/api/v1/accounts/" + accountId));
         Mockito.verify(this.accountService).findAccountById(accountId);
+        Mockito.verifyNoMoreInteractions(this.accountService);
+    }
+
+    @Test
+    void shouldTransferMoneySuccessfully() throws Exception {
+        // given
+        var request = new TransactionRequest(1L, 2L, new BigDecimal("500"));
+        Mockito.doNothing().when(this.accountService).transfer(request);
+
+        // when
+        ResultActions result = this.mockMvc.perform(post("/api/v1/accounts/transfer")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(request)));
+
+        // then
+        result.andExpect(status().isNoContent())
+                .andExpect(content().string(Matchers.is(Matchers.emptyString())));
+        Mockito.verify(this.accountService).transfer(Mockito.any());
         Mockito.verifyNoMoreInteractions(this.accountService);
     }
 }

@@ -13,6 +13,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.List;
 import java.util.Optional;
@@ -110,5 +111,26 @@ class AccountRepositoryH2Test {
         // then
         assertThat(optionalAccount).isEmpty();
 
+    }
+
+    @Test
+    void shouldSaveAccountWhenValidDataProvided() {
+        // given
+        Account newAccount = Account.builder()
+                .holder("Edwin Guerrero Test")
+                .balance(new BigDecimal("5000"))
+                .bank(Bank.builder().id(1L).build())
+                .build();
+
+        // when
+        Account savedAccount = this.accountRepository.save(newAccount);
+
+        // then
+        assertThat(savedAccount.getId())
+                .isNotNull()
+                .isEqualTo(9);
+        assertThat(savedAccount.getHolder()).isEqualTo("Edwin Guerrero Test");
+        assertThat(savedAccount.getBalance()).isEqualByComparingTo("5000");
+        assertThat(savedAccount.getBank()).isNotNull();
     }
 }

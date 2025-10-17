@@ -98,4 +98,17 @@ class AccountRepositoryH2Test {
                 });
 
     }
+
+    @Test
+    void shouldReturnEmptyOptionalWhenAccountIdDoesNotExist() {
+        // given
+        Long accountId = 999L;
+
+        // when
+        Optional<Account> optionalAccount = this.accountRepository.findById(accountId);
+
+        // then
+        assertThat(optionalAccount).isEmpty();
+
+    }
 }

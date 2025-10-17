@@ -2,6 +2,8 @@ package dev.magadiflo.app.integration.repository;
 
 import dev.magadiflo.app.constants.TestScripts;
 import dev.magadiflo.app.dto.AccountResponse;
+import dev.magadiflo.app.entity.Account;
+import dev.magadiflo.app.entity.Bank;
 import dev.magadiflo.app.repository.AccountRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.junit.jupiter.api.Test;
@@ -13,6 +15,7 @@ import org.springframework.test.context.jdbc.Sql;
 import javax.sql.DataSource;
 import java.sql.SQLException;
 import java.util.List;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -71,5 +74,28 @@ class AccountRepositoryH2Test {
         assertThat(accounts)
                 .extracting(AccountResponse::bankName)
                 .contains("BCP");
+    }
+
+    @Test
+    void shouldReturnAccountWithBankWhenFindByIdExists() {
+        // given
+        Long accountId = 1L;
+
+        // when
+        Optional<Account> optionalAccount = this.accountRepository.findById(accountId);
+
+        // then
+        assertThat(optionalAccount)
+                .isPresent()
+                .hasValueSatisfying(account -> {
+                    assertThat(account.getId()).isEqualTo(accountId);
+                    assertThat(account.getHolder()).isEqualTo("Lesly Águila");
+                    assertThat(account.getBalance()).isEqualByComparingTo("3000");
+                    assertThat(account.getBank())
+                            .isNotNull()
+                            .extracting(Bank::getId, Bank::getName)
+                            .containsExactly(1L, "BCP");
+                });
+
     }
 }

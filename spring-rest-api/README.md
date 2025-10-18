@@ -1284,7 +1284,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        use_sql_comments: true  # Agrega comentarios en SQL generado
     defer-datasource-initialization: true # Espera a que Hibernate cree tablas antes de ejecutar scripts SQL
 
   sql:

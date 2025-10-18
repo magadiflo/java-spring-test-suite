@@ -40,18 +40,22 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     Optional<Account> findAccountByHolder(String holder);
 
     /**
-     * Actualiza el nombre del titular de una cuenta.
+     * Actualiza el nombre del titular de una cuenta mediante una consulta SQL nativa.
      * <p>
-     * Ejemplo de consulta nativa usando la anotación {@code @NativeQuery},
-     * introducida en Spring Data JPA 3.4+ como atajo de {@code @Query(nativeQuery = true)}.
-     * Utiliza SpEL para acceder a las propiedades del objeto {@code account}.
+     * Utiliza {@code @NativeQuery} (Spring Data JPA 3.4+) como atajo de {@code @Query(nativeQuery = true)},
+     * junto con SpEL para acceder a las propiedades del objeto {@code account}.
+     * </p>
+     * <p>
+     * Se aplica {@code clearAutomatically = true} para limpiar el contexto de persistencia
+     * tras la ejecución del {@code UPDATE}, evitando inconsistencias si se accede a la entidad
+     * modificada en el mismo contexto transaccional.
      * </p>
      *
      * @param account la entidad con los datos actualizados (debe contener id y holder)
-     * @return el número de filas afectadas (1 si la actualización fue exitosa, 0 si no se encontró la cuenta)
+     * @return número de filas afectadas (1 si la actualización fue exitosa, 0 si no se encontró la cuenta)
      * @implNote Este método debe ejecutarse dentro de un contexto {@code @Transactional}
      */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @NativeQuery(value = """
             UPDATE accounts
             SET holder = :#{#account.holder}
@@ -60,18 +64,22 @@ public interface AccountRepository extends JpaRepository<Account, Long> {
     int updateAccountHolder(Account account);
 
     /**
-     * Elimina una cuenta por su identificador.
+     * Elimina una cuenta por su identificador mediante una consulta SQL nativa.
      * <p>
-     * Se define manualmente como práctica de consultas {@code @Modifying} con DELETE,
-     * aunque {@link JpaRepository} ya provee el método {@code deleteById()}.
-     * Utiliza una consulta SQL nativa con parámetro nombrado.
+     * Aunque {@link JpaRepository} ya provee {@code deleteById()}, este método permite
+     * personalizar la eliminación con SQL nativo.
+     * </p>
+     * <p>
+     * Se aplica {@code clearAutomatically = true} para limpiar el {@code EntityManager}
+     * tras el {@code DELETE}, asegurando que la entidad eliminada no permanezca en caché
+     * durante el mismo contexto transaccional (especialmente útil en pruebas).
      * </p>
      *
      * @param accountId el identificador de la cuenta a eliminar
-     * @return el número de filas afectadas (1 si la eliminación fue exitosa, 0 si no se encontró la cuenta)
+     * @return número de filas afectadas (1 si la eliminación fue exitosa, 0 si no se encontró la cuenta)
      * @implNote Este método debe ejecutarse dentro de un contexto {@code @Transactional}
      */
-    @Modifying
+    @Modifying(clearAutomatically = true)
     @Query(value = """
             DELETE FROM accounts
             WHERE id = :accountId

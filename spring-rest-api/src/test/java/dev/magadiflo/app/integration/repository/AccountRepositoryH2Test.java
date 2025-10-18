@@ -133,4 +133,18 @@ class AccountRepositoryH2Test {
         assertThat(savedAccount.getBalance()).isEqualByComparingTo("5000");
         assertThat(savedAccount.getBank()).isNotNull();
     }
+
+    @Test
+    void shouldDeleteAccountWhenExistingIdProvided() {
+        // given
+        long accountId = 1L;
+        assertThat(this.accountRepository.findById(accountId)).isPresent();
+
+        // when
+        int affectedRows = this.accountRepository.deleteAccountById(accountId);
+
+        // then
+        assertThat(affectedRows).isEqualTo(1);
+        assertThat(this.accountRepository.findById(accountId)).isEmpty();
+    }
 }

@@ -12,6 +12,19 @@ services:
       MYSQL_PASSWORD: dev_password
     networks:
       - docker-test-net
+  s-mysql-test:
+    image: mysql:8.0.41-debian
+    container_name: c-mysql-test
+    restart: unless-stopped
+    ports:
+      - '3307:3306'
+    environment:
+      MYSQL_ROOT_PASSWORD: magadiflo
+      MYSQL_DATABASE: db_spring_rest_api_test
+      MYSQL_USER: test_user
+      MYSQL_PASSWORD: test_password
+    networks:
+      - docker-test-net
 
 networks:
   docker-test-net:

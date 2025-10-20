@@ -1322,7 +1322,7 @@ logging:
     root: INFO
     dev.magadiflo.app: DEBUG                              # Tu paquete principal con máximo detalle
     org.hibernate.SQL: DEBUG                              # SQL generado
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # Parámetros de SQL
+    org.hibernate.orm.jdbc.bind: TRACE                    # Parámetros de SQL
     org.springframework.web: DEBUG                        # Requests HTTP
     org.springframework.transaction: DEBUG                # Transacciones
     org.springframework.data.jpa: DEBUG                   # Consultas JPA

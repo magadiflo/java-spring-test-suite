@@ -147,4 +147,42 @@ class AccountRepositoryH2Test {
         assertThat(affectedRows).isEqualTo(1);
         assertThat(this.accountRepository.findById(accountId)).isEmpty();
     }
+
+    @Test
+    void shouldUpdateAccountWhenExistingIdProvided() {
+        // given
+        long accountId = 1L;
+        Account accountToUpdate = Account.builder()
+                .id(accountId)
+                .holder("Lesly Katherine")
+                .build();
+        assertThat(this.accountRepository.findById(accountId))
+                .isPresent()
+                .hasValueSatisfying(account -> {
+                    assertThat(account.getId()).isEqualTo(accountId);
+                    assertThat(account.getHolder()).isEqualTo("Lesly Águila");
+                    assertThat(account.getBalance()).isEqualByComparingTo("3000");
+                    assertThat(account.getBank())
+                            .isNotNull()
+                            .extracting(Bank::getId, Bank::getName)
+                            .containsExactly(1L, "BCP");
+                });
+
+        // when
+        int affectedRows = this.accountRepository.updateAccountHolder(accountToUpdate);
+
+        // then
+        assertThat(affectedRows).isEqualTo(1);
+        assertThat(this.accountRepository.findById(accountId))
+                .isPresent()
+                .hasValueSatisfying(account -> {
+                    assertThat(account.getId()).isEqualTo(accountId);
+                    assertThat(account.getHolder()).isEqualTo("Lesly Katherine");
+                    assertThat(account.getBalance()).isEqualByComparingTo("3000");
+                    assertThat(account.getBank())
+                            .isNotNull()
+                            .extracting(Bank::getId, Bank::getName)
+                            .containsExactly(1L, "BCP");
+                });
+    }
 }

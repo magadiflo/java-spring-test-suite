@@ -1,6 +1,5 @@
 package dev.magadiflo.app.unit.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.magadiflo.app.controller.AccountController;
 import dev.magadiflo.app.dto.AccountCreateRequest;

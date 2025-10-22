@@ -1,0 +1,22 @@
+server:
+  error:
+    include-message: never
+    include-stacktrace: never
+    include-exception: false
+
+spring:
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?serverTimezone=America/Lima&useSSL=true
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+
+  jpa:
+    hibernate:
+      ddl-auto: none # No hace nada con el esquema de la BD.
+
+logging:
+  level:
+    root: WARN
+    dev.magadiflo.app: WARN
+    org.hibernate: ERROR
+    org.springframework: WARN

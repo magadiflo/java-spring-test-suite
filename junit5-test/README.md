@@ -2358,7 +2358,7 @@ class Lec07ParameterizedTest {
 > valores y escenarios en un solo método de test. Esto mejora la legibilidad, facilita la mantenibilidad y nos permite
 > expandir los casos de prueba sin modificar el código.
 
-## 🏷️ Tagging tests con la anotación @Tag
+## 🏷️ Tagging tests con la anotación `@Tag`
 
 La anotación `@Tag` nos permite `clasificar y ejecutar pruebas de forma selectiva`. Por ejemplo, podemos ejecutar
 solamente las pruebas que tengan el tag `param` o `account`.
@@ -2472,8 +2472,20 @@ $ mvn test
 [ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoFailureException
 ````
 
-Ahora, si solo queremos ejecutar algunos tests en específicos y además si ya tenemos configurado el plugin Surefire,
-podemos lanzar un tag así, por ejemplo si queremos ejecutar solo los test cuyo `tag` tiene el valor de `account`.
+Ahora, si solo queremos ejecutar algunos tests específicos y ya tenemos agregado el plugin `Surefire` en nuestro
+archivo `pom.xml`:
+
+````xml
+
+<plugin>
+    <groupId>org.apache.maven.plugins</groupId>
+    <artifactId>maven-surefire-plugin</artifactId>
+    <version>3.5.4</version>
+</plugin>
+````
+
+Entonces podemos usar la opción `-Dgroups` para ejecutar únicamente los tests que tengan un `@Tag` con el valor
+`account`:
 
 ````bash
 D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\junit5-test (feature/junit5)

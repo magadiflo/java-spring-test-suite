@@ -100,3 +100,18 @@ realizaremos posteriormente. Cuando usemos `Testcontainers` con `PostgreSQL`:
   contexto de Spring Boot dentro del contenedor.
 - En las pruebas, podremos persistir, consultar y eliminar instancias de `Customer` en un entorno idéntico a producción,
   sin depender de una base instalada localmente.
+
+## 🗂️ Creando el repositorio Spring Data JPA
+
+Definimos la interfaz `CustomerRepository`, que extiende de `JpaRepository` para heredar los métodos CRUD básicos y
+aprovechar el poder de `Spring Data JPA`.
+
+````java
+public interface CustomerRepository extends JpaRepository<Customer, Long> {
+    Optional<Customer> findByEmail(String email);
+}
+````
+
+Definimos un método derivado de consulta (`Query Method`) para poder tener más casos con los que elaborar nuestros test.
+`Spring Data JPA` genera automáticamente la query en tiempo de ejecución basándose en el nombre del método
+(`findByEmail`).

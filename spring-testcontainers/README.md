@@ -579,3 +579,61 @@ dependencias adicionales `junit-jupiter `y `postgresql`, ambos con `groupId` `or
 
 > 💡 `Nota`: Todas las dependencias están con `scope=test`, porque se necesitan únicamente durante la ejecución de
 > tests y no forman parte del artefacto final.
+
+## 🧩 Definiendo datos para las pruebas
+
+Para nuestras pruebas con `Testcontainers`, necesitamos definir datos iniciales que se carguen automáticamente cada
+vez que se levante el contenedor de base de datos.
+
+De esta forma, garantizamos que `todas las pruebas comiencen en un estado limpio y predecible`.
+
+### 🧹 Limpieza de datos `src/test/resources/sql-test/cleanup-postgres.sql`
+
+Este script elimina todos los registros de la tabla `customers` y `reinicia la secuencia de IDs`, garantizando que los
+identificadores empiecen nuevamente desde 1 en cada prueba.
+
+💡 `PostgreSQL` permite truncar tablas relacionadas si se añade la cláusula `CASCADE`, útil cuando existen claves
+foráneas. En este caso no es necesario porque solo usamos la tabla `customers`.
+
+````sql
+TRUNCATE TABLE customers RESTART IDENTITY;
+````
+
+### 🧪 Datos de prueba `src/test/resources/sql-test/data-test.sql`
+
+Estos registros se usarán en los tests para validar los endpoints y operaciones sobre la base de datos de forma
+reproducible.
+
+````sql
+INSERT INTO customers(name, email)
+VALUES('Milagros Díaz', 'milagros@gmail.com'),
+('Kiara Lozano', 'kiara@gmail.com'),
+('Yrma Guerrero', 'yrmagerreron@outlook.com'),
+('Lesly Águila', 'lesly@gmail.com'),
+('Briela Cirilo', 'briela@gmail.com'),
+('Cielo Fernández', 'cielo@gmail.com'),
+('Susana Alvarado', 'susana@gmail.com'),
+('Analucía Urbina', 'analucia@gmail.com');
+````
+
+### 🧭 Clase de constantes para los scripts
+
+Para evitar repetir rutas en los tests, centralizamos las ubicaciones en una clase de utilidades:
+
+````java
+
+@UtilityClass
+public class TestScripts {
+    // Limpieza de base de datos
+    public static final String CLEANUP_POSTGRES = "/sql-test/cleanup-postgres.sql";
+
+    // Datos de prueba comunes
+    public static final String DATA_TEST = "/sql-test/data-test.sql";
+}
+````
+
+La anotación `@UtilityClass` de `Lombok` convierte la clase en una utilidad estática:
+
+- Impide la creación de instancias.
+- Marca automáticamente todos los campos como static final.
+- Marca automáticamente todos los métodos como static.

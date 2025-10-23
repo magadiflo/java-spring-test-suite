@@ -1,10 +1,5 @@
--- Reiniciar IDs y limpiar tablas existentes
-SET FOREIGN_KEY_CHECKS = 0;
-
-TRUNCATE TABLE accounts;
-TRUNCATE TABLE banks;
-
-SET FOREIGN_KEY_CHECKS = 1;
+-- Reiniciar IDs
+TRUNCATE TABLE customers RESTART IDENTITY;
 
 -- Insertar datos de ejemplo
 INSERT INTO customers(name, email)

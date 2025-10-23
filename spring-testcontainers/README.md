@@ -315,13 +315,8 @@ Esto nos permitirá tener registros iniciales para probar los endpoints REST sin
 📂 El script estará ubicado en `src/main/resources/sql/data-dev.sql`.
 
 ````sql
--- Reiniciar IDs y limpiar tablas existentes
-SET FOREIGN_KEY_CHECKS = 0;
-
-TRUNCATE TABLE accounts;
-TRUNCATE TABLE banks;
-
-SET FOREIGN_KEY_CHECKS = 1;
+-- Reiniciar IDs
+TRUNCATE TABLE customers RESTART IDENTITY;
 
 -- Insertar datos de ejemplo
 INSERT INTO customers(name, email)
@@ -332,11 +327,10 @@ VALUES('María Briones', 'maria.briones@gmail.com'),
 ('Alexander Villanueva', 'alexander.villanueva@gmail.com');
 ````
 
-| Sección                                   | Descripción                                                                                                                                                                                                                                         |
-|-------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `SET FOREIGN_KEY_CHECKS = 0` / `= 1`      | Desactiva temporalmente (0) la verificación de claves foráneas para permitir limpiar las tablas sin violar restricciones referenciales. ⚠️ *Este comando es específico de MySQL.* El valor `1` vuelve a activar la verificación de claves foráneas. |
-| `TRUNCATE TABLE ...`                      | Vacía completamente las tablas y reinicia los identificadores autoincrementales. Es más eficiente que `DELETE FROM`.                                                                                                                                |
-| `INSERT INTO customers(...) VALUES (...)` | Inserta registros iniciales en la tabla `customers`. Estos datos se usarán en la etapa de desarrollo o pruebas locales.                                                                                                                             |
+| Sección                                     | Descripción                                                                                                             |
+|---------------------------------------------|-------------------------------------------------------------------------------------------------------------------------|
+| `TRUNCATE TABLE customers RESTART IDENTITY` | Limpia completamente las tablas y reinicia los identificadores autoincrementales.                                       |
+| `INSERT INTO customers(...) VALUES (...)`   | Inserta registros iniciales en la tabla `customers`. Estos datos se usarán en la etapa de desarrollo o pruebas locales. |
 
 ## ⚙️ Agregando propiedades de configuración y perfil dev
 
@@ -380,7 +374,7 @@ server:
 
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/db_spring_rest_api_dev?serverTimezone=America/Lima
+    url: jdbc:postgresql://localhost:5432/db_spring_testcontainers_dev
     username: dev_user
     password: dev_password
 
@@ -408,16 +402,16 @@ logging:
     org.springframework.data.jpa: DEBUG
 ````
 
-| Sección                                            | Descripción                                                                                                                                                                                                      |
-|----------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `server.error.include-message: always`             | Configura que el mensaje de error se incluya siempre en las respuestas HTTP, útil para depuración en desarrollo. 🚧 *No recomendado en producción.*                                                              |
-| `spring.datasource.*`                              | Define los parámetros de conexión a la base de datos MySQL local usada en el entorno de desarrollo. En la Fase 2 esta conexión será reemplazada por una base de datos **contenedorizada con Testcontainers**. 🧱 |
-| `spring.jpa.hibernate.ddl-auto: update`            | Hibernate crea o actualiza automáticamente las tablas según las entidades. Conveniente en desarrollo, pero no recomendado para entornos productivos.                                                             |
-| `spring.jpa.properties.hibernate.format_sql: true` | Formatea el SQL generado, mejorando la legibilidad en los logs.                                                                                                                                                  |
-| `spring.jpa.defer-datasource-initialization: true` | 💡 Indica a Spring Boot que espere a que Hibernate haya creado las tablas antes de ejecutar scripts SQL (`data-dev.sql`).                                                                                        |
-| `spring.sql.init.mode: always`                     | Fuerza la ejecución de scripts SQL en cada arranque de la aplicación.                                                                                                                                            |
-| `spring.sql.init.data-locations`                   | Define la ruta al script SQL de inicialización (`data-dev.sql`).                                                                                                                                                 |
-| `logging.level.*`                                  | Configura niveles de logging detallados. En desarrollo, es común activar trazas más verbosas (por ejemplo, `org.hibernate.SQL: DEBUG`) para monitorear consultas.                                                |
+| Sección                                            | Descripción                                                                                                                                                                        |
+|----------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `server.error.include-message: always`             | Configura que el mensaje de error se incluya siempre en las respuestas HTTP. Es útil para depuración durante el desarrollo, pero 🚫 *no se recomienda en producción*.              |
+| `spring.datasource.*`                              | Define los parámetros de conexión a la base de datos **PostgreSQL** usada en el entorno de desarrollo.                                                                             |
+| `spring.jpa.hibernate.ddl-auto: update`            | Permite que Hibernate cree o actualice las tablas en función de las entidades. Es ideal en desarrollo, aunque se recomienda deshabilitarlo en producción.                          |
+| `spring.jpa.properties.hibernate.format_sql: true` | Formatea las sentencias SQL generadas por Hibernate, facilitando su lectura en los logs.                                                                                           |
+| `spring.jpa.defer-datasource-initialization: true` | 💡 Indica a Spring Boot que espere a que Hibernate haya creado las tablas antes de ejecutar los scripts SQL (`data-dev.sql`).                                                      |
+| `spring.sql.init.mode: always`                     | Fuerza la ejecución del script SQL en cada arranque de la aplicación, asegurando una base de datos limpia con datos iniciales.                                                     |
+| `spring.sql.init.data-locations`                   | Especifica la ubicación del script de inicialización (`data-dev.sql`).                                                                                                             |
+| `logging.level.*`                                  | Configura los niveles de logging detallados. En desarrollo, se recomienda mantener logs más verbosos para inspeccionar consultas, transacciones y comportamiento de la aplicación. |
 
 ## Probando Endpoints
 

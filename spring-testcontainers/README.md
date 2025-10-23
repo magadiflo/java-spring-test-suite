@@ -243,3 +243,38 @@ public class CustomerController {
     }
 }
 ````
+
+## 🧾 Definiendo scripts de inicialización
+
+Para trabajar de manera organizada, crearemos un `script SQL de inicialización` que poblará la base de datos con datos
+de ejemplo durante la `etapa de desarrollo`.
+
+Esto nos permitirá tener registros iniciales para probar los endpoints REST sin depender todavía de Testcontainers.
+
+📂 El script estará ubicado en `src/main/resources/sql/data-dev.sql`.
+
+````sql
+-- Reiniciar IDs y limpiar tablas existentes
+SET FOREIGN_KEY_CHECKS = 0;
+
+TRUNCATE TABLE accounts;
+TRUNCATE TABLE banks;
+
+SET FOREIGN_KEY_CHECKS = 1;
+
+-- Insertar datos de ejemplo
+INSERT INTO customers(name, email)
+VALUES('María Briones', 'maria.briones@gmail.com'),
+('Karito Casanova', 'karito.casanova@gmail.com'),
+('Luis Castillo', 'luis.castillo@gmail.com'),
+('Diego Campomanes', 'diego.campomanes@gmail.com'),
+('Alexander Villanueva', 'alexander.villanueva@gmail.com');
+````
+
+| Sección                                   | Descripción                                                                                                                                                                                                                                         |
+|-------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `SET FOREIGN_KEY_CHECKS = 0` / `= 1`      | Desactiva temporalmente (0) la verificación de claves foráneas para permitir limpiar las tablas sin violar restricciones referenciales. ⚠️ *Este comando es específico de MySQL.* El valor `1` vuelve a activar la verificación de claves foráneas. |
+| `TRUNCATE TABLE ...`                      | Vacía completamente las tablas y reinicia los identificadores autoincrementales. Es más eficiente que `DELETE FROM`.                                                                                                                                |
+| `INSERT INTO customers(...) VALUES (...)` | Inserta registros iniciales en la tabla `customers`. Estos datos se usarán en la etapa de desarrollo o pruebas locales.                                                                                                                             |
+
+    

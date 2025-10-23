@@ -517,3 +517,65 @@ $ curl -v -X DELETE http://localhost:8080/api/v1/customers/6 | jq
 < Date: Thu, 23 Oct 2025 21:12:11 GMT
 <
 ````
+
+# 🎯 Fase 2 — Pruebas con Testcontainers
+
+## 📦 ¿Qué es Testcontainers y por qué usarlo?
+
+`Testcontainers` es una biblioteca Java que permite ejecutar `contenedores Docker durante las pruebas automatizadas`.
+A diferencia de otros enfoques como:
+
+- Usar `H2` (base de datos en memoria que no refleja el comportamiento real de `PostgreSQL` en producción).
+- Usar una instancia `PostgreSQL local`, que puede contener datos sucios o versiones distintas.
+- `Mockear el repositorio`, lo cual no prueba SQL real ni integridad de la base de datos.
+
+Con Testcontainers, obtenemos beneficios claros:
+
+- ✅ Levantas un `contenedor PostgreSQL real y limpio` para cada test.
+- ✅ El contenedor se destruye automáticamente al finalizar, evitando contaminación de datos.
+- ✅ Garantizas `paridad entre test y producción` (mismo tipo y versión de base de datos).
+- ✅ Cada desarrollador o pipeline CI tiene su `entorno aislado y reproducible`.
+
+Esto se traduce en `tests más confiables y cercanos al entorno real`, lo que mejora la calidad y reduce errores por
+diferencias de entorno.
+
+## ⚙️ Dependencias necesarias
+
+Desde [Spring Initializr](https://start.spring.io/#!type=maven-project&language=java&platformVersion=3.5.7&packaging=jar&jvmVersion=21&groupId=dev.magadiflo&artifactId=spring-testcontainers&name=spring-testcontainers&description=Demo%20project%20for%20Spring%20Boot&packageName=dev.magadiflo.testcontainers.app&dependencies=web,data-jpa,postgresql,lombok,testcontainers)
+podemos agregar las dependencias necesarias para trabajar con `Testcontainers` en nuestra fase de pruebas.
+
+Notar que en automático cuando seleccionamos el `Testcontainers` desde la web Spring Initializr se agregan dos
+dependencias adicionales `junit-jupiter `y `postgresql`, ambos con `groupId` `org.testcontainers`.
+
+````xml
+
+<dependencies>
+    <!-- Integración Testcontainers con Spring Boot -->
+    <dependency>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-testcontainers</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <!-- Integración con JUnit 5 -->
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>junit-jupiter</artifactId>
+        <scope>test</scope>
+    </dependency>
+    <!-- Módulo de soporte Testcontainers para PostgreSQL -->
+    <dependency>
+        <groupId>org.testcontainers</groupId>
+        <artifactId>postgresql</artifactId>
+        <scope>test</scope>
+    </dependency>
+</dependencies>
+````
+
+| Dependencia                        | Descripción                                                                                                                                                                                                                                                                                                                                                                                                       |
+|------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `spring-boot-testcontainers`       | Proporciona la **integración oficial de Spring Boot con Testcontainers**, habilitando la detección y autoconfiguración automática de contenedores para las pruebas. Internamente incluye módulos de `spring-boot-autoconfigure` y `testcontainers`. 💡 De ellos, el más importante es **`testcontainers`**, ya que actúa como el **core** que gestiona la creación, ciclo de vida y conexión de los contenedores. |
+| `org.testcontainers:postgresql`    | Módulo específico de Testcontainers que sabe cómo inicializar y configurar un contenedor **PostgreSQL** listo para tests.                                                                                                                                                                                                                                                                                         |
+| `org.testcontainers:junit-jupiter` | Integra Testcontainers con **JUnit 5**, manejando automáticamente el ciclo de vida de los contenedores (inicio, stop, limpieza) mediante extensiones de JUnit.                                                                                                                                                                                                                                                    |
+
+> 💡 `Nota`: Todas las dependencias están con `scope=test`, porque se necesitan únicamente durante la ejecución de
+> tests y no forman parte del artefacto final.

@@ -90,17 +90,6 @@ public class Customer {
 }
 ````
 
-### 💡 Relación indirecta con Testcontainers
-
-Aunque en esta fase todavía no usamos `Testcontainers`, esta entidad es una `pieza esencial` para las pruebas que
-realizaremos posteriormente. Cuando usemos `Testcontainers` con `PostgreSQL`:
-
-- El `contenedor levantará una base de datos PostgreSQL limpia y aislada`.
-- Hibernate, a través de las configuraciones de JPA, `creará automáticamente la tabla` `customers` al inicializar el
-  contexto de Spring Boot dentro del contenedor.
-- En las pruebas, podremos persistir, consultar y eliminar instancias de `Customer` en un entorno idéntico a producción,
-  sin depender de una base instalada localmente.
-
 ## 🗂️ Creando el repositorio Spring Data JPA
 
 Definimos la interfaz `CustomerRepository`, que extiende de `JpaRepository` para heredar los métodos CRUD básicos y
@@ -200,6 +189,57 @@ public class CustomerServiceImpl implements CustomerService {
         Customer customer = this.customerRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Cliente con id " + id + " no encontrado"));
         this.customerRepository.deleteById(customer.getId());
+    }
+}
+````
+
+## 🌐 Creando los Endpoints API REST
+
+Para finalizar esta primera fase, creamos el controlador REST encargado de exponer los endpoints HTTP que permitirán
+interactuar con el servicio `CustomerService.`
+
+Este controlador representa el punto de entrada de nuestra API y utiliza los métodos definidos en la capa de servicio
+para procesar las solicitudes CRUD.
+
+````java
+
+@Slf4j
+@RequiredArgsConstructor
+@RestController
+@RequestMapping(path = "/api/v1/customers")
+public class CustomerController {
+
+    private final CustomerService customerService;
+
+    @GetMapping
+    public ResponseEntity<List<Customer>> getAllCustomers() {
+        return ResponseEntity.ok(this.customerService.findAllCustomers());
+    }
+
+    @GetMapping(path = "/{customerId}")
+    public ResponseEntity<Customer> getCustomer(@PathVariable Long customerId) {
+        return ResponseEntity.ok(this.customerService.findCustomerById(customerId));
+    }
+
+    @GetMapping(path = "/email/{email}")
+    public ResponseEntity<Customer> getCustomer(@PathVariable String email) {
+        return ResponseEntity.ok(this.customerService.findCustomerByEmail(email));
+    }
+
+    @PostMapping
+    public ResponseEntity<Customer> saveCustomer(@RequestBody Customer customer) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(this.customerService.saveCustomer(customer));
+    }
+
+    @PutMapping(path = "/{customerId}")
+    public ResponseEntity<Customer> updateCustomer(@PathVariable Long customerId, @RequestBody Customer customer) {
+        return ResponseEntity.ok(this.customerService.updateCustomer(customerId, customer));
+    }
+
+    @DeleteMapping(path = "/{customerId}")
+    public ResponseEntity<Void> deleteCustomer(@PathVariable Long customerId) {
+        this.customerService.deleteCustomerById(customerId);
+        return ResponseEntity.noContent().build();
     }
 }
 ````

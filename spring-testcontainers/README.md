@@ -413,31 +413,107 @@ logging:
 | `spring.sql.init.data-locations`                   | Especifica la ubicación del script de inicialización (`data-dev.sql`).                                                                                                             |
 | `logging.level.*`                                  | Configura los niveles de logging detallados. En desarrollo, se recomienda mantener logs más verbosos para inspeccionar consultas, transacciones y comportamiento de la aplicación. |
 
-## Probando Endpoints
+## 🎯 Probando los Endpoints REST
 
-Hasta este punto se hicieron las pruebas y todos los endpoints están funcionando correctamente. Solo por documentación
-mostraré los resultados obtenidos al consultar los endpoints:
+Llegados a este punto, la aplicación Spring Boot se encuentra completamente configurada y la base de datos `PostgreSQL`
+está activa dentro de su contenedor.
+
+Procedemos ahora a `verificar el correcto funcionamiento de los endpoints REST` del controlador `CustomerController`.
+
+Para ello, utilizaremos el comando `curl` (junto con `jq` para formatear la salida JSON) desde la terminal.
+
+> ⚠️ `Nota`: Esta sección corresponde a `pruebas de desarrollo manuales`.
+> Aquí no se están ejecutando tests automatizados. La idea aquí es `levantar la aplicación localmente` y verificar
+> que los endpoints funcionan correctamente antes de pasar a la fase de pruebas con `Testcontainers`.
 
 ````bash
-$ 
+$ curl -v http://localhost:8080/api/v1/customers | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Thu, 23 Oct 2025 21:07:25 GMT
+<
+[
+  {
+    "id": 1,
+    "name": "María Briones",
+    "email": "maria.briones@gmail.com"
+  },
+  {...},
+  {
+    "id": 5,
+    "name": "Alexander Villanueva",
+    "email": "alexander.villanueva@gmail.com"
+  }
+]
 ````
 
 ````bash
-$ 
+$ curl -v http://localhost:8080/api/v1/customers/1 | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Thu, 23 Oct 2025 21:08:20 GMT
+<
+{
+  "id": 1,
+  "name": "María Briones",
+  "email": "maria.briones@gmail.com"
+}
 ````
 
 ````bash
-$ 
+$ curl -v http://localhost:8080/api/v1/customers/email/karito.casanova@gmail.com | jq
+>
+< HTTP/1.1 200
+< Content-Disposition: inline;filename=f.txt
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Thu, 23 Oct 2025 21:09:03 GMT
+<
+{
+  "id": 2,
+  "name": "Karito Casanova",
+  "email": "karito.casanova@gmail.com"
+}
 ````
 
 ````bash
-$ 
+$ curl -v -X POST -H "content-type: application/json" -d "{\"name\": \"Melissa\", \"email\": \"meli@gmail.com\"}" http://localhost:8080/api/v1/customers | jq
+>
+< HTTP/1.1 201
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Thu, 23 Oct 2025 21:10:50 GMT
+<
+{
+  "id": 6,
+  "name": "Melissa",
+  "email": "meli@gmail.com"
+}
 ````
 
 ````bash
-$ 
+$ curl -v -X PUT -H "content-type: application/json" -d "{\"name\": \"Melissa Katherine\", \"email\": \"meli_kathe@gmail.com\"}" http://localhost:8080/api/v1/customers/6 | jq
+>
+< HTTP/1.1 200
+< Content-Type: application/json
+< Transfer-Encoding: chunked
+< Date: Thu, 23 Oct 2025 21:11:41 GMT
+<
+{
+  "id": 6,
+  "name": "Melissa Katherine",
+  "email": "meli_kathe@gmail.com"
+}
 ````
 
 ````bash
-$ 
+$ curl -v -X DELETE http://localhost:8080/api/v1/customers/6 | jq
+>
+< HTTP/1.1 204
+< Date: Thu, 23 Oct 2025 21:12:11 GMT
+<
 ````

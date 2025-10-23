@@ -64,3 +64,39 @@ con las siguientes dependencias iniciales:
 >
 > El propósito es preparar una estructura sólida y un entorno funcional (`dev`) para luego introducir la
 > infraestructura de contenedores en la siguiente fase (`test`).
+
+## 🧩 Creando la entidad JPA Customer
+
+Comenzaremos definiendo una entidad JPA llamada `Customer`, que representará a nuestros clientes en la base de datos.
+
+````java
+
+@AllArgsConstructor
+@NoArgsConstructor
+@Builder
+@Data
+@Entity
+@Table(name = "customers")
+public class Customer {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false)
+    private String name;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+}
+````
+
+### 💡 Relación indirecta con Testcontainers
+
+Aunque en esta fase todavía no usamos `Testcontainers`, esta entidad es una `pieza esencial` para las pruebas que
+realizaremos posteriormente. Cuando usemos `Testcontainers` con `PostgreSQL`:
+
+- El `contenedor levantará una base de datos PostgreSQL limpia y aislada`.
+- Hibernate, a través de las configuraciones de JPA, `creará automáticamente la tabla` `customers` al inicializar el
+  contexto de Spring Boot dentro del contenedor.
+- En las pruebas, podremos persistir, consultar y eliminar instancias de `Customer` en un entorno idéntico a producción,
+  sin depender de una base instalada localmente.

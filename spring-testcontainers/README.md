@@ -277,4 +277,83 @@ VALUES('María Briones', 'maria.briones@gmail.com'),
 | `TRUNCATE TABLE ...`                      | Vacía completamente las tablas y reinicia los identificadores autoincrementales. Es más eficiente que `DELETE FROM`.                                                                                                                                |
 | `INSERT INTO customers(...) VALUES (...)` | Inserta registros iniciales en la tabla `customers`. Estos datos se usarán en la etapa de desarrollo o pruebas locales.                                                                                                                             |
 
-    
+## ⚙️ Agregando propiedades de configuración y perfil dev
+
+En esta fase configuraremos el entorno de desarrollo del proyecto (`dev`). Definiremos las propiedades generales
+en el archivo `application.yml` y las específicas del entorno en `application-dev.yml`.
+
+💡 Nota: En este punto dejaremos activado el perfil `dev` (definido en `spring.profiles.active`).
+Esto significa que la aplicación se ejecutará conectándose a la base de datos local de desarrollo y cargará los datos
+iniciales definidos en `data-dev.sql`.
+
+Más adelante, en la `Fase 2`, cambiaremos el perfil a `test`, donde utilizaremos `Testcontainers` para crear una
+base de datos efímera dentro de un contenedor.
+
+Esta estructura permite mantener una configuración limpia y escalable, muy común en entornos empresariales donde
+existen varios perfiles como `dev`, `qa`, `staging` y `prod`.
+
+### 🗂️ Configuración base: `src/main/resources/application.yml`
+
+````yml
+server:
+  port: 8080
+
+spring:
+  application:
+    name: spring-testcontainers
+  profiles:
+    active: dev
+  jpa:
+    open-in-view: false
+````
+
+- `open-in-view: false`. Se desactiva (false) para evitar mantener abierta la sesión de Hibernate durante la vista, una
+  buena práctica en aplicaciones REST.
+
+### 🧩 Perfil de desarrollo: `src/main/resources/application-dev.yml`
+
+````yml
+server:
+  error:
+    include-message: always
+
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/db_spring_rest_api_dev?serverTimezone=America/Lima
+    username: dev_user
+    password: dev_password
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    properties:
+      hibernate:
+        format_sql: true
+    defer-datasource-initialization: true # Espera a que Hibernate cree tablas antes de ejecutar scripts SQL
+
+  sql:
+    init:
+      mode: always # Ejecuta siempre scripts al iniciar
+      data-locations: classpath:sql/data-dev.sql # Ruta al script de datos iniciales
+
+logging:
+  level:
+    root: INFO
+    dev.magadiflo.testcontainers.app: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.web: DEBUG
+    org.springframework.transaction: DEBUG
+    org.springframework.data.jpa: DEBUG
+````
+
+| Sección                                            | Descripción                                                                                                                                                                                                      |
+|----------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `server.error.include-message: always`             | Configura que el mensaje de error se incluya siempre en las respuestas HTTP, útil para depuración en desarrollo. 🚧 *No recomendado en producción.*                                                              |
+| `spring.datasource.*`                              | Define los parámetros de conexión a la base de datos MySQL local usada en el entorno de desarrollo. En la Fase 2 esta conexión será reemplazada por una base de datos **contenedorizada con Testcontainers**. 🧱 |
+| `spring.jpa.hibernate.ddl-auto: update`            | Hibernate crea o actualiza automáticamente las tablas según las entidades. Conveniente en desarrollo, pero no recomendado para entornos productivos.                                                             |
+| `spring.jpa.properties.hibernate.format_sql: true` | Formatea el SQL generado, mejorando la legibilidad en los logs.                                                                                                                                                  |
+| `spring.jpa.defer-datasource-initialization: true` | 💡 Indica a Spring Boot que espere a que Hibernate haya creado las tablas antes de ejecutar scripts SQL (`data-dev.sql`).                                                                                        |
+| `spring.sql.init.mode: always`                     | Fuerza la ejecución de scripts SQL en cada arranque de la aplicación.                                                                                                                                            |
+| `spring.sql.init.data-locations`                   | Define la ruta al script SQL de inicialización (`data-dev.sql`).                                                                                                                                                 |
+| `logging.level.*`                                  | Configura niveles de logging detallados. En desarrollo, es común activar trazas más verbosas (por ejemplo, `org.hibernate.SQL: DEBUG`) para monitorear consultas.                                                |

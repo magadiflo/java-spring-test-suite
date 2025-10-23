@@ -115,3 +115,91 @@ public interface CustomerRepository extends JpaRepository<Customer, Long> {
 Definimos un método derivado de consulta (`Query Method`) para poder tener más casos con los que elaborar nuestros test.
 `Spring Data JPA` genera automáticamente la query en tiempo de ejecución basándose en el nombre del método
 (`findByEmail`).
+
+## ⚙️ Creando el Servicio CustomerService
+
+En esta sección definimos la capa de servicio, que encapsula la lógica de negocio y actúa como intermediaria entre el
+`controlador REST` y el `repositorio JPA`.
+
+⚠️ Como mencionamos, nuestro objetivo no es profundizar en la arquitectura de la aplicación, sino construir una base
+funcional sobre la cual probaremos `Testcontainers` en la siguiente fase.
+
+Por `simplicidad` en este ejemplo, se utilizarán directamente las entidades JPA en los endpoints en lugar de
+Data Transfer Objects (DTOs). No obstante, es importante recalcar que, en un proyecto de producción real,
+esto se considera una mala práctica; `siempre se recomienda usar DTOs` para evitar exponer las entidades de dominio.
+
+````java
+public interface CustomerService {
+    List<Customer> findAllCustomers();
+
+    Customer findCustomerById(Long id);
+
+    Customer findCustomerByEmail(String email);
+
+    Customer saveCustomer(Customer customer);
+
+    Customer updateCustomer(Long id, Customer customer);
+
+    void deleteCustomerById(Long id);
+}
+````
+
+Esta interfaz define los métodos que luego serán implementados por la clase de servicio principal.
+Permite separar el contrato de negocio de su implementación concreta, facilitando inyección de dependencias,
+pruebas unitarias y mocking.
+
+````java
+
+@Slf4j
+@RequiredArgsConstructor
+@Service
+@Transactional(readOnly = true)
+public class CustomerServiceImpl implements CustomerService {
+
+    private final CustomerRepository customerRepository;
+
+    @Override
+    public List<Customer> findAllCustomers() {
+        return this.customerRepository.findAll();
+    }
+
+    @Override
+    public Customer findCustomerById(Long id) {
+        return this.customerRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Cliente con id " + id + " no encontrado"));
+    }
+
+    @Override
+    public Customer findCustomerByEmail(String email) {
+        return this.customerRepository.findByEmail(email)
+                .orElseThrow(() -> new NoSuchElementException("Cliente con email " + email + " no encontrado"));
+    }
+
+    @Override
+    @Transactional
+    public Customer saveCustomer(Customer customer) {
+        return this.customerRepository.save(customer);
+    }
+
+    @Override
+    @Transactional
+    public Customer updateCustomer(Long id, Customer customer) {
+        return this.customerRepository.findById(id)
+                .map(customerDB -> {
+                    customerDB.setName(customer.getName());
+                    customerDB.setEmail(customer.getEmail());
+                    return customerDB;
+                })
+                .map(this.customerRepository::save)
+                .orElseThrow(() -> new NoSuchElementException("Cliente con id " + id + " no encontrado"));
+    }
+
+    @Override
+    @Transactional
+    public void deleteCustomerById(Long id) {
+        Customer customer = this.customerRepository.findById(id)
+                .orElseThrow(() -> new NoSuchElementException("Cliente con id " + id + " no encontrado"));
+        this.customerRepository.deleteById(customer.getId());
+    }
+}
+````

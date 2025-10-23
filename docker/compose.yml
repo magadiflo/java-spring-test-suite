@@ -25,6 +25,18 @@ services:
       MYSQL_PASSWORD: test_password
     networks:
       - docker-test-net
+  s-postgres:
+    image: postgres:17-alpine
+    container_name: c-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: db_spring_testcontainers_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+    networks:
+      - docker-test-net
 
 networks:
   docker-test-net:

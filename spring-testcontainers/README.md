@@ -244,6 +244,67 @@ public class CustomerController {
 }
 ````
 
+## 🐘 Creación de la base de datos con Docker Compose (perfil `dev`)
+
+En esta fase configuraremos una base de datos `PostgreSQL` que servirá únicamente para el entorno de desarrollo (`dev`).
+
+Aunque podríamos usar una base de datos instalada localmente o una remota, en este caso preferimos utilizar `Docker`
+para mantener el entorno aislado, reproducible y consistente con buenas prácticas de desarrollo modernas.
+
+💡 `Importante`: Aún no estamos utilizando `Testcontainers`.
+> En esta etapa, usamos `Docker` de forma manual para levantar un contenedor de `PostgreSQL` persistente para
+> desarrollo.
+>
+> En la siguiente fase, cuando entremos a la parte de tests, emplearemos `Testcontainers`, que también usa `Docker`,
+> pero de forma efímera y automatizada, ideal para entornos de prueba.
+
+### 📄 Archivo `compose.yml`
+
+Definimos un servicio `s-postgres` que crea un contenedor de `PostgreSQL` para el entorno `dev`.
+
+````yml
+services:
+  s-postgres:
+    image: postgres:17-alpine
+    container_name: c-postgres
+    restart: unless-stopped
+    ports:
+      - '5432:5432'
+    environment:
+      POSTGRES_DB: db_spring_testcontainers_dev
+      POSTGRES_USER: dev_user
+      POSTGRES_PASSWORD: dev_password
+    networks:
+      - docker-test-net
+````
+
+Ejecutamos el siguiente comando para crear y levantar el contenedor de `PostgreSQL`:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite (feature/spring-testcontainers)
+$ docker compose -f ./docker/compose.yml up -d                                                                                
+[+] Running 3/3                                                                                                               
+ ✔ Container c-postgres    Started                                                                                            
+ ✔ Container c-mysql-test  Running                                                                                            
+ ✔ Container c-mysql       Running                                                                                            
+````
+
+En este ejemplo también se observan otros contenedores (`c-mysql`, `c-mysql-test`) que forman parte de otros entornos
+del mismo proyecto. El contenedor relevante para esta fase es `c-postgres`.
+
+Podemos comprobar que `PostgreSQL` se está ejecutando correctamente con:
+
+````bash
+$ docker container ls -a
+CONTAINER ID   IMAGE                 COMMAND                  CREATED         STATUS          PORTS                                         NAMES
+e33f5b8fe224   postgres:17-alpine    "docker-entrypoint.s…"   3 minutes ago   Up 3 minutes    0.0.0.0:5432->5432/tcp, [::]:5432->5432/tcp   c-postgres
+d8d12fb0e1bf   mysql:8.0.41-debian   "docker-entrypoint.s…"   3 days ago      Up 48 minutes   0.0.0.0:3307->3306/tcp, [::]:3307->3306/tcp   c-mysql-test
+d0d5997e6ff1   mysql:8.0.41-debian   "docker-entrypoint.s…"   13 days ago     Up 48 minutes   0.0.0.0:3306->3306/tcp, [::]:3306->3306/tcp   c-mysql
+````
+
+Como el contenedor `c-postgres` aparece con el estado `“Up”`, significa que la base de datos está lista para recibir
+conexiones desde nuestra aplicación Spring Boot.
+
 ## 🧾 Definiendo scripts de inicialización
 
 Para trabajar de manera organizada, crearemos un `script SQL de inicialización` que poblará la base de datos con datos
@@ -357,3 +418,32 @@ logging:
 | `spring.sql.init.mode: always`                     | Fuerza la ejecución de scripts SQL en cada arranque de la aplicación.                                                                                                                                            |
 | `spring.sql.init.data-locations`                   | Define la ruta al script SQL de inicialización (`data-dev.sql`).                                                                                                                                                 |
 | `logging.level.*`                                  | Configura niveles de logging detallados. En desarrollo, es común activar trazas más verbosas (por ejemplo, `org.hibernate.SQL: DEBUG`) para monitorear consultas.                                                |
+
+## Probando Endpoints
+
+Hasta este punto se hicieron las pruebas y todos los endpoints están funcionando correctamente. Solo por documentación
+mostraré los resultados obtenidos al consultar los endpoints:
+
+````bash
+$ 
+````
+
+````bash
+$ 
+````
+
+````bash
+$ 
+````
+
+````bash
+$ 
+````
+
+````bash
+$ 
+````
+
+````bash
+$ 
+````

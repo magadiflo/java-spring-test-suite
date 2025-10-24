@@ -797,3 +797,153 @@ la URL en `application-test.yml`.
 
 💡 En proyectos grandes, este cambio puede ahorrar minutos por build.
 
+## 🧩 Clase de prueba para repositorio usando Testcontainers (Configuración Manual)
+
+📁 `CustomerRepositoryManualTestcontainersTest.java`
+
+````java
+
+@Tag("testcontainers")
+@ActiveProfiles("test")
+@Sql(scripts = TestScripts.DATA_TEST, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+class CustomerRepositoryManualTestcontainersTest extends AbstractPostgresManualTest {
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Test
+    void shouldReturnAllCustomersWhenDatabaseIsInitialized() {
+        // when
+        List<Customer> customers = this.customerRepository.findAll();
+
+        // then
+        assertThat(customers)
+                .isNotEmpty()
+                .hasSize(8)
+                .extracting(Customer::getName)
+                .contains("Lesly Águila", "Briela Cirilo", "Milagros Díaz");
+    }
+
+    @Test
+    void shouldFindCustomerWhenValidEmail() {
+        assertThat(this.customerRepository.findByEmail("yrmagerreron@outlook.com"))
+                .isPresent()
+                .hasValueSatisfying(customer -> {
+                    assertThat(customer.getId()).isEqualTo(3);
+                    assertThat(customer.getName()).isEqualTo("Yrma Guerrero");
+                });
+    }
+
+    @Test
+    void shouldDeleteAllCustomers() {
+        assertThat(this.customerRepository.count()).isEqualTo(8);
+        this.customerRepository.deleteAll();
+        assertThat(this.customerRepository.count()).isZero();
+    }
+}
+````
+
+🧩 Explicación de las anotaciones clave
+
+| Anotación                                    | Función                                                                                                                  |
+|----------------------------------------------|--------------------------------------------------------------------------------------------------------------------------|
+| `@DataJpaTest`                               | Crea un **contexto mínimo** para pruebas de repositorio.                                                                 |
+| `@AutoConfigureTestDatabase(replace = NONE)` | Indica a Spring que `no reemplace la base de datos configurada` (PostgreSQL en Testcontainers) por una embebida como H2. |
+| `@ActiveProfiles("test")`                    | Indica que se debe usar la configuración del perfil `test`.                                                              |
+| `@Sql(...)`                                  | Inserta **datos iniciales** antes de que se ejecute la clase de test.                                                    |
+| `@Tag("testcontainers")`                     | Permite ejecutar o filtrar pruebas con Maven/IDE si se desea.                                                            |
+
+🧠 Ciclo de vida de las pruebas
+
+- 1️⃣ Spring levanta el contexto de pruebas.
+- 2️⃣ `Testcontainers` inicia el contenedor `PostgreSQL`.
+- 3️⃣ `@DynamicPropertySource` inyecta las propiedades reales del contenedor.
+- 4️⃣ `@Sql` carga los datos iniciales.
+- 5️⃣ Se ejecutan los métodos de prueba.
+- 6️⃣ Al finalizar la clase → el contenedor se detiene.
+
+### 📌 Importante sobre transacciones en `@DataJpaTest`
+
+Spring `hace rollback después de cada test automáticamente`. Esto asegura aislamiento entre pruebas, evitando
+contaminación de datos.
+
+Es por eso que, aunque llamemos a deleteAll(), los datos vuelven para los siguientes tests (gracias al `rollback`).
+
+### 📋 Ejecución de pruebas
+
+Al ejecutar:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-testcontainers (feature/spring-testcontainers)
+$ mvn test
+[INFO] Scanning for projects...
+...
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.magadiflo.testcontainers.app.integration.repository.CustomerRepositoryManualTestcontainersTest
+...
+2025-10-24T16:37:42.818-05:00  INFO 3416 --- [spring-testcontainers] [           main] d.m.t.a.c.AbstractPostgresManualTest     : Sobrescribe las propiedades de Spring Data JPA con valores del contenedor
+2025-10-24T16:37:42.826-05:00  INFO 3416 --- [spring-testcontainers] [           main] stomerRepositoryManualTestcontainersTest : Starting CustomerRepositoryManualTestcontainersTest using Java 21.0.6 with PID 3416 (started by magadiflo in D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-testcontainers)
+2025-10-24T16:37:42.826-05:00 DEBUG 3416 --- [spring-testcontainers] [           main] stomerRepositoryManualTestcontainersTest : Running with Spring Boot v3.5.7, Spring v6.2.12
+2025-10-24T16:37:42.830-05:00  INFO 3416 --- [spring-testcontainers] [           main] stomerRepositoryManualTestcontainersTest : The following 1 profile is active: "test"
+2025-10-24T16:37:43.183-05:00  INFO 3416 --- [spring-testcontainers] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data JPA repositories in DEFAULT mode.
+2025-10-24T16:37:43.255-05:00  INFO 3416 --- [spring-testcontainers] [           main] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 62 ms. Found 1 JPA repository interface.
+2025-10-24T16:37:43.517-05:00  INFO 3416 --- [spring-testcontainers] [           main] o.hibernate.jpa.internal.util.LogHelper  : HHH000204: Processing PersistenceUnitInfo [name: default]
+2025-10-24T16:37:43.572-05:00  INFO 3416 --- [spring-testcontainers] [           main] org.hibernate.Version                    : HHH000412: Hibernate ORM core version 6.6.33.Final
+2025-10-24T16:37:43.610-05:00  INFO 3416 --- [spring-testcontainers] [           main] o.h.c.internal.RegionFactoryInitiator    : HHH000026: Second-level cache disabled
+2025-10-24T16:37:43.880-05:00  INFO 3416 --- [spring-testcontainers] [           main] o.s.o.j.p.SpringPersistenceUnitInfo      : No LoadTimeWeaver setup: ignoring JPA class transformer
+2025-10-24T16:37:43.920-05:00  INFO 3416 --- [spring-testcontainers] [           main] com.zaxxer.hikari.HikariDataSource       : HikariPool-1 - Starting...
+2025-10-24T16:37:44.089-05:00  INFO 3416 --- [spring-testcontainers] [           main] com.zaxxer.hikari.pool.HikariPool        : HikariPool-1 - Added connection org.postgresql.jdbc.PgConnection@33eab2e8
+...
+2025-10-24T16:37:45.950-05:00 DEBUG 3416 --- [spring-testcontainers] [           main] o.s.t.c.transaction.TransactionContext   : Began transaction (1) for test class [dev.magadiflo.testcontainers.app.integration.repository.CustomerRepositoryManualTestcontainersTest]; test method [shouldDeleteAllCustomers]; transaction manager [org.springframework.orm.jpa.JpaTransactionManager@74901d7]; rollback [true]
+...
+2025-10-24T16:37:46.274-05:00 DEBUG 3416 --- [spring-testcontainers] [           main] org.hibernate.SQL                        :
+    select
+        count(*)
+    from
+        customers c1_0
+2025-10-24T16:37:46.278-05:00 DEBUG 3416 --- [spring-testcontainers] [           main] o.s.t.c.transaction.TransactionContext   : Rolled back transaction (1) for test class [dev.magadiflo.testcontainers.app.integration.repository.CustomerRepositoryManualTestcontainersTest]; test method [shouldDeleteAllCustomers]
+2025-10-24T16:37:47.000-05:00  INFO 3416 --- [spring-testcontainers] [ionShutdownHook] j.LocalContainerEntityManagerFactoryBean : Closing JPA EntityManagerFactory for persistence unit 'default'
+2025-10-24T16:37:47.000-05:00 DEBUG 3416 --- [spring-testcontainers] [ionShutdownHook] org.hibernate.SQL                        :
+    set client_min_messages = WARNING
+[ERROR] Surefire is going to kill self fork JVM. The exit has elapsed 30 seconds after System.exit(0).
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 4, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  41.308 s
+[INFO] Finished at: 2025-10-24T16:38:17-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+Se observa en logs:
+
+- ✅ Contenedor PostgreSQL creado.
+- ✅ Conexión establecida.
+- ✅ Hibernate generando schema create-drop.
+- ✅ Datos cargados mediante @Sql.
+- ✅ Pruebas ejecutadas correctamente.
+
+⚠️ Aparece una advertencia informativa de Maven Surefire:
+
+````bash
+[ERROR] Surefire is going to kill self fork JVM. The exit has elapsed 30 seconds after System.exit(0). 
+````
+
+📌 Causa: Testcontainers tarda en cerrarse al finalizar el build
+
+- ✅ Resultado Final: BUILD SUCCESS → sin problemas reales
+
+### 🎯 Resultado del Test
+
+- ✅ Todos los endpoints del repositorio se prueban contra PostgreSQL real.
+- ✅ Sin dependencia de Docker local externo.
+- ✅ Sin bases contaminadas.
+- ✅ Entorno 100% reproducible.

@@ -719,3 +719,81 @@ Esta decisión se puede reconsiderar más adelante si el perfil `test` requiere:
 - Feature flags activados solo en test ✅
 
 Por ahora: `menos es más` 🎯
+
+## 🧪 Testcontainers (Enfoque Manual) con `@DynamicPropertySource`
+
+Este enfoque es el más flexible y ampliamente utilizado en entornos reales, ya que permite configurar propiedades
+dinámicas del contenedor (URL, usuario, contraseña, puerto aleatorio, etc.) en tiempo de ejecución.
+
+### 🧱 ¿Cuándo usar este enfoque?
+
+- Cuando necesitas personalizar propiedades específicas del contenedor.
+- Cuando trabajas con múltiples contenedores o propiedades complejas.
+- Cuando quieres mantener la configuración desacoplada del `application-test.yml`.
+- Cuando tu versión de `Spring Boot` es anterior a `3.1` (sin soporte para `@ServiceConnection`).
+
+### 🧩 Clase Base para Tests de Integración
+
+📂 Ubicación: `src/test/java/dev/magadiflo/testcontainers/app/commons/AbstractPostgresManualTest.java`
+
+Creamos una clase abstracta que actuará como plantilla para todas las pruebas que usen `PostgreSQL`.
+Este patrón es común en empresas porque:
+
+- ✅ Evita duplicar configuración en cada prueba
+- ✅ Centraliza la gestión del contenedor
+- ✅ Permite cambiar fácilmente la version del contenedor o parámetros globales
+
+````java
+
+@Slf4j
+@Testcontainers
+public abstract class AbstractPostgresManualTest {
+
+    @Container
+    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = new PostgreSQLContainer<>("postgres:17-alpine");
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        log.info("Sobrescribe las propiedades de Spring Data JPA con valores del contenedor");
+        registry.add("spring.datasource.url", POSTGRESQL_CONTAINER::getJdbcUrl);
+        registry.add("spring.datasource.username", POSTGRESQL_CONTAINER::getUsername);
+        registry.add("spring.datasource.password", POSTGRESQL_CONTAINER::getPassword);
+    }
+
+    @Test
+    void connectionEstablished() {
+        assertThat(POSTGRESQL_CONTAINER.isCreated()).isTrue();
+        assertThat(POSTGRESQL_CONTAINER.isRunning()).isTrue();
+        log.info("Contenedor PostgreSQL iniciado en: {}", POSTGRESQL_CONTAINER.getJdbcUrl());
+    }
+}
+````
+
+📌 Explicación de las anotaciones clave
+
+| Anotación / Concepto                          | Descripción                                                                                                                                                                                                 |
+|-----------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `@Testcontainers`                             | Activa la integración con JUnit para iniciar/detener contenedores automáticamente. La extensión Testcontainers encuentra todos los campos anotados con `@Container` y llama a sus métodos de ciclo de vida. |
+| `@Container`                                  | Indica qué contenedor será gestionado por Testcontainers.                                                                                                                                                   |
+| `static` en el contenedor                     | Hace que el contenedor sea **singleton**: se crea **una sola vez** por clase (más rápido).                                                                                                                  |
+| `PostgreSQLContainer<>("postgres:17-alpine")` | Crea un contenedor con la imagen oficial de `PostgreSQL 17` en versión ligera (`alpine`).                                                                                                                   |
+| `@DynamicPropertySource`                      | Registra dinámicamente las propiedades **antes** de levantar el contexto de Spring.                                                                                                                         |
+| `DynamicPropertyRegistry`                     | Inserta en Spring la configuración real obtenida del contenedor iniciado.                                                                                                                                   |
+
+### 🎯 ¿Por qué usar `@DynamicPropertySource`?
+
+Porque `PostgreSQL` siempre asigna un puerto aleatorio (e.g. `54321`, `58734`,..), por lo que NO podemos definir
+la URL en `application-test.yml`.
+
+- ✅ Obtiene en tiempo real las propiedades del contenedor.
+- ✅ Spring arranca usando la DB real del Testcontainer.
+
+### ¿Por qué el contenedor es `static`?
+
+| Estrategia  | Comportamiento                                                   | Rendimiento        |
+|-------------|------------------------------------------------------------------|--------------------|
+| `No static` | Se crea un contenedor por test                                   | ❌ Muy lento        |
+| `static `   | Se comparte un único contenedor para todos los tests de la clase | ✅ Mucho más rápido |
+
+💡 En proyectos grandes, este cambio puede ahorrar minutos por build.
+

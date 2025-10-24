@@ -637,3 +637,85 @@ La anotación `@UtilityClass` de `Lombok` convierte la clase en una utilidad est
 - Impide la creación de instancias.
 - Marca automáticamente todos los campos como static final.
 - Marca automáticamente todos los métodos como static.
+
+## ⚙️ Definiendo propiedades de configuración para pruebas
+
+Para evitar posibles conflictos con los archivos de configuración del entorno principal (`src/main/resources`),
+es recomendable definir un `archivo de configuración por defecto para los tests`.
+
+📌 Ruta recomendada: `src/test/resources/application.yml`
+
+````yml
+server:
+  port: 0
+
+spring:
+  application:
+    name: spring-testcontainers
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: false
+  sql:
+    init:
+      mode: never
+
+logging:
+  level:
+    root: INFO
+    dev.magadiflo.testcontainers.app: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.test: DEBUG
+````
+
+### 🔍 ¿Y qué pasa con el perfil `test`?
+
+En un escenario normal (`sin Testcontainers`), definiríamos un archivo:
+
+📁 `src/test/resources/application-test.yml`
+
+````yml
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5432/db_spring_testcontainers_test
+    username: test_user
+    password: test_password
+````
+
+💡 Pero en este proyecto `NO usaremos` este archivo.
+
+### ✅ ¿Por qué NO crear `application-test.yml`?
+
+| Motivo                                              | Explicación                                                                           |
+|-----------------------------------------------------|---------------------------------------------------------------------------------------|
+| `Testcontainers` genera parámetros reales           | URL, usuario y contraseña son proporcionados dinámicamente por el contenedor Postgres |
+| No hay más propiedades exclusivas del perfil `test` | El archivo solo colocaría valores que serían reemplazados                             |
+| Evitamos configuración duplicada o inútil           | Menos archivos, menos ruido 🔇                                                        |
+
+### 🧠 ¿Seguir usando `@ActiveProfiles("test")`?
+
+✅ `¡Sí!`. Incluso sin archivo `application-test.yml`, Spring Boot:
+
+1. Activa el perfil test
+2. Busca la configuración correspondiente
+3. Como no hay archivo `application-test.yml`
+4. ➝ hereda la configuración del `application.yml` (configuración por defecto) ubicado en `src/test/resources`
+
+📌 En resumen:
+
+> Activamos el perfil `test` por semántica y buenas prácticas, pero dejamos que `Testcontainers` se encargue del
+> datasource 🐳
+
+📌 Nota final
+
+Esta decisión se puede reconsiderar más adelante si el perfil `test` requiere:
+
+- Configuración de logging diferente
+- Propiedades específicas para pruebas de integración
+- Feature flags activados solo en test ✅
+
+Por ahora: `menos es más` 🎯

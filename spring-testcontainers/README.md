@@ -1055,3 +1055,86 @@ Estos tests verifican el comportamiento end-to-end del controlador real, validan
 - ✅ Persistencia en PostgreSQL mediante Testcontainers.
 - ✅ Estado consistente de la BD antes de cada prueba.
 
+## 🧪 Testcontainers (Enfoque Automático) con `@Testcontainers`, `@Container` y `@ServiceConnection`
+
+Este es el enfoque `MODERNO` y `RECOMENDADO` desde `Spring Boot 3.1+`. Es el que las empresas están adoptando porque:
+
+- Menos código boilerplate (no necesitas `@DynamicPropertySource`).
+- Autoconfigura propiedades automáticamente.
+- Más declarativo y fácil de leer.
+- Menos propenso a errores (no hay que mapear propiedades manualmente).
+
+En este enfoque, `Spring Boot detecta el contenedor y autoconfigura automáticamente` la conexión a la base de datos.
+
+### 🧩 Clase Base para Tests de Integración
+
+📂 Ubicación: `src/test/java/dev/magadiflo/testcontainers/app/commons/AbstractPostgresAutomaticTest.java`
+
+Creamos una clase que centraliza la configuración del contenedor `PostgreSQL` usando `autoconfiguración automática`:
+
+````java
+
+@Slf4j
+@Testcontainers
+public abstract class AbstractPostgresAutomaticTest {
+
+    @Container
+    @ServiceConnection
+    protected static final PostgreSQLContainer<?> POSTGRESQL_CONTAINER = new PostgreSQLContainer<>("postgres:17-alpine");
+
+    @Test
+    void connectionEstablished() {
+        assertThat(POSTGRESQL_CONTAINER.isCreated()).isTrue();
+        assertThat(POSTGRESQL_CONTAINER.isRunning()).isTrue();
+        log.info("Contenedor PostgreSQL iniciado en: {}", POSTGRESQL_CONTAINER.getJdbcUrl());
+    }
+}
+````
+
+### 🌟 `@ServiceConnection`: la clave del enfoque automático
+
+Esta anotación es la que hace toda la magia en `Spring Boot 3.1+`.
+
+¿Qué hace `@ServiceConnection`?
+
+- Detecta que es un `PostgreSQLContainer`.
+- Autoconfigura automáticamente:
+
+| Propiedad                             | Se obtiene del contenedor |
+|---------------------------------------|---------------------------|
+| `spring.datasource.url`               | ✅                         |
+| `spring.datasource.username`          | ✅                         |
+| `spring.datasource.password`          | ✅                         |
+| `spring.datasource.driver-class-name` | ✅                         |
+
+Esto significa:
+
+- 🚫 No necesitamos `@DynamicPropertySource`.
+- 🚫 No necesitamos `application-test.yml` con propiedades de DB.
+- 🚫 No necesitamos configurar manualmente el `DataSource`.
+
+### 🔍 ¿Cómo sabe Spring Boot qué configurar?
+
+`Spring Boot` usa un mecanismo llamado `ConnectionDetails`, el cual ya está implementado para servicios conocidos:
+
+- PostgreSQL
+- MySQL
+- MongoDB
+- Redis
+- Kafka
+- Elasticsearch
+- y muchos más.
+
+Es literalmente “Convención sobre Configuración” aplicada a pruebas.
+
+### ❓¿Cuándo usarías además `@DynamicPropertySource`?
+
+`@ServiceConnection` solo autoconfigura la conexión principal. Pero si necesitamos otras propiedades extra como:
+
+| Ejemplo de necesidad      | Se requiere configuración manual |
+|---------------------------|----------------------------------|
+| Ajustar pool (Hikari)     | ✅                                |
+| Configurar DDL/JPA extra  | ✅                                |
+| Feature flags / Logging   | ✅                                |
+| Tu servicio personalizado | ✅                                |
+

@@ -1138,3 +1138,76 @@ Es literalmente “Convención sobre Configuración” aplicada a pruebas.
 | Feature flags / Logging   | ✅                                |
 | Tu servicio personalizado | ✅                                |
 
+## 🧩 Clase de prueba para repositorio usando Testcontainers (Configuración Automática)
+
+Esta prueba valida la integración entre `Spring Data JPA` y `PostgreSQL` real usando `Testcontainers`.
+Aprovecha la autoconfiguración habilitada desde nuestra clase base `AbstractPostgresAutomaticTest`.
+
+📁 `CustomerRepositoryAutomaticTestcontainersTest.java`
+
+````java
+
+@Tag("testcontainers")
+@ActiveProfiles("test")
+@Sql(scripts = TestScripts.DATA_TEST, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
+@DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+class CustomerRepositoryAutomaticTestcontainersTest extends AbstractPostgresAutomaticTest {
+
+    @Autowired
+    private CustomerRepository customerRepository;
+
+    @Test
+    void shouldReturnAllCustomersWhenDatabaseIsInitialized() {
+        // when
+        List<Customer> customers = this.customerRepository.findAll();
+
+        // then
+        assertThat(customers)
+                .isNotEmpty()
+                .hasSize(8)
+                .extracting(Customer::getName)
+                .contains("Lesly Águila", "Briela Cirilo", "Milagros Díaz");
+    }
+
+    @Test
+    void shouldFindCustomerWhenValidEmail() {
+        assertThat(this.customerRepository.findByEmail("yrmagerreron@outlook.com"))
+                .isPresent()
+                .hasValueSatisfying(customer -> {
+                    assertThat(customer.getId()).isEqualTo(3);
+                    assertThat(customer.getName()).isEqualTo("Yrma Guerrero");
+                });
+    }
+
+    @Test
+    void shouldSaveCustomer() {
+        // given
+        Customer customer = Customer.builder()
+                .name("John Doe")
+                .email("john.doe@example.com")
+                .build();
+
+        // when
+        Customer savedCustomer = this.customerRepository.save(customer);
+
+        // then
+        assertThat(savedCustomer).isNotNull();
+        assertThat(savedCustomer.getId()).isNotNull();
+        assertThat(savedCustomer.getName()).isEqualTo("John Doe");
+        assertThat(savedCustomer.getEmail()).isEqualTo("john.doe@example.com");
+    }
+
+    @Test
+    void shouldDeleteAllCustomers() {
+        // given
+        assertThat(this.customerRepository.count()).isEqualTo(8);
+
+        // when
+        this.customerRepository.deleteAll();
+
+        // then
+        assertThat(this.customerRepository.count()).isZero();
+    }
+}
+````

@@ -947,3 +947,111 @@ Se observa en logs:
 - ✅ Sin dependencia de Docker local externo.
 - ✅ Sin bases contaminadas.
 - ✅ Entorno 100% reproducible.
+
+## 🧩 Clase de prueba para controlador usando Testcontainers (Configuración Manual)
+
+📁 `CustomerControllerManualTestcontainersTest.java`
+
+Vamos a validar el comportamiento del controlador `CustomerController` en un entorno realista, utilizando una base de
+datos PostgreSQL contenerizada mediante `Testcontainers`. Esta clase extiende la configuración base
+`AbstractPostgresManualTest`, lo que permite reutilizar el contenedor sin duplicar configuración.
+
+- `executionPhase = BEFORE_TEST_METHOD` garantiza que cada test empieza con la BD en un estado limpio, evitando
+  contaminación entre pruebas.
+- Debido al resultado no determinista de los registros devueltos por la BD, usamos `containsExactlyInAnyOrder()` para
+  validar contenido sin depender del orden.
+
+````java
+
+@Slf4j
+@Tag("testcontainers")
+@ActiveProfiles("test")
+@Sql(scripts = {TestScripts.CLEANUP_POSTGRES, TestScripts.DATA_TEST}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class CustomerControllerManualTestcontainersTest extends AbstractPostgresManualTest {
+
+    @Autowired
+    private TestRestTemplate client;
+
+    @Test
+    void shouldReturnAllCustomersWhenTheyExist() {
+        // given
+
+        // when
+        ResponseEntity<Customer[]> response = this.client.getForEntity("/api/v1/customers", Customer[].class);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody()).hasSize(8);
+        assertThatList(List.of(response.getBody()))
+                .hasSize(8)
+                .extracting(Customer::getName)
+                .containsExactlyInAnyOrder(
+                        "Lesly Águila",
+                        "Cielo Fernández",
+                        "Susana Alvarado",
+                        "Briela Cirilo",
+                        "Milagros Díaz",
+                        "Kiara Lozano",
+                        "Analucía Urbina",
+                        "Yrma Guerrero");
+        assertThat(response.getBody())
+                .filteredOn(customer -> customer.getId().equals(1L))
+                .singleElement()
+                .satisfies(customer -> {
+                    assertThat(customer.getName()).isEqualTo("Milagros Díaz");
+                    assertThat(customer.getEmail()).isEqualTo("milagros@gmail.com");
+                });
+    }
+
+    @Test
+    void shouldCreateNewCustomerSuccessfully() {
+        // given
+        Customer request = Customer.builder()
+                .name("Nicol Sinchi")
+                .email("nicol@gmail.com")
+                .build();
+
+        // when
+        ResponseEntity<Customer> response = this.client.postForEntity("/api/v1/customers", request, Customer.class);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(response.getBody())
+                .isNotNull()
+                .extracting(Customer::getId, Customer::getName, Customer::getEmail)
+                .containsExactly(9L, request.getName(), request.getEmail());
+    }
+
+    @Test
+    void shouldReturnCustomerDetailsWhenCustomerExists() {
+        // given
+        long customerId = 5L;
+
+        // when
+        ResponseEntity<Customer> response = this.client.getForEntity("/api/v1/customers/{customerId}", Customer.class, customerId);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(response.getBody())
+                .isNotNull()
+                .satisfies(customer -> {
+                    assertThat(customer.getId()).isEqualTo(5);
+                    assertThat(customer.getName()).isEqualTo("Briela Cirilo");
+                    assertThat(customer.getEmail()).isEqualTo("briela@gmail.com");
+                });
+    }
+}
+````
+
+Estos tests verifican el comportamiento end-to-end del controlador real, validando:
+
+- ✅ Integración con Spring Boot.
+- ✅ Comunicación HTTP real con TestRestTemplate.
+- ✅ Persistencia en PostgreSQL mediante Testcontainers.
+- ✅ Estado consistente de la BD antes de cada prueba.
+

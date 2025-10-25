@@ -1,0 +1,10 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: spring-testcontainers
+  profiles:
+    active: dev
+  jpa:
+    open-in-view: false

@@ -1305,3 +1305,49 @@ class CustomerControllerAutomaticTestcontainersTest extends AbstractPostgresAuto
     }
 }
 ````
+
+## ✅ Ejecutando Todos los Tests con Testcontainers
+
+Ahora sí, llegó el momento de ejecutar toda nuestra suite de pruebas y comprobar que:
+
+- Los Testcontainers levantan correctamente PostgreSQL.
+- Spring Boot autoconfigura la conexión.
+- Todos los tests de repositorio y controlador funcionan correctamente.
+
+Ejecutamos:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-testcontainers (feature/spring-testcontainers)
+$ mvn test
+[INFO] Scanning for projects...
+[INFO]
+[INFO] ----------------< dev.magadiflo:spring-testcontainers >-----------------
+[INFO] Building spring-testcontainers 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- resources:3.3.1:resources (default-resources) @ spring-testcontainers ---
+[INFO] Copying 2 resources from src\main\resources to target\classes
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO]
+[INFO] --- compiler:3.14.1:compile (default-compile) @ spring-testcontainers ---
+...
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  57.229 s
+[INFO] Finished at: 2025-10-24T23:12:07-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+### 🎉 Conclusión
+
+- ✅ ¡Testcontainers funcionando perfectamente!
+- ✅ PostgreSQL real en nuestras pruebas de integración.
+- ✅ Configuración automática con `@ServiceConnection`
+- ✅ Tests limpios, mantenibles y robustos.

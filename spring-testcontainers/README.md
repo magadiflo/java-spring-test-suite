@@ -1211,3 +1211,97 @@ class CustomerRepositoryAutomaticTestcontainersTest extends AbstractPostgresAuto
     }
 }
 ````
+
+## 🧩 Clase de prueba para controlador usando Testcontainers (Configuración Automática)
+
+Esta prueba usa `@SpringBootTest` (contexto completo). Por eso `se ejecuta fuera de una transacción por método`:
+necesitamos limpiar/inyectar datos antes de cada test, por eso `@Sql(... BEFORE_TEST_METHOD)` es correcto aquí.
+
+📁 `CustomerControllerAutomaticTestcontainersTest.java`
+
+````java
+
+@Slf4j
+@Tag("testcontainers")
+@ActiveProfiles("test")
+@Sql(scripts = {TestScripts.CLEANUP_POSTGRES, TestScripts.DATA_TEST}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+class CustomerControllerAutomaticTestcontainersTest extends AbstractPostgresAutomaticTest {
+
+    @Autowired
+    private TestRestTemplate client;
+
+    @Test
+    void shouldReturnAllCustomersWhenTheyExist() {
+        // given
+
+        // when
+        ResponseEntity<Customer[]> response = this.client.getForEntity("/api/v1/customers", Customer[].class);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody()).hasSize(8);
+        assertThatList(List.of(response.getBody()))
+                .hasSize(8)
+                .extracting(Customer::getName)
+                .containsExactlyInAnyOrder(
+                        "Lesly Águila",
+                        "Cielo Fernández",
+                        "Susana Alvarado",
+                        "Briela Cirilo",
+                        "Milagros Díaz",
+                        "Kiara Lozano",
+                        "Analucía Urbina",
+                        "Yrma Guerrero");
+        assertThat(response.getBody())
+                .filteredOn(customer -> customer.getId().equals(1L))
+                .singleElement()
+                .satisfies(customer -> {
+                    assertThat(customer.getName()).isEqualTo("Milagros Díaz");
+                    assertThat(customer.getEmail()).isEqualTo("milagros@gmail.com");
+                });
+    }
+
+    @Test
+    void shouldCreateNewCustomerSuccessfully() {
+        // given
+        Customer request = Customer.builder()
+                .name("Nicol Sinchi")
+                .email("nicol@gmail.com")
+                .build();
+
+        // when
+        ResponseEntity<Customer> response = this.client.postForEntity("/api/v1/customers", request, Customer.class);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(response.getBody())
+                .isNotNull()
+                .extracting(Customer::getId, Customer::getName, Customer::getEmail)
+                .containsExactly(9L, request.getName(), request.getEmail());
+    }
+
+    @Test
+    void shouldReturnCustomerDetailsWhenCustomerExists() {
+        // given
+        long customerId = 5L;
+
+        // when
+        ResponseEntity<Customer> response = this.client.getForEntity("/api/v1/customers/{customerId}", Customer.class, customerId);
+
+        // then
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getHeaders().getContentType()).isEqualTo(MediaType.APPLICATION_JSON);
+        assertThat(response.getBody())
+                .isNotNull()
+                .satisfies(customer -> {
+                    assertThat(customer.getId()).isEqualTo(5);
+                    assertThat(customer.getName()).isEqualTo("Briela Cirilo");
+                    assertThat(customer.getEmail()).isEqualTo("briela@gmail.com");
+                });
+    }
+}
+````

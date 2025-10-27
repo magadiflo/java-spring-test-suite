@@ -14,6 +14,7 @@ orientada a entender cómo se aplica la cobertura de código en proyectos reales
 
 - [JaCoCo Code Coverage with Spring Boot (Truong Bui - medium)](https://medium.com/@truongbui95/jacoco-code-coverage-with-spring-boot-835af8debc68)
 - [Intro to JaCoCo (Baeldung)](https://www.baeldung.com/jacoco)
+- ChatGPT, ClaudeAI, Copilot
 
 > 💡 `Nota`. Siempre es recomendable verificar documentación oficial y ejemplos aplicados a `Spring Boot 3+`
 > porque hubo cambios al plugin y el manejo del reporte.
@@ -23,10 +24,7 @@ orientada a entender cómo se aplica la cobertura de código en proyectos reales
 ## ⚙️ Dependencias iniciales del proyecto
 
 Antes de integrar `JaCoCo`, se presenta el `pom.xml` base del proyecto. Este incluye dependencias comunes para una
-API REST con Spring Boot, MapStruct, OpenAPI y pruebas unitarias/integración.
-
-> 💡 `Recomendación`: Mantener el `pom.xml` modular y ordenado. Agrupa dependencias por propósito
-> (core, documentación, testing, etc.) y usa propiedades para versiones.
+API REST con Spring Boot, MapStruct, OpenAPI, etc.
 
 ````xml
 <?xml version="1.0" encoding="UTF-8"?>
@@ -148,25 +146,111 @@ API REST con Spring Boot, MapStruct, OpenAPI y pruebas unitarias/integración.
 
 ## 🧪 Estructura de pruebas en el proyecto
 
-El proyecto cuenta con una base sólida de pruebas, divididas en dos tipos:
+Para este proyecto, las `métricas de cobertura de código` estarán basadas únicamente en `pruebas unitarias`.
+Esto se alinea con el estándar corporativo utilizado junto con `JaCoCo` + `SonarQube`, donde
+`las pruebas de integración no se consideran para el cálculo de cobertura`.
 
-### ✅ Pruebas unitarias
+Esto permite obtener métricas realistas y comparables con pipelines profesionales que aplican `Quality Gates`.
 
-Simulan componentes individuales usando mocks, sin bases de datos reales.
+### ✅ Pruebas Unitarias
+
+Aíslan y prueban la lógica de negocio sin dependencias externas. Usan mocks para simular componentes como repositorios
+o clientes HTTP. En este proyecto tenemos las siguientes pruebas unitarias ya implementadas:
 
 | Clase de test                           | Herramienta utilizada |
-|:----------------------------------------|-----------------------|
-| AccountControllerMockMvcTest            | `MockMvc`             |
-| AccountServiceImplMockitoAnnotationTest | `Mockito`             |
+|:----------------------------------------|----------------------:|
+| AccountControllerMockMvcTest            |             `MockMvc` |
+| AccountServiceImplMockitoAnnotationTest |             `Mockito` |
 
-### 🔁 Pruebas de integración
+> 📍 Esta guía se enfoca exclusivamente en la `medición de cobertura de código`, que es lo que evalúa `JaCoCo` y
+> herramientas como `SonarQube`.
 
-Se prueban flujos completos, conectando con la base de datos (MySQL para entorno de desarrollo).
+### 📌 ¿Por qué solo pruebas unitarias para cobertura?
 
-| Clase de test                      | Herramienta utilizada |
-|:-----------------------------------|-----------------------|
-| AccountControllerWebTestClientTest | `WebTestClient`       |
-| AccountRepositoryMySQLTest         | `MySQL` real          |
+Aunque `JaCoCo` **técnicamente puede medir cualquier tipo de prueba** que se ejecute en la JVM (unitarias, integración,
+E2E), en entornos corporativos se mide exclusivamente la `cobertura de pruebas unitarias`.
 
-> 🧠 `Nota`: No repetimos el código fuente de los tests porque ya fue documentado en `spring-rest-api`.
-> Esta guía se enfoca de lleno en medición de cobertura y calidad de testing.
+### 🎯 Razones fundamentales:
+
+#### 1️⃣ Estándar de la industria
+
+- Herramientas como `SonarQube` (líder en análisis de código estático) `solo consideran` `pruebas unitarias` para
+  `métricas de cobertura` por defecto.
+- Los `Quality Gates` corporativos establecen umbrales basados en `cobertura unitaria` (ej: `80% mínimo`).
+
+#### 2️⃣ Velocidad y eficiencia en CI/CD
+
+- Las pruebas unitarias son `rápidas` (milisegundos) y se ejecutan en cada commit.
+- Las pruebas de integración son `lentas` (segundos/minutos) y requieren infraestructura (BD, servicios externos).
+- Medir cobertura con tests lentos haría inviable el feedback rápido en pipelines.
+
+#### 3️⃣ Propósitos diferentes
+
+- `Cobertura unitaria` → Mide `calidad del código` y diseño testeable.
+- `Pruebas de integración` → Validan `funcionalidad completa` del sistema.
+- Mezclar ambas distorsiona la métrica: alta cobertura podría venir solo de tests de integración, ocultando código no
+  testeado unitariamente.
+
+#### 4️⃣ Aislamiento y mantenibilidad
+
+- Las pruebas unitarias verifican `lógica de negocio pura`, sin dependencias externas.
+- Medir cobertura aquí incentiva código `desacoplado, SOLID y mantenible`.
+
+### 📊 Flujo corporativo estándar
+
+```
+Cobertura de Código (JaCoCo/SonarQube):
+└── Pruebas Unitarias ✅ (se miden)
+
+Validación de Funcionalidad (CI/CD Pipeline):
+├── Pruebas Unitarias ✅
+└── Pruebas de Integración ✅ (importantes pero no se miden para cobertura)
+```
+
+> 💡 **En resumen:** Las pruebas de integración son **críticas para validar funcionalidad**, pero no se usan para
+> métricas de cobertura porque tienen un propósito distinto y ralentizarían el proceso de análisis de calidad de código.
+
+### 🧹 ¿Qué pasa con las pruebas de integración?
+
+Las siguientes clases de prueba, son pruebas de integración que trabajamos en el proyecto `spring-rest-api` y que en
+este proyecto de JaCoCo no las vamos a considerar:
+
+| Clase no considerada               |                  Motivo |
+|:-----------------------------------|------------------------:|
+| AccountControllerWebTestClientTest | `Prueba de Integración` |
+| AccountRepositoryMySQLTest         | `Prueba de Integración` |
+
+Estas pruebas son valiosas para validar funcionalidad `end-to-end`, pero
+`no se consideran para métricas de cobertura` en pipelines corporativos. Se recomienda ejecutarlas en etapas
+separadas del `CI/CD`, con herramientas como `Jenkins`, `GitHub Actions` o `GitLab CI`.
+
+### 🏢 Flujo típico en empresas
+
+````
+1. Commit código
+2. Pipeline CI/CD ejecuta:
+   ├─ Pruebas Unitarias → JaCoCo genera reporte → SonarQube valida umbral
+   └─ Pruebas Integración → Validan funcionalidad completa
+3. Si AMBAS pasan → Deploy ✅
+4. Si alguna falla → Deploy bloqueado ❌
+````
+
+### 🧭 Ruta de aprendizaje alineada al mundo real
+
+#### 1. 🧪 Proyecto actual: `JaCoCo`
+
+- Solo `Pruebas Unitarias`.
+- Configurar reportes de cobertura.
+
+#### 2. 📊 Siguiente proyecto: `SonarQube`
+
+- Solo `Pruebas Unitarias`.
+- Integrar reportes de `JaCoCo` con SonarQube.
+- Configurar Quality Gates (umbrales de cobertura).
+
+#### 3. 🚀 Proyecto Futuro: `CI/CD (Jenkins/GitHub Actions)`
+
+- Pruebas unitarias (para cobertura)
+- Pruebas de integración (para validación funcional)
+- Pipeline completo que ejecuta ambas en stages separados
+

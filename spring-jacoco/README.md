@@ -323,3 +323,70 @@ incluyen en los reportes de cobertura.
 
 - ✅ **Cobertura de código = Pruebas unitarias**
 - 🔁 **Validación funcional = Pruebas de integración**
+
+## 🔧 Configuración de JaCoCo en el proyecto
+
+En proyectos Java con Maven, `JaCoCo se integra como plugin`, no como dependencia. Esto significa que
+`no necesitamos agregar nada` en `<dependencies>`, solo configurar el plugin en la sección `<build>` del `pom.xml`.
+
+### ⚙️ Plugin básico de JaCoCo
+
+````xml
+
+<project>
+    <properties>
+        <!-- JaCoCo Properties -->
+        <jacoco.version>0.8.12</jacoco.version>
+    </properties>
+    <build>
+        <plugins>
+            <!--JaCoCo Maven Plugin-->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <executions>
+                    <!--Preparar agente de JaCoCo antes de ejecutar tests-->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+
+                    <!--Generar reporte después de ejecutar tests-->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--/JaCoCo Maven Plugin-->
+        </plugins>
+    </build>
+</project>
+````
+
+### 🧩 Explicación técnica
+
+| Elemento                     | Qué hace                                                                                |
+|------------------------------|-----------------------------------------------------------------------------------------|
+| `<executions>`               | Define las fases del ciclo de vida Maven donde se ejecutará el plugin.                  |
+| `<execution>`                | Cada ejecución tiene un propósito: preparar el agente o generar el reporte.             |
+| `<goal>prepare-agent</goal>` | Instrumenta el código antes de ejecutar los tests para rastrear qué líneas se ejecutan. |
+| `<goal>report</goal>`        | Genera el reporte de cobertura en `target/site/jacoco/index.html` (HTML, XML).          |
+| `<phase>test</phase>`        | Ejecuta el reporte justo después de las `pruebas unitarias`.                            |
+
+### 🧪 ¿Qué pruebas se miden con esta configuración?
+
+Esta configuración está diseñada para medir `únicamente pruebas unitarias`, siguiendo el enfoque corporativo:
+
+- ✅ `Pruebas unitarias` → Se ejecutan en la fase `test` → JaCoCo las mide.
+- ❌ `Pruebas de integración` → No se ejecutan en esta fase → No se miden.
+
+> 📌 `Importante`: En entornos empresariales, `SonarQube` solo analiza cobertura generada por `pruebas unitarias`.
+> Por eso, esta configuración excluye pruebas de integración y se alinea con los `Quality Gates` corporativos.
+

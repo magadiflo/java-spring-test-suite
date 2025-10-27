@@ -226,7 +226,7 @@ separadas del `CI/CD`, con herramientas como `Jenkins`, `GitHub Actions` o `GitL
 
 ### 🏢 Flujo típico en empresas
 
-````
+````scss
 1. Commit código
 2. Pipeline CI/CD ejecuta:
    ├─ Pruebas Unitarias → JaCoCo genera reporte → SonarQube valida umbral
@@ -254,3 +254,72 @@ separadas del `CI/CD`, con herramientas como `Jenkins`, `GitHub Actions` o `GitL
 - Pruebas de integración (para validación funcional)
 - Pipeline completo que ejecuta ambas en stages separados
 
+## 📌 ¿Qué es JaCoCo?
+
+Las `pruebas unitarias` juegan un rol clave en el aseguramiento de calidad. Nos permiten validar la lógica de cada
+método y componente sin depender de infraestructura externa. Una vez implementadas, surge la gran pregunta:
+
+> **¿Cuánto del código de producción está siendo realmente probado?**
+
+Ahí aparece `JaCoCo (Java Code Coverage)`. Es la herramienta estándar en el ecosistema Java para
+`medir la cobertura de código ejecutado por pruebas unitarias`. Gracias a esta métrica se pueden detectar:
+
+- Código no ejecutado por las pruebas.
+- Ramas lógicas sin validar.
+- Secciones con potenciales defectos ocultos.
+
+### 🧠 ¿Qué es la cobertura de código?
+
+La `cobertura de código` es una métrica que indica qué porcentaje del código fuente ha sido ejecutado durante las
+pruebas automatizadas. Nos ayuda a:
+
+- Identificar áreas no testeadas.
+- Detectar código muerto o innecesario.
+- Priorizar mejoras en la suite de pruebas.
+- Aumentar la confianza antes de un despliegue.
+
+### 🔍 ¿Qué cubre exactamente JaCoCo?
+
+`JaCoCo` genera métricas detalladas sobre:
+
+| Métrica | Qué mide                        | Relevancia                             |
+|---------|---------------------------------|----------------------------------------|
+| Líneas  | Líneas ejecutadas               | Visión general del alcance del testing |
+| Ramas   | Condicionales y flujos alternos | Detecta lógicas no ejercitadas         |
+| Métodos | Métodos testeados               | Indica cobertura funcional             |
+| Clases  | Código de producción alcanzado  | Nivel global de la app                 |
+
+### 🎯 Objetivo corporativo típico
+
+> Al menos `80%+` `de cobertura unitaria` en proyectos críticos.
+
+### 🏢 Estándar corporativo actual
+
+En empresas que integran `JaCoCo` + `SonarQube` + `CI/CD`, la `cobertura` se calcula exclusivamente con
+`pruebas unitarias`. Razones:
+
+- ✅ Se ejecutan rápido y en cada commit.
+- ✅ `SonarQube` solo considera cobertura unitaria por defecto.
+- ✅ Dan métricas estables y comparables.
+- ⚠️ Pruebas de integración no reflejan calidad del código línea a línea.
+
+````scss
+Cobertura de Código (JaCoCo/SonarQube)
+└── ✅ Pruebas Unitarias
+
+Validación Funcional
+├── ✅ Pruebas Unitarias
+└── ✅ Pruebas de Integración (pipelines separados)
+````
+
+### 🏁 Conclusión
+
+`JaCoCo` es una herramienta poderosa para medir la calidad de nuestras `Pruebas Unitarias`. En esta guía nos
+enfocaremos exclusivamente en `Pruebas Unitarias`, que son las que realmente se consideran para métricas de cobertura
+en entornos empresariales.
+
+Las pruebas de integración siguen siendo importantes, pero se ejecutan en etapas separadas del pipeline y no se
+incluyen en los reportes de cobertura.
+
+- ✅ **Cobertura de código = Pruebas unitarias**
+- 🔁 **Validación funcional = Pruebas de integración**

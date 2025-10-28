@@ -13,6 +13,7 @@ import dev.magadiflo.app.mapper.AccountMapper;
 import dev.magadiflo.app.repository.AccountRepository;
 import dev.magadiflo.app.repository.BankRepository;
 import dev.magadiflo.app.service.impl.AccountServiceImpl;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -27,8 +28,9 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+@Tag("unit")
 @ExtendWith(MockitoExtension.class)
-class AccountServiceImplMockitoAnnotationTest {
+class AccountServiceTest {
     @Mock
     private AccountRepository accountRepository;
     @Mock

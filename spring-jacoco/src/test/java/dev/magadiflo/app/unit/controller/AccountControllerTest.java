@@ -9,6 +9,7 @@ import dev.magadiflo.app.exception.AccountNotFoundException;
 import dev.magadiflo.app.exception.InsufficientBalanceException;
 import dev.magadiflo.app.service.AccountService;
 import org.hamcrest.Matchers;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,8 +29,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@Tag("unit")
 @WebMvcTest(AccountController.class)
-class AccountControllerMockMvcTest {
+class AccountControllerTest {
 
     @MockitoBean
     private AccountService accountService;

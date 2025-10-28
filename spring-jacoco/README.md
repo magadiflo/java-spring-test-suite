@@ -146,24 +146,79 @@ API REST con Spring Boot, MapStruct, OpenAPI, etc.
 
 ## 🧪 Estructura de pruebas en el proyecto
 
-Para este proyecto, las `métricas de cobertura de código` estarán basadas únicamente en `pruebas unitarias`.
-Esto se alinea con el estándar corporativo utilizado junto con `JaCoCo` + `SonarQube`, donde
-`las pruebas de integración no se consideran para el cálculo de cobertura`.
+Para este proyecto, `las métricas de cobertura de código estarán basadas únicamente en pruebas unitarias`.
+Esto se alinea con el estándar corporativo utilizado junto con `JaCoCo` + `SonarQube`, donde:
 
-Esto permite obtener métricas realistas y comparables con pipelines profesionales que aplican `Quality Gates`.
+> 🚫 Las pruebas de integración `no participan en el cálculo de cobertura`.
 
-### ✅ Pruebas Unitarias
+Aunque en este proyecto `únicamente utilizamos las pruebas unitarias` para el cálculo de cobertura, mantenemos las
+pruebas de integración porque forman parte esencial de un entorno empresarial real. Su presencia nos permite simular un
+escenario donde coexisten distintos niveles de pruebas y evaluar cómo interactúan al momento de ejecutar los procesos
+de validación. Esto refleja de manera más precisa el contexto en el que normalmente se desarrollan y despliegan
+aplicaciones en producción.
 
-Aíslan y prueban la lógica de negocio sin dependencias externas. Usan mocks para simular componentes como repositorios
-o clientes HTTP. En este proyecto tenemos las siguientes pruebas unitarias ya implementadas:
+### ✅ Pruebas Unitarias (sí contribuyen a cobertura)
 
-| Clase de test                           | Herramienta utilizada |
-|:----------------------------------------|----------------------:|
-| AccountControllerMockMvcTest            |             `MockMvc` |
-| AccountServiceImplMockitoAnnotationTest |             `Mockito` |
+Evalúan la lógica de negocio de manera aislada. Se simulan dependencias externas como repositorios o llamadas HTTP para
+evitar efectos colaterales y mantener ejecuciones rápidas.
 
-> 📍 Esta guía se enfoca exclusivamente en la `medición de cobertura de código`, que es lo que evalúa `JaCoCo` y
-> herramientas como `SonarQube`.
+| Clase de test         | Sufijo distintivo | `@Tag` asociado | Herramienta principal |
+|:----------------------|-------------------|-----------------|----------------------:|
+| AccountControllerTest | `Test`            | `unit`          |             `MockMvc` |
+| AccountServiceTest    | `Test`            | `unit`          |             `Mockito` |
+
+- 🛠️ Ejecutan solo JUnit y mocks.
+- ⚡ Son rápidas y determinísticas.
+- 📈 Alimentan las métricas de cobertura con JaCoCo.
+
+### ❌ Pruebas de Integración (no cuentan para cobertura)
+
+Ejecutan componentes reales: base de datos, capa web, repositorio. Verifican el comportamiento end-to-end.
+
+| Clase de test       | Sufijo distintivo | `@Tag` asociado | Infraestructura |
+|:--------------------|-------------------|-----------------|----------------:|
+| AccountControllerIT | `IT`              | `integration`   | `WebTestClient` |
+| AccountRepositoryIT | `IT`              | `integration`   |    `MySQL` real |
+
+- 🧩 Validan funcionalidad completa.
+- 🚀 Se ejecutan en pipelines CI/CD como etapa separada.
+- 🛑 Si fallan, pueden bloquear un despliegue.
+
+Aunque son críticas en producción, `no se usan para cobertura`, ya que pueden dar una falsa sensación de calidad al
+ejecutar código que no está correctamente validado con asserts.
+
+#### 🎛️ Ejecución selectiva con Maven
+
+La separación por `@Tags` y sufijos nos permite filtrar qué tipo de pruebas ejecutar:
+
+````bash
+# Ejecutar solo pruebas unitarias
+mvn test -Dgroups="unit"
+
+# Ejecutar solo pruebas de integración
+mvn test -Dgroups="integration"
+
+# Ejecutar ambos tipos
+mvn test -Dgroups="unit,integration"
+
+# Excluir integración
+mvn test -DexcludedGroups="integration"
+````
+
+Esto es exactamente como se organizan los pipelines corporativos en `GitHub Actions`, `GitLab CI` o `Jenkins`.
+
+### ✅ En esta guía
+
+Solo se utilizarán las `pruebas unitarias` para:
+
+| Objetivo                    | Herramienta |
+|-----------------------------|-------------|
+| Medir cobertura             | ✅ JaCoCo    |
+| Analizar calidad del código | ✅ SonarQube |
+| Cumplir Quality Gates       | ✅ CI/CD     |
+
+> 📍 Esta guía se enfoca exclusivamente en la `medición de cobertura de código`, por lo tanto, hacemos uso
+> exclusívamente de las `Pruebas Unitarias`, que es lo que evalúa `JaCoCo` y herramientas como `SonarQube`.
 
 ### 📌 ¿Por qué solo pruebas unitarias para cobertura?
 
@@ -212,13 +267,14 @@ Validación de Funcionalidad (CI/CD Pipeline):
 
 ### 🧹 ¿Qué pasa con las pruebas de integración?
 
-Las siguientes clases de prueba, son pruebas de integración que trabajamos en el proyecto `spring-rest-api` y que en
-este proyecto de JaCoCo no las vamos a considerar:
+Las siguientes clases de prueba, son pruebas de integración que trabajamos en el proyecto `spring-rest-api`
+(aunque aquí están renombradas siguiendo una convención de nombres) y que en este proyecto de JaCoCo no las vamos a
+considerar:
 
-| Clase no considerada               |                  Motivo |
-|:-----------------------------------|------------------------:|
-| AccountControllerWebTestClientTest | `Prueba de Integración` |
-| AccountRepositoryMySQLTest         | `Prueba de Integración` |
+| Clase no considerada |                  Motivo |
+|:---------------------|------------------------:|
+| AccountControllerIT  | `Prueba de Integración` |
+| AccountRepositoryIT  | `Prueba de Integración` |
 
 Estas pruebas son valiosas para validar funcionalidad `end-to-end`, pero
 `no se consideran para métricas de cobertura` en pipelines corporativos. Se recomienda ejecutarlas en etapas

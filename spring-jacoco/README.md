@@ -597,3 +597,66 @@ Para alcanzar ese `objetivo > 80%` podríamos hacer lo siguiente:
 | Probar mappers con entradas reales y nulas                   | ↑ moderado           |
 | Lanzamiento de excepciones personalizadas                    | ↑ moderado           |
 
+### 🔎 Inspeccionando paquetes en el reporte
+
+Ingresamos en el paquete `dev.magadiflo.app.service.impl`. Dentro se encuentra únicamente la clase
+`AccountServiceImpl`. Según el reporte, esta clase presenta:
+
+- `64%` de cobertura de instrucciones
+- `50%` de cobertura de ramas
+
+Lo cual nos indica que aún existe una parte importante del flujo sin ejecutar por pruebas unitarias.
+
+![03.png](assets/03.png)
+
+Si abrimos la clase, se observa que algunos métodos cuentan con cobertura completa, mientras que otros no se ejecutan
+en absoluto durante las pruebas:
+
+![04.png](assets/04.png)
+
+Por ejemplo, el método `deposit(Long, DepositRequest)` aparece totalmente marcado en rojo. Esto significa que ninguna
+línea o rama de código en ese método ha sido ejercitada por los tests:
+
+![05.png](assets/05.png)
+
+En contraste, el método `withdraw(...)` aparece completamente en verde, lo que indica que todas las instrucciones
+y ramas que contiene han sido cubiertas por los tests unitarios.
+
+## 🧠 Análisis del reporte de cobertura
+
+El informe HTML de `JaCoCo` ayuda a interpretar visualmente el estado de cobertura usando dos tipos de indicadores:
+
+### ⭐ Indicadores de ramas (rombos)
+
+| Símbolo     | Significado              |
+|:------------|--------------------------|
+| 🔺 Rojo     | Ninguna rama probada     |
+| 🔶 Amarillo | Algunas ramas probadas   |
+| 💚 Verde    | Todas las ramas probadas |
+
+Estos se aplican en estructuras condicionales como `if`, `else`, `switch` o cualquier bifurcación de lógica.
+
+### 🎨 Indicadores de líneas (fondo de color)
+
+| Color    | Significado                      |
+|----------|----------------------------------|
+| 🟥 Rojo  | Línea no ejecutada               |
+| 🟩 Verde | Línea ejecutada al menos una vez |
+
+## 📐 Métricas clave en JaCoCo
+
+`JaCoCo` enfoca la cobertura en tres estadísticas principales:
+
+| Métrica                 | Qué representa                           | Para qué nos sirve                                    |
+|-------------------------|------------------------------------------|-------------------------------------------------------|
+| Cobertura de líneas     | Proporción de instrucciones ejecutadas   | Mide qué tanto del código fue recorrido               |
+| Cobertura de ramas      | Porcentaje de caminos lógicos cubiertos  | Identifica lógica condicional no probada              |
+| Complejidad ciclomática | Cantidad de flujos de ejecución posibles | Indica el número mínimo de casos de prueba necesarios |
+
+### 📌 Ejemplo útil
+
+Si un método no contiene `if`, `switch` ni bifurcaciones, su `complejidad ciclomática es 1`, porque solo existe una
+ruta lógica que recorrer.
+
+Cuanta más lógica y decisiones incluya el código, mayor será la complejidad y `más tests necesitaremos` para cubrirlo
+completamente.

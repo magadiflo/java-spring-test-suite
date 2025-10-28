@@ -660,3 +660,151 @@ ruta lógica que recorrer.
 
 Cuanta más lógica y decisiones incluya el código, mayor será la complejidad y `más tests necesitaremos` para cubrirlo
 completamente.
+
+## 🚀 Mejorando la Cobertura de Código
+
+Conociendo ya cómo interpretar el reporte generado por `JaCoCo`, ahora llegó el momento emocionante:
+`aumentar nuestra cobertura con nuevos tests`. No buscamos alcanzar todavía un estándar corporativo `(80% o más)`,
+aunque sería genial. El objetivo es practicar cómo cada test adicional impacta directamente en nuestros indicadores de
+calidad.
+
+En el análisis previo detectamos algo clave en la clase `AccountServiceImpl`:
+
+| Método         | Estado                        | Acción                  |
+|----------------|-------------------------------|-------------------------|
+| `withdraw(..)` | Totalmente probado ✅          | Nada que hacer          |
+| `deposit(..)`  | Completamente sin cobertura ❌ | Crear pruebas unitarias |
+
+Así que nos centraremos en `deposit(..)` y añadiremos dos casos esenciales:
+
+1. Depósito exitoso cuando la cuenta existe.
+2. Excepción cuando la cuenta no existe durante el depósito.
+
+A continuación se muestra los nuevos test añadidos a la clase de prueba unitaria: `AccountServiceTest`.
+
+````java
+
+@Tag("unit")
+@ExtendWith(MockitoExtension.class)
+class AccountServiceTest {
+    @Mock
+    private AccountRepository accountRepository;
+    @Mock
+    private BankRepository bankRepository;
+    @Mock
+    private AccountMapper accountMapper;
+    @InjectMocks
+    private AccountServiceImpl accountServiceUnderTest;
+
+    /* other methods */
+
+    @Test
+    void shouldDepositAmountSuccessfullyWhenAccountExists() {
+        // given
+        Account accountBeforeDeposit = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Account accountAfterDeposit = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2500"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", accountBeforeDeposit, accountAfterDeposit);
+        DepositRequest request = new DepositRequest(new BigDecimal("500"));
+        AccountResponse expectedResponse = AccountTestFactory.toAccountResponse(accountAfterDeposit);
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(accountBeforeDeposit));
+        Mockito.when(this.accountRepository.save(accountBeforeDeposit)).thenReturn(accountBeforeDeposit); // Ya mutado
+        Mockito.when(this.accountMapper.toAccountResponse(accountBeforeDeposit)).thenReturn(expectedResponse);
+
+        // when
+        AccountResponse actualResponse = this.accountServiceUnderTest.deposit(1L, request);
+
+        // then
+        assertThat(accountBeforeDeposit.getBalance())
+                .isEqualByComparingTo("2500");
+        assertThat(actualResponse)
+                .isNotNull()
+                .extracting(AccountResponse::id, AccountResponse::holder, AccountResponse::balance, AccountResponse::bankName)
+                .containsExactly(1L, "Milagros", new BigDecimal("2500"), bank.getName());
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).save(accountBeforeDeposit);
+        Mockito.verify(this.accountMapper).toAccountResponse(accountBeforeDeposit);
+    }
+
+    @Test
+    void shouldThrowAccountNotFoundExceptionWhenAccountDoesNotExistDuringDeposit() {
+        // given
+        DepositRequest request = new DepositRequest(new BigDecimal("500"));
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.deposit(1L, request))
+                .isInstanceOf(AccountNotFoundException.class)
+                .hasMessage("No se encontró la cuenta con ID: 1");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountRepository, this.accountMapper);
+    }
+}
+````
+
+### ▶ Ejecutando nuevamente los tests
+
+Procedemos a ejecutar los test unitarios anteponiendo el `clean` en el comando de maven para limpiar el directorio
+`/target` antes de ejecutar los test.
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
+$ mvn clean test -Dgroups=unit
+[INFO] Scanning for projects...
+...
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.magadiflo.app.unit.controller.AccountControllerTest
+...
+[INFO] Tests run: 13, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 1.664 s -- in dev.magadiflo.app.unit.service.AccountServiceTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-jacoco ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-jacoco' with 20 classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  22.257 s
+[INFO] Finished at: 2025-10-28T17:34:11-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+Resultado:
+
+| Antes                 |                 Ahora |
+|-----------------------|----------------------:|
+| ✅ 17 tests ejecutados | ✅ 19 tests ejecutados |
+
+### 📈 ¿Qué cambió en el reporte?
+
+Luego de recargar `target/site/jacoco/index.html`, entramos nuevamente a `AccountServiceImpl.java` y vemos el cambio:
+
+📌 El método `deposit(..)` ahora luce completamente en verde ✅
+
+![06.png](assets/06.png)
+
+Eso significa:
+
+- Todas las líneas fueron ejecutadas al menos una vez.
+- Las ramas de esta lógica de negocio fueron cubiertas.
+- Nuestra puntuación global de cobertura acaba de subir.
+
+### 🎯 Conclusión de esta mejora
+
+Cada test unitario que escribimos:
+
+- ✅ valida la lógica de negocio.
+- ✅ reduce riesgo de errores.
+- ✅ mejora nuestros indicadores de calidad.
+- ✅ impacta visualmente en JaCoCo.
+
+Hicimos una intervención mínima, enfocada y efectiva. Con esa misma técnica podremos seguir elevando la calidad del
+software hasta alcanzar el porcentaje corporativo esperado.

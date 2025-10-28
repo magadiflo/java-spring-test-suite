@@ -2,6 +2,7 @@ package dev.magadiflo.app.unit.service;
 
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
+import dev.magadiflo.app.dto.DepositRequest;
 import dev.magadiflo.app.dto.TransactionRequest;
 import dev.magadiflo.app.dto.WithdrawalRequest;
 import dev.magadiflo.app.entity.Account;
@@ -225,6 +226,50 @@ class AccountServiceTest {
         Mockito.verify(this.accountMapper).toAccount(accountRequest, bank);
         Mockito.verify(this.accountRepository).save(accountWithoutId);
         Mockito.verify(this.accountMapper).toAccountResponse(accountWithoutId);
+    }
+
+    @Test
+    void shouldDepositAmountSuccessfullyWhenAccountExists() {
+        // given
+        Account accountBeforeDeposit = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Account accountAfterDeposit = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2500"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", accountBeforeDeposit, accountAfterDeposit);
+        DepositRequest request = new DepositRequest(new BigDecimal("500"));
+        AccountResponse expectedResponse = AccountTestFactory.toAccountResponse(accountAfterDeposit);
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(accountBeforeDeposit));
+        Mockito.when(this.accountRepository.save(accountBeforeDeposit)).thenReturn(accountBeforeDeposit); // Ya mutado
+        Mockito.when(this.accountMapper.toAccountResponse(accountBeforeDeposit)).thenReturn(expectedResponse);
+
+        // when
+        AccountResponse actualResponse = this.accountServiceUnderTest.deposit(1L, request);
+
+        // then
+        assertThat(accountBeforeDeposit.getBalance())
+                .isEqualByComparingTo("2500");
+        assertThat(actualResponse)
+                .isNotNull()
+                .extracting(AccountResponse::id, AccountResponse::holder, AccountResponse::balance, AccountResponse::bankName)
+                .containsExactly(1L, "Milagros", new BigDecimal("2500"), bank.getName());
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).save(accountBeforeDeposit);
+        Mockito.verify(this.accountMapper).toAccountResponse(accountBeforeDeposit);
+    }
+
+    @Test
+    void shouldThrowAccountNotFoundExceptionWhenAccountDoesNotExistDuringDeposit() {
+        // given
+        DepositRequest request = new DepositRequest(new BigDecimal("500"));
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.deposit(1L, request))
+                .isInstanceOf(AccountNotFoundException.class)
+                .hasMessage("No se encontró la cuenta con ID: 1");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountRepository, this.accountMapper);
     }
 
     @Test

@@ -446,3 +446,154 @@ Esta configuración está diseñada para medir `únicamente pruebas unitarias`, 
 > 📌 `Importante`: En entornos empresariales, `SonarQube` solo analiza cobertura generada por `pruebas unitarias`.
 > Por eso, esta configuración excluye pruebas de integración y se alinea con los `Quality Gates` corporativos.
 
+## 🚀 Ejecución de Test Unitarios y Análisis del Reporte de JaCoCo
+
+Cada vez que ejecutamos nuestras pruebas con `JUnit`, el agente de `JaCoCo` se engancha automáticamente en la JVM para
+capturar la ejecución del código. Ese rastreo se almacena en un archivo binario ubicado en:
+
+````bash
+target/jacoco.exec
+````
+
+Ese `.exec` no se puede leer a simple vista. Necesitamos que `JaCoCo` lo procese para generar informes entendibles por
+humanos y herramientas como `SonarQube`.
+
+La buena noticia es que, además del archivo binario, se genera un directorio con reportes visuales ubicado en:
+
+````bash
+target/site/jacoco/
+````
+
+Dentro encontraremos los reportes en distintos formatos: `HTML`, `CSV` y `XML`.
+
+### ✅ Ejecutando únicamente los test unitarios
+
+Recordemos que en este proyecto contamos con pruebas unitarias y pruebas de integración. Sin embargo,
+`solo las pruebas unitarias son consideradas para la cobertura de código`.
+
+Limpiamos primero el proyecto para eliminar cualquier resultado previo:
+
+````bash
+$ mvn clean
+````
+
+Luego ejecutamos únicamente los tests anotados con `@Tag("unit")`. Al finalizar veremos el resultado de ejecución y la
+generación del reporte de cobertura, algo así como:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
+$ mvn test -Dgroups=unit
+[INFO] Scanning for projects...
+[INFO]
+[INFO] --------------------< dev.magadiflo:spring-jacoco >---------------------
+[INFO] Building spring-jacoco 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+[INFO] --- jacoco:0.8.12:prepare-agent (prepare-agent) @ spring-jacoco ---
+...
+[INFO] argLine set to -javaagent:C:\\Users\\magadiflo\\.m2\\repository\\org\\jacoco\\org.jacoco.agent\\0.8.12\\org.jacoco.agent-0.8.12-runtime.jar=destfile=D:\\programming\\spring\\01.udemy\\02.andres_guzman\\03.junit_y_mockito_2023\\java-spring-test-suite\\spring-jacoco\\target\\jacoco.exec
+...
+[INFO]
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.magadiflo.app.unit.controller.AccountControllerTest
+12:59:06.380 [main] INFO org.springframework.test.context.support.AnnotationConfigContextLoaderUtils -- Could not detect default configuration classes for test class [dev.magadiflo.app.unit.controller.AccountControllerTest]: AccountControllerTest does not declare any static, non-private, non-final, nested classes annotated with @Configuration.
+12:59:06.831 [main] INFO org.springframework.boot.test.context.SpringBootTestContextBootstrapper -- Found @SpringBootConfiguration dev.magadiflo.app.SpringRestApiApplication for test class dev.magadiflo.app.unit.controller.AccountControllerTest
+...
+[INFO] Tests run: 11, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.679 s -- in dev.magadiflo.app.unit.service.AccountServiceTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 17, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-jacoco ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-jacoco' with 20 classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  22.251 s
+[INFO] Finished at: 2025-10-28T12:59:15-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+Todo correcto. Nuestras pruebas unitarias pasaron y la cobertura ya fue registrada.
+
+### 📌 Objetivo principal en este proyecto
+
+Queremos enfocarnos únicamente en entender y evaluar la cobertura de código de pruebas unitarias, así que los reportes
+que consultaremos y analizaremos siempre serán los generados en:
+
+````bash
+target/site/jacoco/index.html 
+````
+
+A continuación se muestra el directorio `target/` luego de ejecutar las pruebas, donde se evidencian los artefactos
+generados:
+
+![01.png](assets/01.png)
+
+### 📊 Interpretación del reporte de cobertura de JaCoCo
+
+Una vez ejecutadas las pruebas unitarias, `JaCoCo` genera un reporte HTML en `target/site/jacoco/index.html`.
+Este reporte muestra métricas clave por `paquete`, `clase` y `método`. A continuación se explica cómo leerlo y qué
+decisiones tomar en base a los resultados.
+
+![02.png](assets/02.png)
+
+Lo primero que podemos observar es el resumen general ubicado en la fila `Total` del reporte:
+
+| Métrica       | No Cubiertos | Cubiertos          | Cubiertos (%)       | Interpretación de los cubiertos                                                      |
+|:--------------|--------------|--------------------|---------------------|--------------------------------------------------------------------------------------|
+| Instrucciones | 628 de 1306  | 1306 - 628 = `678` | 678 de 1306 `(51%)` | 🟡 Moderado - Mitad del código ejecutado. Mínimo aceptable es 70-80%                 |
+| Ramas         | 16 de 20     | 20 - 16 = `4`      | 4 de 20 `(20%)`     | 🔴 Crítico - Solo 1 de cada 5 condiciones (if/switch) tiene ambos caminos testeados  |
+| Cxty          | 59 de 98     | 98 - 59 = `39`     | 39 de 98 `(39%)`    | 🔴 Bajo - Complejidad ciclomática cubierta insuficiente. Faltan caminos de ejecución |
+| Clases        | 7 de 20      | 20 - 7 = `13`      | 13 de 20 `(65%)`    | 🟡 Aceptable - 7 clases sin ningún test                                              |
+| Métodos       | 50 de 88     | 88 - 50 = `38`     | 38 de 88 `(43%)`    | 🔴 Bajo - Más de la mitad de métodos sin testear                                     |
+| Líneas        | 127 de 236   | 236 - 127 = `109`  | 109 de 236 `(46%)`  | 🔴 Bajo - Menos de la mitad del código cubierto                                      |
+
+🎯 Cobertura total del proyecto:
+
+- Instrucciones: `51%` (678 de 1306)
+- Ramas: `20%` (4 de 20)
+- Clases: `65%` (13 de 20)
+- Métodos: `43%` (38 de 88)
+- Líneas: `46%` (109 de 236)
+
+📌 `Conclusión global`: La cobertura actual está muy por debajo del estándar mínimo esperado en entornos empresariales.
+
+- 🎯 Objetivo mínimo típico:
+    - Instrucciones: `70-80% de cobertura`
+    - Ramas: `60%+ de cobertura`
+- ✅ Estado actual:
+    - Instrucción: `51%` → 🔴 Insuficiente (faltan ~25-30 puntos)
+    - Ramas: `20%`  → 🔴 Crítico (faltan ~40 puntos)
+    - Métodos: `43%` → 🔴 Bajo
+
+### 📦 ¿Qué paquetes necesitan más atención?
+
+| Paquete                          | Cobertura | Acción recomendada                                                 |
+|----------------------------------|-----------|--------------------------------------------------------------------|
+| `dev.magadiflo.app.mapper`       | 0% ❌      | Escribir pruebas unitarias que ejerzan la lógica de mapeo          |
+| `dev.magadiflo.app.exception`    | 30% ⚠️    | Probar flujos donde se lancen excepciones personalizadas           |
+| `dev.magadiflo.app.controller`   | 46%       | Aumentar los casos en MockMvc (errores, datos inválidos, vacíos)   |
+| `dev.magadiflo.app.service.impl` | 64%       | Probar ramas de negocio adicionales                                |
+| `dto` y `entity`                 | 50–77%    | Se cubrirán de forma indirecta con mejoras en service y controller |
+
+💡 Es decir, no se necesita testear cada DTO directamente, sino usar casos que los utilicen desde servicios y
+controladores.
+
+### ✅ Plan claro de mejora
+
+Para alcanzar ese `objetivo > 80%` podríamos hacer lo siguiente:
+
+| Acción                                                       | Impacto en cobertura |
+|--------------------------------------------------------------|----------------------|
+| Aumentar casos en servicios, incluyendo errores              | ↑↑ significativo     |
+| Agregar pruebas a controladores simulando entradas inválidas | ↑ alto               |
+| Probar mappers con entradas reales y nulas                   | ↑ moderado           |
+| Lanzamiento de excepciones personalizadas                    | ↑ moderado           |
+

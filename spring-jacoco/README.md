@@ -1001,3 +1001,145 @@ Si ingresamos dentro del paquete de excepciones vemos que solo se encuentra la c
 - Reportes más limpios y legibles.
 - Alineación con Quality Gates de SonarQube.
 - Comparabilidad con estándares corporativos.
+
+## 🚦 Ajustando el límite de cobertura permitida
+
+En entornos corporativos con CI/CD, es común definir `umbrales mínimos de cobertura de código` para garantizar la
+calidad del testing. Si el proyecto no cumple con ese umbral, el build se bloquea automáticamente, evitando que
+se despliegue código insuficientemente testeado.
+
+### 🔧 Configuración del límite en JaCoCo
+
+Para establecer un umbral mínimo de cobertura, se agrega una tercera ejecución al plugin de `JaCoCo` en el `pom.xml`:
+
+````xml
+
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>${jacoco.version}</version>
+    <configuration>
+        <excludes>
+            <!-- clases y paquetes excluídos -->
+        </excludes>
+    </configuration>
+    <executions>
+        <!-- prepare-agent, report -->
+
+        <!-- Límite de cobertura permitida -->
+        <execution>
+            <id>check</id>
+            <goals>
+                <goal>check</goal>
+            </goals>
+            <configuration>
+                <rules>
+                    <rule>
+                        <element>PACKAGE</element>
+                        <limits>
+                            <limit>
+                                <counter>LINE</counter>
+                                <value>COVEREDRATIO</value>
+                                <minimum>0.90</minimum>
+                            </limit>
+                        </limits>
+                    </rule>
+                </rules>
+            </configuration>
+        </execution>
+    </executions>
+</plugin>
+````
+
+| Parámetro                     | Descripción                                                               |
+|-------------------------------|---------------------------------------------------------------------------|
+| `<element>PACKAGE</element>`  | Aplica la regla por paquete, no por clase individual.                     |
+| `<counter>LINE</counter>`     | Evalúa `cobertura por líneas ejecutadas` (no por instrucciones ni ramas). |
+| `<value>COVEREDRATIO</value>` | Calcula el porcentaje de líneas cubiertas.                                |
+| `<minimum>0.90</minimum>`     | Define el umbral mínimo aceptable: `90% de cobertura por paquete`.        |
+|                               |                                                                           |
+
+> 📌 Podemos cambiar `LINE` por `INSTRUCTION`, `BRANCH`, `METHOD`, etc., según el tipo de métrica que deseemos
+> controlar.
+
+### 📸 Ejemplo visual del reporte
+
+Observemos la siguiente imagen del reporte que habíamos generado antes de agregar la configuración de la ejecución para
+el límite de cobertura permitida:
+
+![10.png](assets/10.png)
+
+Vemos que la cobertura por paquete es:
+
+| Paquete                          | Instrucciones | Ramas | Líneas Cubiertas | Líneas Cubiertas (%) |
+|----------------------------------|---------------|-------|------------------|----------------------|
+| `dev.magadiflo.app.service.impl` | 73%           | 50%   | 112 - 32 = `80`  | 80 de 112 `(71%)`    |
+| `dev.magadiflo.app.exception`    | 29%           | n/a   | 39 - 28 = `11`   | 11 de 39 `(28%)`     |
+| `dev.magadiflo.app.controller`   | 46%           | n/a   | 20 - 9 = `11`    | 11 de 20 `(55%)`     |
+
+> `Cobertura por líneas` = `(Líneas totales - Líneas no cubiertas)` / `Líneas totales`
+
+Esto indica que `no se cumple el umbral mínimo de cobertura` por líneas ejecutadas según la configuración que definimos
+en el `pom.xml`, lo que puede bloquear el build si se ejecuta con `verify`.
+
+### 🧪 Validación automática con Maven
+
+Viendo la imagen anterior y haciendo el cálculo para obtener el porcentaje de las `líneas cubiertas`, es fácil deducir
+que `no estamos cumpliendo con la cobertura mínima (90%)`, sin embargo, hay otra manera de poder verificar si nuestras
+pruebas están cumpliendo con la cobertura mínima establecida y es ejecutando el siguiente comando:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
+$ mvn clean verify
+...
+[INFO]
+[INFO] --- jacoco:0.8.12:check (check) @ spring-jacoco ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-jacoco' with 4 classes
+[WARNING] Rule violated for package dev.magadiflo.app.exception: lines covered ratio is 0.28, but expected minimum is 0.90
+[WARNING] Rule violated for package dev.magadiflo.app.service.impl: lines covered ratio is 0.71, but expected minimum is 0.90
+[WARNING] Rule violated for package dev.magadiflo.app.controller: lines covered ratio is 0.55, but expected minimum is 0.90
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  27.091 s
+[INFO] Finished at: 2025-10-29T12:07:52-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.jacoco:jacoco-maven-plugin:0.8.12:check (check) on project spring-jacoco: Coverage checks have not been met. See log for details. -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+````
+
+El resultado en consola nos muestra los siguientes mensajes:
+
+- `[WARNING]` Rule violated for package `dev.magadiflo.app.exception`: lines covered ratio is 0.28, but expected minimum
+  is 0.90.
+- `[WARNING]` Rule violated for package `dev.magadiflo.app.service.impl`: lines covered ratio is 0.71, but expected
+  minimum is 0.90
+- `[WARNING]` Rule violated for package `dev.magadiflo.app.controller`: lines covered ratio is 0.55, but expected
+  minimum is 0.90
+  `[ERROR]` No se han cumplido los requisitos de cobertura. Consulte el registro para obtener más detalles.
+
+### 📋 Interpretación de resultados
+
+| Paquete                          | Líneas Cubiertas (%) | ¿Cumple el umbral? |
+|----------------------------------|----------------------|--------------------|
+| `dev.magadiflo.app.service.impl` | `71%`                | ❌ No               |
+| `dev.magadiflo.app.exception`    | `28%`                | ❌ No               |
+| `dev.magadiflo.app.controller`   | `55%`                | ❌ No               |
+
+### ✅ Conclusión
+
+Establecer límites de cobertura con JaCoCo permite:
+
+- Bloquear builds con pruebas insuficientes.
+- Alinear el proyecto con estándares corporativos.
+- Automatizar la validación de calidad en CI/CD.
+
+🎯 `Recomendación`: Empieza con un umbral de 80% y ajústalo progresivamente. Asegúrate de excluir clases no funcionales
+para que el reporte sea justo y realista.
+

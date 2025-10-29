@@ -28,4 +28,4 @@ integración avanzadas.
 | `mockito-test`          | Simulación de dependencias con Mockito. Mocks, stubs y verificación de interacciones.                                                                     |
 | `spring-boot-test`      | Pruebas en aplicaciones Spring Boot. Controladores, servicios y repositorios.                                                                             |
 | `spring-testcontainers` | Pruebas de integración con contenedores Docker. Uso de bases de datos reales (PostgreSQL, MySQL, etc.) y otros servicios en entornos de testing aislados. |
-
+| `spring-jacoco`         | Cobertura de código con JaCoCo + Spring Boot (Pruebas Unitarias).                                                                                         |

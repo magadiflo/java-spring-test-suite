@@ -859,7 +859,7 @@ tipo `**/package/ClassName.class`.
 </plugin>
 ````
 
-#### 🚀 Resultado después de excluir la clase principal
+### 🚀 Resultado después de excluir la clase principal
 
 A continuación procedemos a ejecutar los test con el comando `mvn clean test -Dgroups=unit`.
 
@@ -886,3 +886,118 @@ Procedemos a revisar el reporte y observamos que ya no aparece el paquete `dev.m
 de dicho paquete está la clase que acabamos de excluir.
 
 ![09.png](assets/09.png)
+
+## 🏢 Mejores prácticas corporativas: exclusión por paquetes
+
+En empresas, se excluyen paquetes completos que contienen clases no funcionales:
+
+````xml
+
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>${jacoco.version}</version>
+    <configuration>
+        <excludes>
+            <!-- Clases de arranque -->
+            <exclude>**/SpringRestApiApplication.class</exclude>
+
+            <!-- DTOs y entidades JPA -->
+            <exclude>**/dto/**</exclude>
+            <exclude>**/entity/**</exclude>
+
+            <!-- Mappers y configuraciones -->
+            <exclude>**/mapper/**</exclude>
+            <exclude>**/config/**</exclude>
+
+            <!-- Excepciones personalizadas -->
+            <exclude>**/exception/*Exception.class</exclude>
+
+            <!-- Clases generadas automáticamente -->
+            <exclude>**/*MapperImpl.class</exclude>
+        </excludes>
+    </configuration>
+    <executions>
+        <!-- prepare-agent, report -->
+    </executions>
+</plugin>
+````
+
+> 🧠 `Tip`: Usa patrones genéricos (`**/dto/**`, `**/*Exception.class`) para excluir múltiples clases sin necesidad
+> de listarlas una por una.
+
+### 📌 Sobre la exclusión de excepciones
+
+Con la línea:
+
+````xml
+
+<exclude>**/exception/*Exception.class</exclude>
+````
+
+Estamos excluyendo todas las clases que terminan en `...Exception.class` dentro del paquete `exception`, como:
+
+- `BankNotFoundException`
+- `AccountNotFoundException`
+- `InvalidTransactionException`
+- `InsufficientBalanceException`
+- `DatabaseOperationException`
+- `EntityNotFoundException`
+
+Estas clases no contienen lógica funcional compleja y no requieren pruebas unitarias. Por tanto,
+`no deben influir en las métricas de cobertura`.
+
+### ✅ ¿Qué clase se mantiene?
+
+Dentro del mismo paquete `exception`, tenemos la clase:
+
+- `GlobalExceptionHandler`
+
+Como no termina en `Exception`, `no será excluida` por el patrón anterior. Esto es correcto y deseado, ya que:
+
+- Contiene lógica condicional (`@ExceptionHandler`)
+- Construye respuestas HTTP
+- Registra logs con distintos niveles (INFO, WARN, ERROR)
+- Tiene un método auxiliar (`businessException`) que debe ser testeado
+
+> 🎯 `Conclusión`: El patrón `*Exception.class` excluye solo las clases de excepción personalizadas, manteniendo
+> `GlobalExceptionHandler` dentro del reporte de cobertura.
+
+### 🚀 Resultado después de excluir por paquetes
+
+A continuación procedemos a ejecutar los test con el comando `mvn clean test -Dgroups=unit`.
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
+$ mvn clean test -Dgroups=unit
+...
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-jacoco ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-jacoco' with 4 classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  21.849 s
+[INFO] Finished at: 2025-10-29T11:41:21-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+Procedemos a revisar el reporte y observamos que ya no aparecen los paquetes excluídos, lo que indica que realizamos
+correctamente la exclusión.
+
+![10.png](assets/10.png)
+
+Si ingresamos dentro del paquete de excepciones vemos que solo se encuentra la clase que no excluímos
+(`GlobalExceptionHandler`).
+
+![11.png](assets/11.png)
+
+### ✅ Beneficios de excluir correctamente
+
+- Métricas más precisas y enfocadas.
+- Reportes más limpios y legibles.
+- Alineación con Quality Gates de SonarQube.
+- Comparabilidad con estándares corporativos.

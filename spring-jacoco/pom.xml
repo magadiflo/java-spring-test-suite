@@ -119,7 +119,22 @@
                 <version>${jacoco.version}</version>
                 <configuration>
                     <excludes>
-                        <exclude>dev/magadiflo/app/SpringRestApiApplication.class</exclude>
+                        <!-- Clases de arranque -->
+                        <exclude>**/SpringRestApiApplication.class</exclude>
+
+                        <!-- DTOs y entidades JPA -->
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/entity/**</exclude>
+
+                        <!-- Mappers y configuraciones -->
+                        <exclude>**/mapper/**</exclude>
+                        <exclude>**/config/**</exclude>
+
+                        <!-- Excepciones personalizadas -->
+                        <exclude>**/exception/*Exception.class</exclude>
+
+                        <!-- Clases generadas automáticamente -->
+                        <exclude>**/*MapperImpl.class</exclude>
                     </excludes>
                 </configuration>
                 <executions>

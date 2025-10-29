@@ -1071,11 +1071,11 @@ el límite de cobertura permitida:
 
 Vemos que la cobertura por paquete es:
 
-| Paquete                          | Instrucciones | Ramas | Líneas Cubiertas | Líneas Cubiertas (%) |
-|----------------------------------|---------------|-------|------------------|----------------------|
-| `dev.magadiflo.app.service.impl` | 73%           | 50%   | 112 - 32 = `80`  | 80 de 112 `(71%)`    |
-| `dev.magadiflo.app.exception`    | 29%           | n/a   | 39 - 28 = `11`   | 11 de 39 `(28%)`     |
-| `dev.magadiflo.app.controller`   | 46%           | n/a   | 20 - 9 = `11`    | 11 de 20 `(55%)`     |
+| Paquete                          | Instrucciones Cubiertas | Ramas Cubiertas | Líneas Cubiertas | Líneas Cubiertas (%) |
+|----------------------------------|-------------------------|-----------------|------------------|----------------------|
+| `dev.magadiflo.app.service.impl` | 73%                     | 50%             | 112 - 32 = `80`  | 80 de 112 `(71%)`    |
+| `dev.magadiflo.app.exception`    | 29%                     | n/a             | 39 - 28 = `11`   | 11 de 39 `(28%)`     |
+| `dev.magadiflo.app.controller`   | 46%                     | n/a             | 20 - 9 = `11`    | 11 de 20 `(55%)`     |
 
 > `Cobertura por líneas` = `(Líneas totales - Líneas no cubiertas)` / `Líneas totales`
 
@@ -1143,3 +1143,238 @@ Establecer límites de cobertura con JaCoCo permite:
 🎯 `Recomendación`: Empieza con un umbral de 80% y ajústalo progresivamente. Asegúrate de excluir clases no funcionales
 para que el reporte sea justo y realista.
 
+## 🧪 Implementando pruebas unitarias para cumplir el umbral de cobertura
+
+En la lección anterior, al ejecutar `mvn clean verify`, observamos que varios paquetes no cumplían con el umbral
+mínimo de cobertura por líneas definido en el `pom.xml`:
+
+````bash
+[WARNING] Rule violated for package dev.magadiflo.app.exception: lines covered ratio is 0.28, but expected minimum is 0.90
+[WARNING] Rule violated for package dev.magadiflo.app.service.impl: lines covered ratio is 0.71, but expected minimum is 0.90
+[WARNING] Rule violated for package dev.magadiflo.app.controller: lines covered ratio is 0.55, but expected minimum is 0.90 
+````
+
+### 🎯 Objetivo de esta lección
+
+Subir la cobertura del paquete `dev.magadiflo.app.service.impl`, donde se encuentra la clase `AccountServiceImpl`,
+agregando pruebas unitarias faltantes.
+
+### 🧪 Nuevas pruebas unitarias agregadas
+
+````java
+
+@Tag("unit")
+@ExtendWith(MockitoExtension.class)
+class AccountServiceTest {
+    @Mock
+    private AccountRepository accountRepository;
+    @Mock
+    private BankRepository bankRepository;
+    @Mock
+    private AccountMapper accountMapper;
+    @InjectMocks
+    private AccountServiceImpl accountServiceUnderTest;
+
+    /* other tests */
+
+    @Test
+    void shouldThrowInvalidTransactionExceptionWhenSourceAndTargetAccountsAreTheSame() {
+        // given
+        TransactionRequest request = new TransactionRequest(1L, 1L, new BigDecimal("5000"));
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", account);
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.transfer(request))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessage("No se puede hacer transferencia de una cuenta a sí misma");
+
+        // then
+        assertThat(bank.getTotalTransfers()).isZero();
+        Mockito.verifyNoInteractions(this.accountRepository);
+        Mockito.verifyNoInteractions(this.bankRepository);
+    }
+
+
+    @Test
+    void shouldThrowInvalidTransactionExceptionWhenAccountsAreFromDifferentBanks() {
+        // given
+        TransactionRequest request = new TransactionRequest(1L, 2L, new BigDecimal("5000"));
+        Account sourceAccount = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Account targetAccount = AccountTestFactory.createAccount(2L, "Kiara", new BigDecimal("1000"));
+        Bank bacp = AccountTestFactory.createBank(1L, "BCP", sourceAccount);
+        Bank bbva = AccountTestFactory.createBank(2L, "BBVA", targetAccount);
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(sourceAccount));
+        Mockito.when(this.accountRepository.findById(2L)).thenReturn(Optional.of(targetAccount));
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.transfer(request))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessage("No se puede hacer transferencia entre cuentas de diferentes bancos");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).findById(2L);
+        Mockito.verify(this.accountRepository, Mockito.times(2)).findById(Mockito.anyLong());
+    }
+
+    @Test
+    void shouldReturnAccountResponseWhenAccountExistsByHolder() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", account);
+        AccountResponse accountResponse = new AccountResponse(account.getId(), account.getHolder(), account.getBalance(), account.getBank().getName());
+        Mockito.when(this.accountRepository.findAccountByHolder("Milagros")).thenReturn(Optional.of(account));
+        Mockito.when(this.accountMapper.toAccountResponse(account)).thenReturn(accountResponse);
+
+        // when
+        AccountResponse result = this.accountServiceUnderTest.findAccountByHolder("Milagros");
+
+        // then
+        assertThat(result)
+                .isNotNull()
+                .isSameAs(accountResponse);
+        assertThat(result)
+                .extracting(AccountResponse::id, AccountResponse::holder, AccountResponse::balance, AccountResponse::bankName)
+                .containsExactly(1L, "Milagros", new BigDecimal("2000"), bank.getName());
+        Mockito.verify(this.accountRepository).findAccountByHolder("Milagros");
+        Mockito.verify(this.accountMapper).toAccountResponse(account);
+        Mockito.verifyNoMoreInteractions(this.accountRepository);
+        Mockito.verifyNoMoreInteractions(this.accountMapper);
+    }
+
+    @Test
+    void shouldDeleteTheAccountWhenItExists() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        Mockito.when(this.accountRepository.deleteAccountById(1L)).thenReturn(1);
+
+        // when
+        this.accountServiceUnderTest.deleteAccount(1L);
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).deleteAccountById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountRepository);
+    }
+
+    @Test
+    void shouldThrowAccountNotFoundExceptionWhenAttemptingDeleteAnAccountThatDoesNotExist() {
+        // given
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.deleteAccount(1L))
+                .isInstanceOf(AccountNotFoundException.class)
+                .hasMessage("No se encontró la cuenta con ID: 1");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository, Mockito.never()).deleteAccountById(Mockito.anyLong());
+        Mockito.verifyNoMoreInteractions(this.accountRepository);
+    }
+
+    @Test
+    void shouldThrowDatabaseOperationExceptionWhenDeletionOfAnExistingAccountFails() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        Mockito.when(this.accountRepository.deleteAccountById(1L)).thenReturn(0);
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.deleteAccount(1L))
+                .isInstanceOf(DatabaseOperationException.class)
+                .hasMessage("Error al ejecutar operación de BD: DELETE cuenta. No se afectaron las filas esperadas");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).deleteAccountById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountRepository);
+    }
+}
+````
+
+### 🧪 Ejecución de pruebas
+
+Vamos a ejecutar nuestras pruebas unitarias para obtener visualmente el reporte en html.
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
+$ mvn clean test -Dgroups=unit
+...
+[INFO] Tests run: 25, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-jacoco ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-jacoco' with 4 classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  23.099 s
+[INFO] Finished at: 2025-10-29T16:09:49-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+Una vez ejecutado los test, abrimos el reporte que se encuentra en `target/site/jacoco/index.html`. Observamos mejoras
+significativas en el paquete `dev.magadiflo.app.service.impl`:
+
+![12.png](assets/12.png)
+
+### 📐 Cálculo manual de cobertura por líneas
+
+| Paquete                          | Instrucciones Cubiertas | Ramas Cubiertas | Líneas Cubiertas | Líneas Cubiertas (%) | ¿Cumple el umbral? |
+|----------------------------------|-------------------------|-----------------|------------------|----------------------|--------------------|
+| `dev.magadiflo.app.service.impl` | 87%                     | 100%            | 112 - 10 = `102` | 102 de 112 `(91%)`   | ✅ Sí               |
+| `dev.magadiflo.app.exception`    | 29%                     | n/a             | 39 - 28 = `11`   | 11 de 39 `(28%)`     | ❌ No               |
+| `dev.magadiflo.app.controller`   | 46%                     | n/a             | 20 - 9 = `11`    | 11 de 20 `(55%)`     | ❌ No               |
+
+📌 El paquete `dev.magadiflo.app.service.impl` ahora cumple el umbral mínimo de cobertura por líneas `(90%)`,
+gracias a las nuevas pruebas unitarias.
+
+### 🚦 Validación con mvn verify
+
+Ahora ejecutamos el comando `mvn clean verify` para ver si coincide con lo que hemos calculado.
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
+$ mvn clean verify
+[INFO] Scanning for projects...
+...
+[INFO]
+[INFO] --- jacoco:0.8.12:check (check) @ spring-jacoco ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-jacoco' with 4 classes
+[WARNING] Rule violated for package dev.magadiflo.app.exception: lines covered ratio is 0.28, but expected minimum is 0.90
+[WARNING] Rule violated for package dev.magadiflo.app.controller: lines covered ratio is 0.55, but expected minimum is 0.90
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  18.878 s
+[INFO] Finished at: 2025-10-29T16:20:46-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.jacoco:jacoco-maven-plugin:0.8.12:check (check) on project spring-jacoco: Coverage checks have not been met. See log for details. -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+````
+
+- ✅ El paquete `dev.magadiflo.app.service.impl` ya no aparece en los warnings → `cumple el umbral`.
+- ❌ Los paquetes exception y controller siguen sin cumplir.
+
+### 🧠 Conclusión
+
+- Las pruebas unitarias agregadas permitieron superar el umbral de cobertura en el paquete
+  `dev.magadiflo.app.service.impl`.
+- El cálculo manual coincide con el resultado de Maven, lo que valida la configuración de `JaCoCo`.
+- Aún quedan paquetes por mejorar o excluir para que el build no falle.
+
+### 🎯 Siguiente paso sugerido
+
+Agregar pruebas unitarias al paquete `controller` o excluir clases irrelevantes si corresponde. También puedes
+documentar cómo testear el `GlobalExceptionHandler` para mejorar cobertura en exception.

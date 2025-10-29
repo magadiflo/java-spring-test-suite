@@ -808,3 +808,81 @@ Cada test unitario que escribimos:
 
 Hicimos una intervención mínima, enfocada y efectiva. Con esa misma técnica podremos seguir elevando la calidad del
 software hasta alcanzar el porcentaje corporativo esperado.
+
+## 🧼 Excluyendo clases irrelevantes de la cobertura de código
+
+En proyectos reales, no todo el código debe ser considerado para métricas de cobertura. Clases como la principal de la
+aplicación (`SpringRestApiApplication`), `DTOs`, `entidades JPA`, `mappers` o `configuraciones` suelen inflar o
+sesgar los reportes de cobertura, sin aportar valor real al análisis de calidad.
+
+### 🎯 ¿Por qué excluir clases?
+
+- No contienen lógica funcional.
+- No aportan valor al testing (ej. getters/setters, anotaciones).
+- No se espera que tengan cobertura (ej. clases de arranque, configuración).
+- Son generadas automáticamente (ej. MapStruct, Lombok).
+
+> 📌 `Objetivo`: Mantener métricas realistas, enfocadas en clases funcionales (servicios, controladores, validadores).
+
+### 📸 Ejemplo: clase principal incluida en el reporte
+
+En el reporte de `JaCoCo`, observamos que el paquete `dev.magadiflo.app` aparece con cobertura parcial.
+
+![07.png](assets/07.png)
+
+Al inspeccionar, vemos que se está evaluando la clase `SpringRestApiApplication`, que solo contiene el método `main`.
+
+![08.png](assets/08.png)
+
+### 🚫 ¿Cómo excluir clases en JaCoCo?
+
+Para excluir clases del reporte de cobertura, se utiliza la etiqueta `<excludes>` dentro de la configuración del
+plugin de `JaCoCo` en el `pom.xml`. Se deben especificar las rutas compiladas en bytecode (`.class`), usando patrones
+tipo `**/package/ClassName.class`.
+
+#### 🧪 Ejemplo básico: excluir clase principal
+
+````xml
+
+<plugin>
+    <groupId>org.jacoco</groupId>
+    <artifactId>jacoco-maven-plugin</artifactId>
+    <version>${jacoco.version}</version>
+    <configuration>
+        <excludes>
+            <exclude>dev/magadiflo/app/SpringRestApiApplication.class</exclude>
+        </excludes>
+    </configuration>
+    <executions>
+        <!-- prepare-agent, report -->
+    </executions>
+</plugin>
+````
+
+#### 🚀 Resultado después de excluir la clase principal
+
+A continuación procedemos a ejecutar los test con el comando `mvn clean test -Dgroups=unit`.
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
+$ mvn clean test -Dgroups=unit
+...
+[INFO]
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-jacoco ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-jacoco' with 19 classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  23.380 s
+[INFO] Finished at: 2025-10-29T10:36:34-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+Procedemos a revisar el reporte y observamos que ya no aparece el paquete `dev.magadiflo.app`. Recordemos que dentro
+de dicho paquete está la clase que acabamos de excluir.
+
+![09.png](assets/09.png)

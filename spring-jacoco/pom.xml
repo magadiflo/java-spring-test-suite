@@ -117,6 +117,11 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <exclude>dev/magadiflo/app/SpringRestApiApplication.class</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <!--Preparar agente de JaCoCo antes de ejecutar tests-->
                     <execution>

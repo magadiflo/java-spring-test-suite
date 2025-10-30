@@ -1,0 +1,12 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: spring-rest-api
+
+  profiles:
+    active: dev   # Activa el perfil de desarrollo por defecto
+
+  jpa:
+    open-in-view: false  # Desactiva "Open Session in View" (buena práctica)

@@ -22,10 +22,12 @@ Este repositorio está organizado en módulos independientes que ilustran distin
 backend `Java` y `Spring`. El orden refleja una progresión didáctica desde pruebas unitarias básicas hasta pruebas de
 integración avanzadas.
 
-| Módulo                  | Descripción breve                                                                                                                                         |
-|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `junit5-test`           | Pruebas unitarias en Java puro usando JUnit5. Fundamentos, aserciones y estructura.                                                                       |
-| `mockito-test`          | Simulación de dependencias con Mockito. Mocks, stubs y verificación de interacciones.                                                                     |
-| `spring-boot-test`      | Pruebas en aplicaciones Spring Boot. Controladores, servicios y repositorios.                                                                             |
-| `spring-testcontainers` | Pruebas de integración con contenedores Docker. Uso de bases de datos reales (PostgreSQL, MySQL, etc.) y otros servicios en entornos de testing aislados. |
-| `spring-jacoco`         | Cobertura de código con JaCoCo + Spring Boot (Pruebas Unitarias).                                                                                         |
+| # | Módulo                  | Descripción breve                                                                                                                                         |
+|:--|-------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1 | `junit5-test`           | Pruebas unitarias en Java puro usando JUnit5. Fundamentos, aserciones y estructura.                                                                       |
+| 2 | `mockito-test`          | Simulación de dependencias con Mockito. Mocks, stubs y verificación de interacciones.                                                                     |
+| 3 | `spring-boot-test`      | Pruebas en aplicaciones Spring Boot. Controladores, servicios y repositorios.                                                                             |
+| 4 | `spring-testcontainers` | Pruebas de integración con contenedores Docker. Uso de bases de datos reales (PostgreSQL, MySQL, etc.) y otros servicios en entornos de testing aislados. |
+| 5 | `spring-jacoco`         | Cobertura de código con JaCoCo + Spring Boot (Pruebas Unitarias).                                                                                         |
+| 6 | `spring-sonarqube`      | Análisis estático de calidad del código en aplicaciones Spring Boot usando SonarQube.                                                                     |
+

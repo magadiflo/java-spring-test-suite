@@ -1,0 +1,24 @@
+server:
+  port: 0
+
+spring:
+  application:
+    name: spring-rest-api
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    properties:
+      hibernate:
+        format_sql: true
+        show_sql: false
+  sql:
+    init:
+      mode: never
+
+logging:
+  level:
+    root: INFO
+    dev.magadiflo.app: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.orm.jdbc.bind: TRACE
+    org.springframework.test: DEBUG

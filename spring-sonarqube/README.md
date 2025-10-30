@@ -343,3 +343,53 @@ También podemos verificar la estructura de la base de datos conectándonos desd
 > En entornos empresariales se acostumbra conectar herramientas de administración como `pgAdmin` o `DBeaver` a
 > contenedores `PostgreSQL` para validaciones rápidas, debugging y auditoría de integraciones.
 
+## 🌐 Accediendo a SonarQube
+
+Una vez que los contenedores de `SonarQube` y `PostgreSQL` estén en ejecución, podemos acceder a la interfaz web de
+`SonarQube` desde nuestro navegador.
+
+🔗 URL de acceso: http://localhost:9000
+
+> 💡 `Recordatorio`: Este puerto (`9000`) fue configurado previamente en el archivo `compose.yml`, dentro del mapeo
+> `9000:9000`.
+
+### 🔑 Inicio de sesión inicial
+
+Al ingresar por primera vez, `SonarQube` mostrará una pantalla de autenticación solicitando usuario y contraseña.
+Las credenciales por defecto son:
+
+| Campo      | Valor por defecto |
+|------------|-------------------|
+| Usuario    | `admin`           |
+| Contraseña | `admin`           |
+
+![04.png](assets/04.png)
+
+### 🔐 Cambio obligatorio de contraseña
+
+Por razones de seguridad, `SonarQube` nos solicitará actualizar la contraseña del usuario `admin` en el primer acceso.
+En este ejemplo, definimos una nueva contraseña segura:
+
+| Campo      | Valor por defecto    |
+|------------|----------------------|
+| Usuario    | `admin`              |
+| Contraseña | `$onarQubeAdmin2025` |
+
+![05.png](assets/05.png)
+
+⚙️ Explicación técnica:
+
+> `SonarQube` almacena las credenciales de usuarios en la base de datos `PostgreSQL` y encripta las contraseñas usando
+> `BCrypt`. Por política interna, no permite continuar usando la contraseña por defecto en instancias nuevas para
+> evitar accesos no autorizados.
+
+### 🏠 Pantalla principal de SonarQube
+
+Una vez actualizada la contraseña, seremos redirigidos al `Dashboard principal`, donde podremos:
+
+- Crear o importar proyectos.
+- Ver resultados de análisis de calidad.
+- Configurar reglas de análisis, plugins y políticas de seguridad.
+
+![06.png](assets/06.png)
+

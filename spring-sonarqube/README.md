@@ -83,3 +83,60 @@ antes de que lleguen al servidor o repositorio.
 Ya entendemos el propósito del plugin y su rol en el desarrollo diario. A continuación, procederemos con la integración
 de `SonarQube` + `Spring Boot`, que es el objetivo central de este tutorial.
 
+---
+
+# 🧠 ¿Qué es SonarQube?
+
+`SonarQube` es una plataforma `open-source` para el `análisis estático de código` desarrollada por `SonarSource` que
+ayuda a los equipos de desarrollo a `mejorar la calidad, seguridad y mantenibilidad del software`.
+
+Su función principal es `analizar el código fuente` de un proyecto y generar un `informe de calidad` con métricas,
+advertencias y recomendaciones sobre aspectos como:
+
+- 🪲 `Bugs (errores potenciales)`: fragmentos de código que podrían causar fallos en tiempo de ejecución.
+- ⚔️ `Vulnerabilidades`: posibles brechas de seguridad en el código.
+- 🌫️ `Code Smells`: malas prácticas que afectan la legibilidad o mantenibilidad.
+- 🧱 `Duplicaciones`: bloques de código repetidos que dificultan el mantenimiento.
+- 🧪 `Coverage`: porcentaje de cobertura de pruebas unitarias e integración.
+- 🧩 `Debt Ratio (deuda técnica)`: tiempo estimado para corregir las malas prácticas detectadas.
+
+### 💡 ¿Por qué las empresas utilizan SonarQube?
+
+En entornos empresariales, `SonarQube` se convierte en un `componente clave del ciclo de integración continua (CI/CD)`.
+Permite mantener estándares de calidad de código homogéneos entre los equipos y garantizar que las nuevas versiones
+del software no introduzcan errores ni vulnerabilidades.
+
+Usos típicos en empresas:
+
+1. 🔍 Se ejecuta automáticamente durante el `build` del proyecto (por ejemplo, en `Jenkins`, `GitLab CI` o
+   `GitHub Actions`).
+2. 📦 El servidor `SonarQube` recibe los resultados del análisis.
+3. 📈 Se generan `dashboards` con métricas de calidad y umbrales `(Quality Gates)`.
+4. 🚫 Si el código no cumple los estándares definidos, el pipeline puede fallar antes del despliegue.
+5. 💬 En otras palabras, `SonarQube` actúa como un guardia de calidad continua, previniendo que código inseguro o mal
+   estructurado llegue a producción.
+
+### ⚙️ Arquitectura básica de SonarQube
+
+Un entorno típico de SonarQube consta de tres componentes principales:
+
+| Componente                              | Descripción                                                                                                                              |
+|-----------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| 🧩 **SonarQube Server**                 | Servidor principal que recibe los resultados del análisis, los almacena en una base de datos y muestra los reportes en una interfaz web. |
+| 🧠 **SonarScanner**                     | Cliente o agente que analiza el código y envía los resultados al servidor. Se ejecuta localmente o dentro de un pipeline CI/CD.          |
+| 🧑‍💻 **SonarQube for IDE (SonarLint)** | Plugin del IDE que permite analizar el código en tiempo real mientras se escribe.                                                        |
+
+### 🎯 Beneficios clave
+
+- ✅ Mejora la calidad del código desde etapas tempranas.
+- ✅ Reduce la deuda técnica acumulada en proyectos grandes.
+- ✅ Promueve estándares de desarrollo uniformes en toda la organización.
+- ✅ Facilita auditorías de seguridad y cumplimiento (por ejemplo, OWASP, CWE, etc.).
+- ✅ Se integra fácilmente con herramientas empresariales como Jenkins, GitLab CI/CD, GitHub Actions o Azure DevOps.
+
+### 💡 Conclusión
+
+`SonarQube` no solo es una herramienta de análisis, sino un `ecosistema completo de calidad de software`.
+Ayuda a los equipos a mantener un código `limpio, seguro y sostenible`, alineando la práctica técnica diaria con las
+políticas de calidad de la empresa.
+

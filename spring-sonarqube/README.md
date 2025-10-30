@@ -393,3 +393,49 @@ Una vez actualizada la contraseña, seremos redirigidos al `Dashboard principal`
 
 ![06.png](assets/06.png)
 
+## 🔐 Generando un Token de Seguridad para el acceso desde Spring Boot a SonarQube
+
+Para que nuestro proyecto `Spring Boot` pueda autenticarse ante el servidor de `SonarQube`, debemos generar un
+`token de seguridad`. Este token sustituye el uso de `usuario/contraseña` y es el mecanismo estándar de autenticación
+cuando integramos `SonarQube` con herramientas externas (por ejemplo, `Maven`, `Jenkins` o `GitHub Actions`).
+
+### 👤 Accediendo a la configuración de usuario
+
+Desde la interfaz principal de `SonarQube`, hacemos clic en nuestro perfil (parte superior derecha) y seleccionamos:
+`My Account → Security`.
+
+![07.png](assets/07.png)
+
+### ⚙️ Creación del token
+
+En la pestaña `Security`, completamos los siguientes campos:
+
+| Campo          | Valor sugerido          | Descripción                                                                      |
+|----------------|-------------------------|----------------------------------------------------------------------------------|
+| **Name**       | `local-analysis`        | Nombre identificador del token (puede ser cualquier alias descriptivo).          |
+| **Type**       | `Global Analysis Token` | Permite ejecutar análisis sobre cualquier proyecto asociado al usuario.          |
+| **Expires in** | `No expiration`         | En este ejemplo no tendrá fecha de expiración, ya que se usará en entorno local. |
+
+Luego hacemos clic en el botón `Generate`.
+
+![08.png](assets/08.png)
+
+### 📋 Copiando el token generado
+
+`SonarQube` mostrará un mensaje como el siguiente:
+
+> ✅ “Se ha creado un nuevo token llamado `local-analysis`. ¡Asegúrate de copiarlo ahora, no podrás volver a verlo!”
+
+Esto significa que el token solo se muestra una vez al momento de su creación. Cópialo y guárdalo de forma segura,
+ya que no podrá recuperarse después.
+
+````
+Token: sqa_a0bc5503b5942ddf4739558c59bbb35b66869a66 
+````
+
+![09.png](assets/09.png)
+
+⚠️ Importante:
+> Nunca compartas este token en repositorios públicos, documentación compartida o pipelines sin cifrado.
+> Cualquier persona que posea el token puede ejecutar análisis o modificar configuraciones en tu servidor `SonarQube`.
+

@@ -140,3 +140,206 @@ Un entorno típico de SonarQube consta de tres componentes principales:
 Ayuda a los equipos a mantener un código `limpio, seguro y sostenible`, alineando la práctica técnica diaria con las
 políticas de calidad de la empresa.
 
+## [🐳 Configurar Docker Compose para SonarQube](https://docs.sonarsource.com/sonarqube/latest/setup-and-upgrade/install-the-server/installing-sonarqube-from-docker/)
+
+> 📌 Parte de esta configuración se basa en la documentación oficial de `SonarQube`, en el apartado
+> [Installing SonarQube Server Developer or Enterprise Edition from the Docker image](https://docs.sonarsource.com/sonarqube/latest/setup-and-upgrade/install-the-server/installing-sonarqube-from-docker/),
+> con ajustes adicionales para adaptarla a un entorno de desarrollo profesional.
+
+Antes de integrar `SonarQube` con `Spring Boot`, debemos levantar su entorno de ejecución. Para ello, utilizaremos
+`Docker Compose`, que nos permitirá orquestar fácilmente tanto el servicio de `SonarQube` como su base de datos
+`PostgreSQL`.
+
+### 📁 Estructura del archivo
+
+Crearemos un archivo llamado `compose.yml` dentro del directorio `spring-sonarqube/docker`.
+Este archivo definirá los servicios y volúmenes necesarios para que `SonarQube` funcione correctamente.
+
+Este archivo define dos servicios:
+
+- `s-sonarqube`: servidor `SonarQube`.
+- `s-postgres-sonar`: base de datos `PostgreSQL`.
+
+````yml
+services:
+  s-sonarqube:
+    image: sonarqube:25.10.0.114319-community
+    container_name: c-sonarqube
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://s-postgres-sonar:5432/db_sonar_dev
+      SONAR_JDBC_USERNAME: sonar_dev_user
+      SONAR_JDBC_PASSWORD: sonar_dev_password
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - sonarqube-net
+    depends_on:
+      - s-postgres-sonar
+
+  s-postgres-sonar:
+    image: postgres:17-alpine
+    container_name: c-postgres-sonar
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_DB: db_sonar_dev
+      POSTGRES_USER: sonar_dev_user
+      POSTGRES_PASSWORD: sonar_dev_password
+    volumes:
+      - postgres-sonar-data:/var/lib/postgresql/data
+    networks:
+      - sonarqube-net
+
+volumes:
+  sonarqube_data:
+    name: sonarqube_data
+  sonarqube_extensions:
+    name: sonarqube_extensions
+  sonarqube_logs:
+    name: sonarqube_logs
+  postgres-sonar-data:
+    name: postgres-sonar-data
+
+networks:
+  sonarqube-net:
+    name: sonarqube-net
+````
+
+### ⚙️ Explicación técnica de la configuración
+
+| Componente                                  | Descripción                                                                                                                       |
+|---------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|
+| `image: sonarqube:25.10.0.114319-community` | Usa la versión estable más reciente de SonarQube Community Edition.                                                               |
+| `ports: 9000:9000`                          | Expone `SonarQube` en el puerto 9000. Accederás en `http://localhost:9000` (usuario y contraseña por defecto: `admin` / `admin`). |
+| `SONAR_JDBC_URL`                            | URL JDBC para conectar SonarQube con PostgreSQL.                                                                                  |
+| `SONAR_JDBC_USERNAME`                       | Usuario de la base de datos.                                                                                                      |
+| `SONAR_JDBC_PASSWORD`                       | Contraseña de la base de datos.                                                                                                   |
+| `depends_on`                                | Garantiza que la base de datos se levante antes que SonarQube.                                                                    |
+| `restart: unless-stopped`                   | Reinicia el contenedor si falla, excepto si fue detenido manualmente.                                                             |
+
+#### 🗄️ Configuración de la base de datos
+
+> `SonarQube` no debe usarse con `H2` en producción. En entornos empresariales siempre se recomienda `PostgreSQL`,
+> ya que es el único motor oficialmente soportado para producción.
+
+### 📦 Volúmenes persistentes
+
+Estos volúmenes permiten mantener datos entre reinicios o actualizaciones:
+
+| Volumen                | Propósito                                                       |
+|------------------------|-----------------------------------------------------------------|
+| `sonarqube_data`       | Índices de Elasticsearch, configuraciones y datos de análisis.  |
+| `sonarqube_logs`       | Logs de acceso, procesos web, CE y Elasticsearch.               |
+| `sonarqube_extensions` | Plugins instalados y drivers JDBC (como Oracle si se requiere). |
+| `postgres-sonar-data`  | atos persistentes de la base de datos PostgreSQL.               |
+
+> 🧠 `Nota técnica`: En entornos corporativos, estos volúmenes son clave para mantener la integridad del sistema
+> ante actualizaciones o migraciones.
+
+### ✅ Buenas prácticas corporativas
+
+- 🔒 `PostgreSQL como base de datos`: Es la opción recomendada por `SonarQube` y ampliamente usada en empresas por su
+  estabilidad y soporte oficial.
+- 📁 `Separación de volúmenes`: Facilita backups, restauraciones y actualizaciones sin pérdida de datos.
+- 🧩 `Uso de Alpine en PostgreSQL`: Reduce el tamaño de la imagen y mejora tiempos de despliegue.
+
+## 🚀 Levantando el entorno SonarQube con Docker Compose
+
+Una vez definido el archivo `compose.yml`, podemos levantar los contenedores de `SonarQube` y `PostgreSQL` ejecutando
+el siguiente comando desde la raíz del proyecto o asegurándonos de apuntar correctamente a la ruta donde se encuentra
+el `compose.yml`:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite (feature/spring-sonarqube)
+$ docker compose -f .\spring-sonarqube\docker\compose.yml up -d                                                          
+...
+ ✔ Network sonarqube-net        Created                                                                                  
+ ✔ Volume sonarqube_extensions  Created                                                                                  
+ ✔ Volume sonarqube_logs        Created                                                                                  
+ ✔ Volume postgres-sonar-data   Created                                                                                  
+ ✔ Volume sonarqube_data        Created                                                                                  
+ ✔ Container c-postgres-sonar   Started                                                                                  
+ ✔ Container c-sonarqube        Started                                                                                   
+````
+
+Este comando:
+
+- Descarga las imágenes necesarias (sonarqube y postgres).
+- Crea la red y los volúmenes definidos.
+- Inicia ambos contenedores en segundo plano (-d = detached mode)
+
+### 🧠 Verificando contenedores activos
+
+Podemos confirmar que ambos servicios se están ejecutando con el siguiente comando:
+
+````bash
+$ docker container ls -a
+CONTAINER ID   IMAGE                                COMMAND                  CREATED         STATUS             PORTS                                         NAMES
+5ad90230cf61   sonarqube:25.10.0.114319-community   "/opt/sonarqube/dock…"   3 minutes ago   Up 3 minutes       0.0.0.0:9000->9000/tcp, [::]:9000->9000/tcp   c-sonarqube
+c02d7529f0cb   postgres:17-alpine                   "docker-entrypoint.s…"   3 minutes ago   Up 3 minutes       0.0.0.0:5433->5432/tcp, [::]:5433->5432/tcp   c-postgres-sonar
+````
+
+### 🧩 Verificando la base de datos y sus tablas
+
+Para confirmar que la base de datos fue creada correctamente dentro del contenedor de `PostgreSQL`, podemos acceder
+a él directamente:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite (feature/spring-sonarqube)
+$ docker container exec -it c-postgres-sonar /bin/sh
+/ # psql -U sonar_dev_user -d db_sonar_dev
+psql (17.5)
+Type "help" for help.
+
+db_sonar_dev=# \l
+                                                               List of databases
+     Name     |     Owner      | Encoding | Locale Provider |  Collate   |   Ctype    | Locale | ICU Rules |         Access privileges
+--------------+----------------+----------+-----------------+------------+------------+--------+-----------+-----------------------------------
+ db_sonar_dev | sonar_dev_user | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           |
+ postgres     | sonar_dev_user | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           |
+ template0    | sonar_dev_user | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | =c/sonar_dev_user                +
+              |                |          |                 |            |            |        |           | sonar_dev_user=CTc/sonar_dev_user
+ template1    | sonar_dev_user | UTF8     | libc            | en_US.utf8 | en_US.utf8 |        |           | =c/sonar_dev_user                +
+              |                |          |                 |            |            |        |           | sonar_dev_user=CTc/sonar_dev_user
+(4 rows)
+
+db_sonar_dev=# \dt
+                      List of relations
+ Schema |           Name            | Type  |     Owner
+--------+---------------------------+-------+----------------
+ public | active_rule_parameters    | table | sonar_dev_user
+ public | active_rules              | table | sonar_dev_user
+ public | alm_pats                  | table | sonar_dev_user
+ ...
+ public | user_dismissed_messages   | table | sonar_dev_user
+ public | user_roles                | table | sonar_dev_user
+ public | user_tokens               | table | sonar_dev_user
+ public | users                     | table | sonar_dev_user
+ public | webhook_deliveries        | table | sonar_dev_user
+ public | webhooks                  | table | sonar_dev_user
+(109 rows)
+
+db_sonar_dev=# 
+````
+
+En este punto, `SonarQube` ya ha inicializado su esquema interno en `PostgreSQL`, creando más de 100 tablas que
+almacenan reglas, análisis, configuraciones de proyectos, usuarios, tokens, entre otros. Esto confirma que la conexión
+entre `SonarQube` y `PostgreSQL` está funcionando correctamente.
+
+### 🖥️ Visualización desde DBeaver (opcional)
+
+También podemos verificar la estructura de la base de datos conectándonos desde `DBeaver`
+(o cualquier cliente SQL) usando las credenciales definidas en el `compose.yml`:
+
+![03.png](assets/03.png)
+
+💡 Consejo profesional:
+> En entornos empresariales se acostumbra conectar herramientas de administración como `pgAdmin` o `DBeaver` a
+> contenedores `PostgreSQL` para validaciones rápidas, debugging y auditoría de integraciones.
+

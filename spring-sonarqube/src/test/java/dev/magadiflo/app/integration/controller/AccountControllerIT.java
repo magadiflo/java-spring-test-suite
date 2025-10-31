@@ -21,12 +21,19 @@ import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/*
+ * Esta clase forma parte del conjunto de pruebas de integración del proyecto.
+ * Nota: Estas pruebas no se utilizan para el cálculo de cobertura de código,
+ * ya que JaCoCo únicamente considera pruebas unitarias.
+ * Se mantienen para simular un entorno empresarial real con múltiples niveles de testing.
+ */
+
 @Slf4j
-@Tag("integration2")
+@Tag("integration")
 @ActiveProfiles("test")
 @Sql(scripts = {TestScripts.CLEANUP_MYSQL, TestScripts.DATA_TEST}, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-class AccountControllerWebTestClientTest {
+class AccountControllerIT {
 
     @Autowired
     private WebTestClient client;

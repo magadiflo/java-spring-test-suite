@@ -3,7 +3,7 @@ server:
 
 spring:
   application:
-    name: spring-rest-api
+    name: spring-sonarqube
 
   profiles:
     active: dev   # Activa el perfil de desarrollo por defecto

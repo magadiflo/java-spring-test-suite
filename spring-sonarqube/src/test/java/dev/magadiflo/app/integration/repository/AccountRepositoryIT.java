@@ -6,8 +6,10 @@ import dev.magadiflo.app.entity.Account;
 import dev.magadiflo.app.entity.Bank;
 import dev.magadiflo.app.repository.AccountRepository;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.jdbc.Sql;
@@ -20,11 +22,20 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+/*
+ * Esta clase forma parte del conjunto de pruebas de integración del proyecto.
+ * Nota: Estas pruebas no se utilizan para el cálculo de cobertura de código,
+ * ya que JaCoCo únicamente considera pruebas unitarias.
+ * Se mantienen para simular un entorno empresarial real con múltiples niveles de testing.
+ */
+
 @Slf4j
-@ActiveProfiles("test-h2")
+@Tag("integration")
+@ActiveProfiles("test")
 @Sql(scripts = TestScripts.DATA_TEST, executionPhase = Sql.ExecutionPhase.BEFORE_TEST_CLASS)
 @DataJpaTest
-class AccountRepositoryH2Test {
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE) // No reemplazar la BD configurada, usar la de application-test.yml
+class AccountRepositoryIT {
 
     @Autowired
     private AccountRepository accountRepository;
@@ -33,10 +44,10 @@ class AccountRepositoryH2Test {
     private DataSource dataSource;
 
     @Test
-    void shouldUseH2Database() throws SQLException {
+    void shouldUseMySQLDatabase() throws SQLException {
         String url = this.dataSource.getConnection().getMetaData().getURL();
         log.info("Usando base de datos: {}", url);
-        assertThat(url).contains("h2");
+        assertThat(url).contains("mysql");
     }
 
     @Test

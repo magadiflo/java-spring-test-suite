@@ -2,21 +2,27 @@ package dev.magadiflo.app.unit.service;
 
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
+import dev.magadiflo.app.dto.DepositRequest;
 import dev.magadiflo.app.dto.TransactionRequest;
 import dev.magadiflo.app.dto.WithdrawalRequest;
 import dev.magadiflo.app.entity.Account;
 import dev.magadiflo.app.entity.Bank;
 import dev.magadiflo.app.exception.AccountNotFoundException;
+import dev.magadiflo.app.exception.DatabaseOperationException;
 import dev.magadiflo.app.exception.InsufficientBalanceException;
+import dev.magadiflo.app.exception.InvalidTransactionException;
 import dev.magadiflo.app.factory.AccountTestFactory;
 import dev.magadiflo.app.mapper.AccountMapper;
 import dev.magadiflo.app.repository.AccountRepository;
 import dev.magadiflo.app.repository.BankRepository;
-import dev.magadiflo.app.service.AccountService;
 import dev.magadiflo.app.service.impl.AccountServiceImpl;
-import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -25,20 +31,17 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class AccountServiceImplMockitoManualTest {
-
+@Tag("unit")
+@ExtendWith(MockitoExtension.class)
+class AccountServiceImplTest {
+    @Mock
     private AccountRepository accountRepository;
+    @Mock
     private BankRepository bankRepository;
+    @Mock
     private AccountMapper accountMapper;
-    private AccountService accountServiceUnderTest;
-
-    @BeforeEach
-    void setUp() {
-        this.accountRepository = Mockito.mock(AccountRepository.class);
-        this.bankRepository = Mockito.mock(BankRepository.class);
-        this.accountMapper = Mockito.mock(AccountMapper.class);
-        this.accountServiceUnderTest = new AccountServiceImpl(this.accountRepository, this.bankRepository, this.accountMapper);
-    }
+    @InjectMocks
+    private AccountServiceImpl accountServiceUnderTest;
 
     @Test
     void shouldTransferBalanceWhenAccountsAreFromSameBank() {
@@ -66,6 +69,47 @@ class AccountServiceImplMockitoManualTest {
         Mockito.verify(this.accountRepository).save(targetAccount);
         Mockito.verify(this.accountRepository, Mockito.times(2)).save(Mockito.any(Account.class));
         Mockito.verify(this.bankRepository).save(bank);
+    }
+
+    @Test
+    void shouldThrowInvalidTransactionExceptionWhenSourceAndTargetAccountsAreTheSame() {
+        // given
+        TransactionRequest request = new TransactionRequest(1L, 1L, new BigDecimal("5000"));
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", account);
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.transfer(request))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessage("No se puede hacer transferencia de una cuenta a sí misma");
+
+        // then
+        assertThat(bank.getTotalTransfers()).isZero();
+        Mockito.verifyNoInteractions(this.accountRepository);
+        Mockito.verifyNoInteractions(this.bankRepository);
+    }
+
+    @Test
+    void shouldThrowInvalidTransactionExceptionWhenAccountsAreFromDifferentBanks() {
+        // given
+        TransactionRequest request = new TransactionRequest(1L, 2L, new BigDecimal("5000"));
+        Account sourceAccount = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Account targetAccount = AccountTestFactory.createAccount(2L, "Kiara", new BigDecimal("1000"));
+        AccountTestFactory.createBank(1L, "BCP", sourceAccount);
+        AccountTestFactory.createBank(2L, "BBVA", targetAccount);
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(sourceAccount));
+        Mockito.when(this.accountRepository.findById(2L)).thenReturn(Optional.of(targetAccount));
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.transfer(request))
+                .isInstanceOf(InvalidTransactionException.class)
+                .hasMessage("No se puede hacer transferencia entre cuentas de diferentes bancos");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).findById(2L);
+        Mockito.verify(this.accountRepository, Mockito.times(2)).findById(Mockito.anyLong());
     }
 
     @Test
@@ -119,6 +163,31 @@ class AccountServiceImplMockitoManualTest {
                 .containsExactly(1L, "Milagros", new BigDecimal("2000"), bank.getName());
         Mockito.verify(this.accountRepository).findById(1L);
         Mockito.verify(this.accountMapper).toAccountResponse(account);
+    }
+
+    @Test
+    void shouldReturnAccountResponseWhenAccountExistsByHolder() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", account);
+        AccountResponse accountResponse = new AccountResponse(account.getId(), account.getHolder(), account.getBalance(), account.getBank().getName());
+        Mockito.when(this.accountRepository.findAccountByHolder("Milagros")).thenReturn(Optional.of(account));
+        Mockito.when(this.accountMapper.toAccountResponse(account)).thenReturn(accountResponse);
+
+        // when
+        AccountResponse result = this.accountServiceUnderTest.findAccountByHolder("Milagros");
+
+        // then
+        assertThat(result)
+                .isNotNull()
+                .isSameAs(accountResponse);
+        assertThat(result)
+                .extracting(AccountResponse::id, AccountResponse::holder, AccountResponse::balance, AccountResponse::bankName)
+                .containsExactly(1L, "Milagros", new BigDecimal("2000"), bank.getName());
+        Mockito.verify(this.accountRepository).findAccountByHolder("Milagros");
+        Mockito.verify(this.accountMapper).toAccountResponse(account);
+        Mockito.verifyNoMoreInteractions(this.accountRepository);
+        Mockito.verifyNoMoreInteractions(this.accountMapper);
     }
 
     @Test
@@ -225,6 +294,100 @@ class AccountServiceImplMockitoManualTest {
         Mockito.verify(this.accountMapper).toAccount(accountRequest, bank);
         Mockito.verify(this.accountRepository).save(accountWithoutId);
         Mockito.verify(this.accountMapper).toAccountResponse(accountWithoutId);
+    }
+
+    @Test
+    void shouldDeleteTheAccountWhenItExists() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        Mockito.when(this.accountRepository.deleteAccountById(1L)).thenReturn(1);
+
+        // when
+        this.accountServiceUnderTest.deleteAccount(1L);
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).deleteAccountById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountRepository);
+    }
+
+    @Test
+    void shouldThrowAccountNotFoundExceptionWhenAttemptingDeleteAnAccountThatDoesNotExist() {
+        // given
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.deleteAccount(1L))
+                .isInstanceOf(AccountNotFoundException.class)
+                .hasMessage("No se encontró la cuenta con ID: 1");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository, Mockito.never()).deleteAccountById(Mockito.anyLong());
+        Mockito.verifyNoMoreInteractions(this.accountRepository);
+    }
+
+    @Test
+    void shouldThrowDatabaseOperationExceptionWhenDeletionOfAnExistingAccountFails() {
+        // given
+        Account account = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(account));
+        Mockito.when(this.accountRepository.deleteAccountById(1L)).thenReturn(0);
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.deleteAccount(1L))
+                .isInstanceOf(DatabaseOperationException.class)
+                .hasMessage("Error al ejecutar operación de BD: DELETE cuenta. No se afectaron las filas esperadas");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).deleteAccountById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountRepository);
+    }
+
+    @Test
+    void shouldDepositAmountSuccessfullyWhenAccountExists() {
+        // given
+        Account accountBeforeDeposit = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2000"));
+        Account accountAfterDeposit = AccountTestFactory.createAccount(1L, "Milagros", new BigDecimal("2500"));
+        Bank bank = AccountTestFactory.createBank(1L, "BCP", accountBeforeDeposit, accountAfterDeposit);
+        DepositRequest request = new DepositRequest(new BigDecimal("500"));
+        AccountResponse expectedResponse = AccountTestFactory.toAccountResponse(accountAfterDeposit);
+
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.of(accountBeforeDeposit));
+        Mockito.when(this.accountRepository.save(accountBeforeDeposit)).thenReturn(accountBeforeDeposit); // Ya mutado
+        Mockito.when(this.accountMapper.toAccountResponse(accountBeforeDeposit)).thenReturn(expectedResponse);
+
+        // when
+        AccountResponse actualResponse = this.accountServiceUnderTest.deposit(1L, request);
+
+        // then
+        assertThat(accountBeforeDeposit.getBalance())
+                .isEqualByComparingTo("2500");
+        assertThat(actualResponse)
+                .isNotNull()
+                .extracting(AccountResponse::id, AccountResponse::holder, AccountResponse::balance, AccountResponse::bankName)
+                .containsExactly(1L, "Milagros", new BigDecimal("2500"), bank.getName());
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verify(this.accountRepository).save(accountBeforeDeposit);
+        Mockito.verify(this.accountMapper).toAccountResponse(accountBeforeDeposit);
+    }
+
+    @Test
+    void shouldThrowAccountNotFoundExceptionWhenAccountDoesNotExistDuringDeposit() {
+        // given
+        DepositRequest request = new DepositRequest(new BigDecimal("500"));
+        Mockito.when(this.accountRepository.findById(1L)).thenReturn(Optional.empty());
+
+        // when
+        assertThatThrownBy(() -> this.accountServiceUnderTest.deposit(1L, request))
+                .isInstanceOf(AccountNotFoundException.class)
+                .hasMessage("No se encontró la cuenta con ID: 1");
+
+        // then
+        Mockito.verify(this.accountRepository).findById(1L);
+        Mockito.verifyNoMoreInteractions(this.accountRepository, this.accountMapper);
     }
 
     @Test

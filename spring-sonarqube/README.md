@@ -758,3 +758,107 @@ class GlobalExceptionHandlerTest {
     void shouldHandleInvalidTransactionException() {/*code*/}
 }
 ````
+
+## ✅ Ejecutando pruebas unitarias y validando cobertura con JaCoCo luego de agregar nuevos tests
+
+### ▶️ Ejecución de pruebas unitarias
+
+Una vez agregadas las nuevas pruebas unitarias, procedemos a ejecutar el siguiente comando para validar su correcto
+funcionamiento:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
+$ mvn clean test
+[INFO] Scanning for projects...
+...
+[INFO]
+[INFO] Tests run: 35, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-sonarqube ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-sonarqube' with 4 classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  18.217 s
+[INFO] Finished at: 2025-10-31T18:06:06-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+El resultado muestra que todas las pruebas se ejecutaron correctamente y que `JaCoCo` generó los archivos de reporte
+correspondientes (`.exec`, `.xml` y `.html`).
+
+### 📊 Verificando cobertura mínima con Maven
+
+Luego de incorporar los nuevos tests, validamos nuevamente el porcentaje de cobertura configurado en el
+`plugin JaCoCo` (por ejemplo,` <minimum>0.80</minimum>`), ejecutando el siguiente comando:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
+$ mvn clean verify
+[INFO] Scanning for projects...
+[INFO]
+...
+[INFO]
+[INFO] --- jacoco:0.8.12:check (check) @ spring-sonarqube ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-sonarqube' with 4 classes
+[INFO] All coverage checks have been met.
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  21.019 s
+[INFO] Finished at: 2025-10-31T18:10:37-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+### ✅ Resultado
+
+> La salida indica que todas las verificaciones de cobertura se cumplieron satisfactoriamente, es decir, cada paquete
+> alcanzó o superó el umbral configurado (`80%` en este caso).
+
+### ⚙️ Explicación técnica
+
+El objetivo de este paso es garantizar que el proyecto cumpla con los requisitos de calidad antes de enviarse al
+servidor de análisis estático (`SonarQube`).
+
+Si alguna clase o paquete queda por debajo del umbral, `Maven` marcará el build como fallido, previniendo así que el
+código avance a etapas posteriores de integración continua (`CI/CD`).
+
+## 💡 Consideraciones sobre los umbrales de cobertura
+
+La verificación de cobertura que realizamos en este punto pertenece únicamente a `JaCoCo`, el cual valida el
+`porcentaje de cobertura definido localmente` dentro del `pom.xml` antes de que el código sea analizado por `SonarQube`.
+
+Sin embargo, `SonarQube también permite establecer su propio umbral mínimo de cobertura` como parte de sus
+`Quality Gates`. Esto significa que, además del control técnico local de `JaCoCo`, el servidor `SonarQube` puede
+aplicar un control adicional más estricto sobre la calidad global del proyecto.
+
+### 🎯 Estrategia recomendada en entornos reales
+
+Se recomienda utilizar ambos controles de forma complementaria, con umbrales diferenciados:
+
+| Herramienta | Umbral sugerido | Propósito                                                           |
+|-------------|:---------------:|---------------------------------------------------------------------|
+| `JaCoCo`    |      `80%`      | Filtro técnico local: evita builds con cobertura muy baja           |
+| `SonarQube` |      `90%`      | Validación estratégica: aplica políticas corporativas más exigentes |
+
+De esta forma:
+
+- ✅ `JaCoCo` permite ejecutar el análisis incluso si la cobertura no alcanza el estándar corporativo.
+- 🏢 `SonarQube` muestra el resultado completo del análisis, incluyendo duplicación, bugs, smells y cobertura.
+- 🚀 Se garantiza un proceso de validación gradual, sólido y alineado con prácticas reales de CI/CD.
+
+### 🧠 ¿Por qué no usar el mismo umbral en ambos?
+
+Si se configuran ambos con el mismo umbral (ej. `90%`), entonces:
+
+- Si la cobertura es `89%`, `JaCoCo` bloqueará el build antes de que el análisis llegue a `SonarQube`.
+- Esto impide que el equipo vea el reporte completo en el dashboard de calidad.
+- Se pierde visibilidad sobre métricas clave como `duplicación`, `bugs`, `smells` y `tendencias de calidad`.
+
+Por eso, en entornos empresariales se prefiere que:
+
+- `JaCoCo` actúe como `barrera técnica mínima`, sin bloquear por décimas.
+- `SonarQube` sea quien `falle el Quality Gate`, permitiendo visibilidad y trazabilidad.

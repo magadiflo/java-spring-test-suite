@@ -4,7 +4,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import dev.magadiflo.app.controller.AccountController;
 import dev.magadiflo.app.dto.AccountCreateRequest;
 import dev.magadiflo.app.dto.AccountResponse;
+import dev.magadiflo.app.dto.AccountUpdateRequest;
+import dev.magadiflo.app.dto.DepositRequest;
 import dev.magadiflo.app.dto.TransactionRequest;
+import dev.magadiflo.app.dto.WithdrawalRequest;
 import dev.magadiflo.app.exception.AccountNotFoundException;
 import dev.magadiflo.app.exception.InsufficientBalanceException;
 import dev.magadiflo.app.service.AccountService;
@@ -22,8 +25,10 @@ import org.springframework.test.web.servlet.ResultActions;
 import java.math.BigDecimal;
 import java.util.List;
 
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -179,4 +184,92 @@ class AccountControllerTest {
         Mockito.verify(this.accountService).transfer(Mockito.any());
         Mockito.verifyNoMoreInteractions(this.accountService);
     }
+
+    @Test
+    void shouldUpdateAccountSuccessfully() throws Exception {
+        // given
+        Long accountId = 1L;
+        AccountUpdateRequest request = new AccountUpdateRequest("Milagros Díaz");
+        AccountResponse updatedResponse = new AccountResponse(accountId, "Milagros Díaz", new BigDecimal("2500"), "BCP");
+        Mockito.when(this.accountService.updateAccount(accountId, request)).thenReturn(updatedResponse);
+
+        // when
+        ResultActions result = this.mockMvc.perform(put("/api/v1/accounts/{accountId}", accountId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(request)));
+
+        // then
+        result.andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", Matchers.is(1)))
+                .andExpect(jsonPath("$.holder", Matchers.is("Milagros Díaz")))
+                .andExpect(jsonPath("$.balance", Matchers.is(2500)))
+                .andExpect(jsonPath("$.bankName", Matchers.is("BCP")));
+        Mockito.verify(this.accountService).updateAccount(accountId, request);
+        Mockito.verifyNoMoreInteractions(this.accountService);
+    }
+
+    @Test
+    void shouldDeleteAccountSuccessfully() throws Exception {
+        // given
+        Long accountId = 1L;
+        Mockito.doNothing().when(this.accountService).deleteAccount(accountId);
+
+        // when
+        ResultActions result = this.mockMvc.perform(delete("/api/v1/accounts/{accountId}", accountId));
+
+        // then
+        result.andExpect(status().isNoContent());
+        Mockito.verify(this.accountService).deleteAccount(accountId);
+        Mockito.verifyNoMoreInteractions(this.accountService);
+    }
+
+    @Test
+    void shouldDepositSuccessfully() throws Exception {
+        // given
+        Long accountId = 1L;
+        DepositRequest request = new DepositRequest(new BigDecimal("500"));
+        AccountResponse response = new AccountResponse(accountId, "Milagros", new BigDecimal("2500"), "BCP");
+        Mockito.when(this.accountService.deposit(accountId, request)).thenReturn(response);
+
+        // when
+        ResultActions result = this.mockMvc.perform(post("/api/v1/accounts/{accountId}/deposit", accountId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(request)));
+
+        // then
+        result.andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", Matchers.is(1)))
+                .andExpect(jsonPath("$.holder", Matchers.is("Milagros")))
+                .andExpect(jsonPath("$.balance", Matchers.is(2500)))
+                .andExpect(jsonPath("$.bankName", Matchers.is("BCP")));
+        Mockito.verify(this.accountService).deposit(accountId, request);
+        Mockito.verifyNoMoreInteractions(this.accountService);
+    }
+
+    @Test
+    void shouldWithdrawSuccessfully() throws Exception {
+        // given
+        Long accountId = 1L;
+        WithdrawalRequest request = new WithdrawalRequest(new BigDecimal("300"));
+        AccountResponse response = new AccountResponse(accountId, "Milagros", new BigDecimal("1700"), "BCP");
+        Mockito.when(this.accountService.withdraw(accountId, request)).thenReturn(response);
+
+        // when
+        ResultActions result = this.mockMvc.perform(post("/api/v1/accounts/{accountId}/withdraw", accountId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(request)));
+
+        // then
+        result.andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", Matchers.is(1)))
+                .andExpect(jsonPath("$.holder", Matchers.is("Milagros")))
+                .andExpect(jsonPath("$.balance", Matchers.is(1700)))
+                .andExpect(jsonPath("$.bankName", Matchers.is("BCP")));
+        Mockito.verify(this.accountService).withdraw(accountId, request);
+        Mockito.verifyNoMoreInteractions(this.accountService);
+    }
+
 }

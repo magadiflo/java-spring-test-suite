@@ -638,3 +638,123 @@ En este caso, vemos que dos paquetes no alcanzaron el umbral mínimo del `80%`:
 - `dev.magadiflo.app.exception`: `28%`
 - `dev.magadiflo.app.controller`: `55%`
 
+## 🧪 Implementando pruebas unitarias para cumplir el umbral de cobertura
+
+Como vimos anteriormente, los paquetes `dev.magadiflo.app.exception` y `dev.magadiflo.app.controller` no alcanzaron el
+umbral mínimo de cobertura (`80%`) establecido en la configuración de `JaCoCo`. Para corregir esto, agregaremos pruebas
+unitarias adicionales que validen los métodos faltantes.
+
+💡 `Nota`:
+> El objetivo de esta sección no es aumentar la cobertura artificialmente, sino garantizar que las clases críticas
+> estén efectivamente cubiertas por pruebas significativas.
+
+### 🧩 Añadiendo pruebas en AccountControllerTest
+
+La primera clase con bajo porcentaje fue el `controller`, que gestiona las operaciones principales de cuentas.
+A continuación, se muestra la clase de pruebas donde se añadieron los tests faltantes para cubrir las operaciones
+`update`, `delete`, `deposit` y `withdraw`.
+
+````java
+
+@Tag("unit")
+@WebMvcTest(AccountController.class)
+class AccountControllerTest {
+
+    @MockitoBean
+    private AccountService accountService;
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    /*other tests*/
+
+    @Test
+    void shouldUpdateAccountSuccessfully() throws Exception {/*code*/}
+
+    @Test
+    void shouldDeleteAccountSuccessfully() throws Exception {/*code*/}
+
+    @Test
+    void shouldDepositSuccessfully() throws Exception {/*code*/}
+
+    @Test
+    void shouldWithdrawSuccessfully() throws Exception {
+        // given
+        Long accountId = 1L;
+        WithdrawalRequest request = new WithdrawalRequest(new BigDecimal("300"));
+        AccountResponse response = new AccountResponse(accountId, "Milagros", new BigDecimal("1700"), "BCP");
+        Mockito.when(this.accountService.withdraw(accountId, request)).thenReturn(response);
+
+        // when
+        ResultActions result = this.mockMvc.perform(post("/api/v1/accounts/{accountId}/withdraw", accountId)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(this.objectMapper.writeValueAsString(request)));
+
+        // then
+        result.andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.id", Matchers.is(1)))
+                .andExpect(jsonPath("$.holder", Matchers.is("Milagros")))
+                .andExpect(jsonPath("$.balance", Matchers.is(1700)))
+                .andExpect(jsonPath("$.bankName", Matchers.is("BCP")));
+        Mockito.verify(this.accountService).withdraw(accountId, request);
+        Mockito.verifyNoMoreInteractions(this.accountService);
+    }
+}
+````
+
+### 🧱 Añadiendo pruebas a GlobalExceptionHandlerTest
+
+En el caso del paquete `exception`, se identificó que el manejador global de excepciones (`GlobalExceptionHandler`) no
+estaba cubierto. Por ello, se creó una nueva clase de prueba dedicada exclusivamente a este componente.
+
+````java
+
+@Tag("unit")
+@ExtendWith(MockitoExtension.class)
+class GlobalExceptionHandlerTest {
+    @Mock
+    private HttpServletRequest request;
+    @Mock
+    private BindingResult bindingResult;
+    @InjectMocks
+    private GlobalExceptionHandler handlerUnderTest;
+
+    @Test
+    void shouldHandleValidationErrors() {
+        // given
+        FieldError fieldError = new FieldError("accountCreateRequest", "holder", "no puede estar vacío");
+        Mockito.when(this.bindingResult.getFieldErrors()).thenReturn(List.of(fieldError));
+
+        MethodArgumentNotValidException ex = new MethodArgumentNotValidException(null, this.bindingResult);
+
+        // when
+        ResponseEntity<ErrorResponse> response = this.handlerUnderTest.handleValidationErrors(ex, this.request);
+
+        // then
+        ErrorResponse error = response.getBody();
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(error).isNotNull();
+        assertThat(error.error()).isEqualTo("Validation Failed");
+        assertThat(error.validationErrors()).containsKey("holder");
+    }
+
+    @Test
+    void shouldHandleGenericException() {/*code*/}
+
+    @Test
+    void shouldHandleDatabaseOperationException() {/*code*/}
+
+    @Test
+    void shouldHandleBankNotFoundException() {/*code*/}
+
+    @Test
+    void shouldHandleEntityNotFoundException() {/*code*/}
+
+    @Test
+    void shouldHandleInvalidTransactionException() {/*code*/}
+}
+````

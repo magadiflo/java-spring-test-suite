@@ -487,12 +487,13 @@ target/site/jacoco/
 
 Dentro encontraremos los reportes en distintos formatos: `HTML`, `CSV` y `XML`.
 
-### ✅ Ejecutando únicamente los test unitarios
+### ✅ Ejecutando pruebas unitarias
 
 Recordemos que en este proyecto contamos con pruebas unitarias y pruebas de integración. Sin embargo,
-`solo las pruebas unitarias son consideradas para la cobertura de código`.
+solo las `pruebas unitarias` son consideradas para la cobertura de código, en ese sentido vamos a ejecutar solo las
+pruebas unitarias.
 
-Limpiamos primero el proyecto para eliminar cualquier resultado previo:
+Primero, limpiamos el proyecto para eliminar cualquier resultado previo:
 
 ````bash
 $ mvn clean
@@ -797,7 +798,7 @@ class AccountServiceTest {
 }
 ````
 
-### ▶ Ejecutando nuevamente los tests
+### ▶ Ejecutando nuevamente las pruebas unitarias
 
 Procedemos a ejecutar los test unitarios anteponiendo el `clean` en el comando de maven para limpiar el directorio
 `/target` antes de ejecutar los test.
@@ -912,7 +913,7 @@ tipo `**/package/ClassName.class`.
 </plugin>
 ````
 
-### 🚀 Resultado después de excluir la clase principal
+### 🚀 Resultado de las pruebas unitarias después de excluir la clase principal
 
 A continuación procedemos a ejecutar los test con el comando `mvn clean test -Dgroups=unit`.
 
@@ -1016,7 +1017,7 @@ Como no termina en `Exception`, `no será excluida` por el patrón anterior. Est
 > 🎯 `Conclusión`: El patrón `*Exception.class` excluye solo las clases de excepción personalizadas, manteniendo
 > `GlobalExceptionHandler` dentro del reporte de cobertura.
 
-### 🚀 Resultado después de excluir por paquetes
+### 🚀 Resultado de las pruebas unitarias después de excluir por paquetes
 
 A continuación procedemos a ejecutar los test con el comando `mvn clean test -Dgroups=unit`.
 
@@ -1135,11 +1136,11 @@ Vemos que la cobertura por paquete es:
 Esto indica que `no se cumple el umbral mínimo de cobertura` por líneas ejecutadas según la configuración que definimos
 en el `pom.xml`, lo que puede bloquear el build si se ejecuta con `verify`.
 
-### 🧪 Validación automática con Maven
+### 🧪 Verificando cobertura mínima con Maven
 
 Viendo la imagen anterior y haciendo el cálculo para obtener el porcentaje de las `líneas cubiertas`, es fácil deducir
 que `no estamos cumpliendo con la cobertura mínima (90%)`, sin embargo, hay otra manera de poder verificar si nuestras
-pruebas están cumpliendo con la cobertura mínima establecida y es ejecutando el siguiente comando:
+pruebas están cumpliendo con la cobertura mínima establecida y es ejecutando el siguiente comando de maven:
 
 ````bash
 D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
@@ -1349,7 +1350,7 @@ class AccountServiceTest {
 }
 ````
 
-### 🧪 Ejecución de pruebas
+### 🧪 Ejecución de pruebas unitarias
 
 Vamos a ejecutar nuestras pruebas unitarias para obtener visualmente el reporte en html.
 
@@ -1387,9 +1388,10 @@ significativas en el paquete `dev.magadiflo.app.service.impl`:
 📌 El paquete `dev.magadiflo.app.service.impl` ahora cumple el umbral mínimo de cobertura por líneas `(90%)`,
 gracias a las nuevas pruebas unitarias.
 
-### 🚦 Validación con mvn verify
+### 🚦 Verificando cobertura mínima con Maven
 
-Ahora ejecutamos el comando `mvn clean verify` para ver si coincide con lo que hemos calculado.
+Ahora ejecutamos el comando `mvn clean verify` para comprobar si la cobertura mínima coincide con lo que hemos
+calculado.
 
 ````bash
 D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)

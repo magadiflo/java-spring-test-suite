@@ -439,3 +439,202 @@ Token: sqa_a0bc5503b5942ddf4739558c59bbb35b66869a66
 > Nunca compartas este token en repositorios públicos, documentación compartida o pipelines sin cifrado.
 > Cualquier persona que posea el token puede ejecutar análisis o modificar configuraciones en tu servidor `SonarQube`.
 
+## 🧩 Configurando el Plugin JaCoCo para medir la cobertura de código
+
+Antes de integrar `SonarQube` con nuestra aplicación `Spring Boot`, es fundamental configurar correctamente el
+`plugin de JaCoCo`, ya que este será el encargado de `generar los reportes de cobertura de pruebas unitarias` que
+`SonarQube` utilizará para sus `análisis de calidad`.
+
+> 💡 `JaCoCo (Java Code Coverage)` es una herramienta open source que mide qué porcentaje del código ha sido ejecutado
+> durante las pruebas. Nos ayuda a identificar clases o métodos no cubiertos por tests y es el estándar más usado junto
+> con `SonarQube`.
+
+### ⚙️ Configuración del plugin en el `pom.xml`
+
+Agregamos la siguiente configuración dentro del archivo `pom.xml` de nuestro proyecto:
+
+````xml
+
+<project>
+    <properties>
+        <!-- Versión del plugin JaCoCo -->
+        <jacoco.version>0.8.12</jacoco.version>
+    </properties>
+    <build>
+        <plugins>
+            <!--JaCoCo Maven Plugin-->
+            <plugin>
+                <groupId>org.jacoco</groupId>
+                <artifactId>jacoco-maven-plugin</artifactId>
+                <version>${jacoco.version}</version>
+                <configuration>
+                    <excludes>
+                        <!-- Clases de arranque -->
+                        <exclude>**/SpringSonarQubeApplication.class</exclude>
+
+                        <!-- DTOs y entidades JPA -->
+                        <exclude>**/dto/**</exclude>
+                        <exclude>**/entity/**</exclude>
+
+                        <!-- Mappers y configuraciones -->
+                        <exclude>**/mapper/**</exclude>
+                        <exclude>**/config/**</exclude>
+
+                        <!-- Excepciones personalizadas -->
+                        <exclude>**/exception/*Exception.class</exclude>
+
+                        <!-- Clases generadas automáticamente -->
+                        <exclude>**/*MapperImpl.class</exclude>
+                    </excludes>
+                </configuration>
+                <executions>
+                    <!--Preparar agente de JaCoCo antes de ejecutar tests-->
+                    <execution>
+                        <id>prepare-agent</id>
+                        <goals>
+                            <goal>prepare-agent</goal>
+                        </goals>
+                    </execution>
+
+                    <!--Generar reporte después de ejecutar tests-->
+                    <execution>
+                        <id>report</id>
+                        <phase>test</phase>
+                        <goals>
+                            <goal>report</goal>
+                        </goals>
+                    </execution>
+
+                    <!-- Define un umbral mínimo de cobertura aceptable -->
+                    <execution>
+                        <id>check</id>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                        <configuration>
+                            <rules>
+                                <rule>
+                                    <element>PACKAGE</element>
+                                    <limits>
+                                        <limit>
+                                            <counter>LINE</counter>
+                                            <value>COVEREDRATIO</value>
+                                            <minimum>0.90</minimum> <!-- 90% cobertura mínima -->
+                                        </limit>
+                                    </limits>
+                                </rule>
+                            </rules>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <!--/JaCoCo Maven Plugin-->
+        </plugins>
+    </build>
+
+</project>
+````
+
+### 📂 Ubicación del reporte
+
+Por defecto, `JaCoCo` genera los resultados en:
+
+````
+target/site/jacoco/index.html     ← Reporte HTML
+target/site/jacoco/jacoco.xml     ← Reporte XML (versiones recientes)
+target/jacoco.exec                ← Reporte binario (para SonarQube)
+````
+
+> 🔎 `Tip`: Podemos abrir el archivo `index.html` en el navegador para visualizar de forma gráfica qué clases y métodos
+> fueron cubiertos por los tests.
+
+### 💡 Conexión con SonarQube
+
+`SonarQube` leerá estos reportes de `JaCoCo` automáticamente al ejecutar:
+
+````bash
+$ mvn clean verify sonar:sonar
+````
+
+Siempre que en nuestra configuración de `Sonar` (por ejemplo, en `sonar-project.properties`) hayamos definido la
+propiedad:
+
+````properties
+sonar.jacoco.reportPaths=target/jacoco.exec 
+````
+
+o en versiones más recientes:
+
+````properties
+sonar.coverage.jacoco.xmlReportPaths=target/site/jacoco/jacoco.xml
+````
+
+## ✅ Ejecutando pruebas unitarias y validando cobertura con JaCoCo
+
+Una vez configurado el plugin de `JaCoCo`, procedemos a ejecutar nuestras pruebas unitarias para generar los
+reportes de cobertura.
+
+### ▶️ Ejecución de pruebas unitarias
+
+Ejecutamos el siguiente comando:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
+$ mvn clean test
+[INFO] Scanning for projects...
+...
+[INFO]
+[INFO] Tests run: 25, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-sonarqube ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-sonarqube' with 4 classes
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  17.295 s
+[INFO] Finished at: 2025-10-31T15:58:02-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+El resultado muestra que todas las pruebas se ejecutaron correctamente y que `JaCoCo` generó los archivos de reporte
+correspondientes (`.exec`, `.xml` y `.html`).
+
+### 📊 Verificando cobertura mínima con Maven
+
+Para validar el porcentaje de cobertura definido en el plugin (`<minimum>0.90</minimum>`), ejecutamos:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
+$ mvn clean verify
+[INFO] Scanning for projects...
+[INFO]
+...
+[INFO]
+[INFO] --- jacoco:0.8.12:check (check) @ spring-sonarqube ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-sonarqube' with 4 classes
+[WARNING] Rule violated for package dev.magadiflo.app.exception: lines covered ratio is 0.28, but expected minimum is 0.90
+[WARNING] Rule violated for package dev.magadiflo.app.controller: lines covered ratio is 0.55, but expected minimum is 0.90
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD FAILURE
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  20.034 s
+[INFO] Finished at: 2025-10-31T16:00:10-05:00
+[INFO] ------------------------------------------------------------------------
+[ERROR] Failed to execute goal org.jacoco:jacoco-maven-plugin:0.8.12:check (check) on project spring-sonarqube: Coverage checks have not been met. See log for details. -> [Help 1]
+[ERROR]
+[ERROR] To see the full stack trace of the errors, re-run Maven with the -e switch.
+[ERROR] Re-run Maven using the -X switch to enable full debug logging.
+[ERROR]
+[ERROR] For more information about the errors and possible solutions, please read the following articles:
+[ERROR] [Help 1] http://cwiki.apache.org/confluence/display/MAVEN/MojoExecutionException
+````
+
+Durante esta fase, `JaCoCo` aplicará las reglas de cobertura configuradas en el bloque `<check>` del `pom.xml`.
+En este caso, vemos que dos paquetes no alcanzaron el umbral mínimo del `90%`:
+
+- `dev.magadiflo.app.exception`: `28%`
+- `dev.magadiflo.app.controller`: `55%`
+

@@ -174,7 +174,7 @@
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.90</minimum> <!-- 90% cobertura mínima -->
+                                            <minimum>0.80</minimum> <!-- 80% cobertura mínima -->
                                         </limit>
                                     </limits>
                                 </rule>

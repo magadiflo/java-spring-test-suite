@@ -519,7 +519,7 @@ Agregamos la siguiente configuración dentro del archivo `pom.xml` de nuestro pr
                                         <limit>
                                             <counter>LINE</counter>
                                             <value>COVEREDRATIO</value>
-                                            <minimum>0.90</minimum> <!-- 90% cobertura mínima -->
+                                            <minimum>0.80</minimum> <!-- 80% cobertura mínima -->
                                         </limit>
                                     </limits>
                                 </rule>
@@ -560,7 +560,7 @@ Siempre que en nuestra configuración de `Sonar` (por ejemplo, en `sonar-project
 propiedad:
 
 ````properties
-sonar.jacoco.reportPaths=target/jacoco.exec 
+sonar.jacoco.reportPaths=target/jacoco.exec
 ````
 
 o en versiones más recientes:
@@ -593,8 +593,8 @@ $ mvn clean test
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD SUCCESS
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  17.295 s
-[INFO] Finished at: 2025-10-31T15:58:02-05:00
+[INFO] Total time:  18.799 s
+[INFO] Finished at: 2025-10-31T17:07:00-05:00
 [INFO] ------------------------------------------------------------------------
 ````
 
@@ -603,7 +603,7 @@ correspondientes (`.exec`, `.xml` y `.html`).
 
 ### 📊 Verificando cobertura mínima con Maven
 
-Para validar el porcentaje de cobertura definido en el plugin (`<minimum>0.90</minimum>`), ejecutamos:
+Para validar el porcentaje de cobertura definido en el plugin (`<minimum>0.80</minimum>`), ejecutamos:
 
 ````bash
 D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
@@ -615,13 +615,13 @@ $ mvn clean verify
 [INFO] --- jacoco:0.8.12:check (check) @ spring-sonarqube ---
 [INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube\target\jacoco.exec
 [INFO] Analyzed bundle 'spring-sonarqube' with 4 classes
-[WARNING] Rule violated for package dev.magadiflo.app.exception: lines covered ratio is 0.28, but expected minimum is 0.90
-[WARNING] Rule violated for package dev.magadiflo.app.controller: lines covered ratio is 0.55, but expected minimum is 0.90
+[WARNING] Rule violated for package dev.magadiflo.app.exception: lines covered ratio is 0.28, but expected minimum is 0.80
+[WARNING] Rule violated for package dev.magadiflo.app.controller: lines covered ratio is 0.55, but expected minimum is 0.80
 [INFO] ------------------------------------------------------------------------
 [INFO] BUILD FAILURE
 [INFO] ------------------------------------------------------------------------
-[INFO] Total time:  20.034 s
-[INFO] Finished at: 2025-10-31T16:00:10-05:00
+[INFO] Total time:  18.779 s
+[INFO] Finished at: 2025-10-31T17:08:05-05:00
 [INFO] ------------------------------------------------------------------------
 [ERROR] Failed to execute goal org.jacoco:jacoco-maven-plugin:0.8.12:check (check) on project spring-sonarqube: Coverage checks have not been met. See log for details. -> [Help 1]
 [ERROR]
@@ -633,7 +633,7 @@ $ mvn clean verify
 ````
 
 Durante esta fase, `JaCoCo` aplicará las reglas de cobertura configuradas en el bloque `<check>` del `pom.xml`.
-En este caso, vemos que dos paquetes no alcanzaron el umbral mínimo del `90%`:
+En este caso, vemos que dos paquetes no alcanzaron el umbral mínimo del `80%`:
 
 - `dev.magadiflo.app.exception`: `28%`
 - `dev.magadiflo.app.controller`: `55%`

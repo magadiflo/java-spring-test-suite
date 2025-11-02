@@ -862,3 +862,116 @@ Por eso, en entornos empresariales se prefiere que:
 
 - `JaCoCo` actúe como `barrera técnica mínima`, sin bloquear por décimas.
 - `SonarQube` sea quien `falle el Quality Gate`, permitiendo visibilidad y trazabilidad.
+
+## ⚙️ Configurar el plugin de SonarQube en Maven
+
+Para habilitar el análisis de código con `SonarQube` dentro de un proyecto `Spring Boot`, es
+necesario agregar el plugin oficial de `SonarQube` al archivo `pom.xml`. Este plugin permite ejecutar el análisis
+estático directamente desde `Maven` y enviar los resultados al servidor `SonarQube` configurado (local o remoto).
+
+En el archivo `pom.xml` de nuestro proyecto `spring-sonarqube`, agregamos el plugin de `SonarQube` dentro del bloque
+`<build><plugins>`:
+
+````xml
+
+<project>
+    <properties>
+        <!-- Versión del plugin de SonarQube -->
+        <sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
+    </properties>
+    <build>
+        <plugins>
+            <!--Plugin SonarQube: conecta Maven con el servidor de análisis-->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar-maven-plugin.version}</version>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+````
+
+### 📦 ¿Qué hace realmente este plugin?
+
+El plugin `sonar-maven-plugin` actúa como `intermediario entre Maven y el servidor SonarQube`, coordinando todo el
+proceso de análisis.
+
+Su función principal es:
+
+- 🔍 Ejecutar el análisis estático del código fuente, incluyendo métricas como cobertura, duplicación, bugs y code
+  smells, complejidad y vulnerabilidades.
+- 📤 Enviar los resultados del análisis al servidor `SonarQube` configurado (usualmente definido en `sonar.host.url`).
+- 🧩 Integrarse con otros plugins como `JaCoCo` para incluir métricas de cobertura en el reporte final.
+- 🛠️ Respetar las configuraciones definidas en el `pom.xml` y en los parámetros del entorno (`sonar.projectKey`,
+  `sonar.login`, etc.).
+- 💡 Compatibilidad con CI/CD: Permite integrar el análisis en pipelines de Jenkins, GitHub Actions, GitLab CI, etc.
+
+### 🧰 Cómo ejecutar el análisis
+
+El análisis `SonarQube` se ejecuta mediante el comando `Maven`:
+
+````bash
+$ mvn clean verify sonar:sonar
+````
+
+Ejecutar `mvn verify` antes garantiza que:
+
+- Las clases estén compiladas (`target/classes`).
+- Se generen los reportes de cobertura (`target/site/jacoco/jacoco.xml`). De lo contrario, `SonarQube` no podrá incluir
+  la cobertura en el análisis.
+
+### ⚙️ Configuraciones y prioridad de lectura en SonarQube Maven Plugin
+
+El plugin `sonar-maven-plugin` obtiene su configuración desde diferentes fuentes, lo que permite adaptar el análisis
+según el entorno (local, CI/CD, etc.).
+
+`SonarQube` combina estas configuraciones en tiempo de ejecución, aplicando un orden de prioridad bien definido.
+
+### 🧩 Fuentes principales de configuración
+
+| 📂 Fuente                                    | ⚙️ Propósito                                                                                                                                                  | 💬 Ejemplo                                                                  |
+|----------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------|
+| **1. Parámetros en línea de comando (`-D`)** | Usados para **sobrescribir valores temporalmente** al ejecutar Maven. Son ideales para integraciones CI/CD o pruebas locales.                                 | `mvn sonar:sonar -Dsonar.projectKey=mi-proyecto -Dsonar.login=$SONAR_TOKEN` |
+| **2. Archivo `sonar-project.properties`**    | Define los **parámetros por defecto del proyecto** (rutas, llaves, versiones, cobertura, etc.). Suele versionarse junto al código.                            | `sonar.projectKey=spring-sonarqube`                                         |
+| **3. Propiedades en `pom.xml`**              | Se usan para **mantener consistencia de valores comunes** (como versión del plugin o nombre del proyecto). No se recomienda colocar aquí credenciales o URLs. | `<sonar.host.url>http://localhost:9000</sonar.host.url>`                    |
+| **4. Variables de entorno**                  | Permiten **ocultar información sensible** (tokens, URLs, claves). Muy usadas en pipelines o entornos Docker.                                                  | `export SONAR_TOKEN=abc123`                                                 |
+| **5. Archivo `settings.xml` de Maven**       | Puede definir configuraciones globales compartidas entre proyectos (por ejemplo, proxies o repos corporativos). No se usa comúnmente para parámetros Sonar.   | `<server><id>sonar</id><password>${env.SONAR_TOKEN}</password></server>`    |
+
+### 🔝 Orden de prioridad de configuración
+
+Cuando `SonarQube` detecta una propiedad en múltiples lugares, aplica el valor de la fuente con mayor prioridad (la que
+está más arriba en la lista).
+
+| 🏆 Prioridad | 🔧 Fuente de configuración            | 🧭 Aplicación típica                                               |
+|--------------|---------------------------------------|--------------------------------------------------------------------|
+| 1°           | Parámetros de línea de comando (`-D`) | Se usan para ejecutar análisis personalizados o en CI/CD.          |
+| 2°           | Archivo `sonar-project.properties`    | Configuración local por defecto versionada con el código.          |
+| 3°           | Propiedades del `pom.xml`             | Define valores persistentes o comunes entre módulos.               |
+| 4°           | Variables de entorno                  | Ideal para ocultar tokens (`SONAR_TOKEN`) o URLs.                  |
+| 5°           | Archivo `settings.xml`                | Opcional, se aplica en entornos globales (agentes CI, servidores). |
+
+### 💼 Buenas prácticas en entornos reales
+
+- ✅ Usa `sonar-project.properties` como fuente principal de configuración del proyecto.
+- ✅ Sobrescribe parámetros con `-D` o variables de entorno en entornos `CI/CD` (para tokens, URLs, nombres de rama,
+  etc.).
+- ✅ Nunca incluyas credenciales (`sonar.login`, `sonar.password`) en archivos versionados.
+- ✅ Centraliza valores comunes (versiones de plugins o nombres de módulos) en el `pom.xml`.
+- ✅ Evita mezclar configuraciones en varios lugares sin necesidad: prioriza la claridad.
+
+### 🏢 Configuración típica en entornos empresariales
+
+`SonarQube` no depende únicamente de un archivo para su configuración. En realidad, `fusiona las propiedades` de todas
+las fuentes disponibles, aplicando siempre la de mayor prioridad (como parámetros en línea de comandos o
+variables de entorno).
+
+En los entornos empresariales modernos, esta flexibilidad es esencial para
+`mantener coherencia entre desarrolladores, seguridad en pipelines y control centralizado en servidores`:
+
+| 🧩 Entorno                                           | ⚙️ Método de configuración                                                   | 🔒 Propósito y práctica recomendada                                                                                                                            |
+|------------------------------------------------------|------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 💻 **Desarrollo local**                              | Archivo `sonar-project.properties`                                           | Contiene la configuración base del proyecto (rutas, claves de proyecto, versión de Java, etc.). `No incluye credenciales`. Se versiona en el repositorio.      |
+| 🚀 **Pipeline CI/CD**                                | Parámetros Maven `-D` y variables secretas (`SONAR_TOKEN`, `SONAR_HOST_URL`) | El pipeline inyecta dinámicamente credenciales seguras y la URL del servidor SonarQube. Asegura análisis automatizado sin exponer datos sensibles.             |
+| 🧱 **Servidores compartidos o agentes corporativos** | Archivo `settings.xml` de Maven                                              | Define credenciales globales o proxies para todos los builds corporativos. Se usa para entornos controlados donde múltiples proyectos comparten configuración. |
+

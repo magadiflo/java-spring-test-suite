@@ -21,6 +21,9 @@
 
         <!-- Versión del plugin JaCoCo -->
         <jacoco.version>0.8.12</jacoco.version>
+
+        <!-- Versión del plugin de SonarQube -->
+        <sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
     </properties>
     <dependencies>
         <dependency>
@@ -116,6 +119,12 @@
                         </exclude>
                     </excludes>
                 </configuration>
+            </plugin>
+            <!--Plugin SonarQube: conecta Maven con el servidor de análisis-->
+            <plugin>
+                <groupId>org.sonarsource.scanner.maven</groupId>
+                <artifactId>sonar-maven-plugin</artifactId>
+                <version>${sonar-maven-plugin.version}</version>
             </plugin>
             <!--JaCoCo Maven Plugin-->
             <plugin>

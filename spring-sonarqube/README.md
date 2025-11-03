@@ -1380,3 +1380,72 @@ Desde allí podemos visualizar:
 - Bugs, vulnerabilidades y code smells.
 - Archivos duplicados.
 - Cumplimiento del Quality Gate.
+
+## 🔍 Explorando el análisis en SonarQube
+
+En la imagen anterior vimos cómo `SonarQube` nos mostraba todos los proyectos analizados, incluyendo el nuestro:
+`Spring SonarQube`. En este apartado ingresamos al proyecto para explorar los resultados del análisis estático.
+
+![12.png](assets/12.png)
+
+Al ingresar al dashboard del proyecto, observamos las siguientes métricas destacadas:
+
+- `Quality Gate`: Passed ✅
+- `Coverage`: 92.2% (sobre 171 líneas a cubrir)
+- `Duplications`: 0.0%
+- `Issues`: 0 (sin bugs, code smells ni vulnerabilidades)
+
+### 📊 Principales métricas mostradas
+
+Al ingresar al proyecto, `SonarQube` presenta un resumen visual del estado de calidad del código. Cada sección se
+alimenta de los resultados que el análisis estático detectó en base a reglas, pruebas y configuraciones.
+
+| Métrica                                        | Descripción                                                                                                                                                                                                                                                                                                                                                                      |
+|------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 🧩 **Quality Gate**                            | Indica si el proyecto **cumple las condiciones mínimas de calidad definidas por la organización**. Un *Quality Gate* es un conjunto de reglas (por ejemplo, “la cobertura debe ser > 80%”, “sin bugs críticos”, “sin vulnerabilidades abiertas”). Si alguna condición falla → el *Quality Gate* aparece como **Failed** y el build debería considerarse no apto para despliegue. |
+| 🧠 **Coverage**                                | Representa el porcentaje de líneas cubiertas por las pruebas unitarias. En el ejemplo, `92.2%` de las líneas ejecutables están cubiertas, lo cual es un excelente indicador de testeo.                                                                                                                                                                                           |
+| ♻️ **Duplications**                            | Mide el porcentaje de código duplicado. Un valor alto implica baja mantenibilidad, ya que cualquier cambio debe repetirse en múltiples lugares.                                                                                                                                                                                                                                  |
+| 🐞 **Issues**                                  | Son los hallazgos detectados por las reglas de calidad: pueden ser *Bugs*, *Code Smells* o *Vulnerabilities*. En este caso, `0` indica que el código cumple con las normas de estilo y seguridad definidas.                                                                                                                                                                      |
+| 🧱 **Maintainability, Reliability y Security** | Son los tres pilares de evaluación de SonarQube (cada uno con su calificación A–E). Reflejan el estado general del proyecto en términos de salud técnica.                                                                                                                                                                                                                        |
+
+### 🧩 Sobre el Quality Gate
+
+El `Quality Gate` es un conjunto de condiciones que `SonarQube` evalúa para determinar si un proyecto cumple con los
+estándares mínimos de calidad definidos por la organización.
+
+Por ejemplo, un `Quality Gate` puede exigir:
+
+- ✅ Cobertura mínima del 80%
+- ✅ 0 bugs críticos
+- ✅ 0 vulnerabilidades
+- ✅ Duplicación menor al 3%
+
+Si el proyecto `cumple todas las condiciones`, el `Quality Gate` se marca como `Passed`. Si falla alguna condición,
+se marca como `Failed`, lo que puede bloquear despliegues en entornos productivos si está integrado con `CI/CD`.
+
+> 📌 En entornos corporativos, el `Quality Gate` es una herramienta clave para garantizar que solo se promueva
+> código que cumpla con los estándares de calidad definidos.
+
+### 🧭 Explorando el código fuente en SonarQube
+
+Otro punto importante es que `SonarQube` permite visualizar la cobertura directamente sobre el código fuente.
+Si navegamos hasta una clase, por ejemplo `AccountServiceImpl.java`, `SonarQube` nos mostrará visualmente las líneas
+cubiertas por los tests:
+
+- ✅ Verde: código cubierto por pruebas.
+- 🔴 Rojo: código no cubierto por pruebas.
+
+Esto permite identificar visualmente qué partes del código necesitan mayor cobertura.
+
+![13.png](assets/13.png)
+
+💡 Nota técnica:
+> La información de cobertura que `SonarQube` muestra proviene directamente del archivo `XML` generado por `JaCoCo`,
+> que se configuró previamente en el `pom.xml`. Esto permite correlacionar los resultados de cobertura con el
+> análisis estático del código, mostrando exactamente qué partes del sistema tienen pruebas y cuáles no.
+>
+> 📊 En nuestro caso, el valor `92.2%` indica que `JaCoCo` detectó `171 líneas` de código ejecutables (`testeables`)
+> y que de ellas, el `92.2%` fueron cubiertas por pruebas unitarias.
+>
+> 💡 *Las “líneas ejecutables” no incluyen comentarios, declaraciones de clase ni estructuras vacías, sino únicamente
+> las instrucciones que pueden ser realmente ejecutadas durante una prueba.*

@@ -1115,3 +1115,171 @@ Separar la ejecución en dos fases (`verify` y `sonar:sonar`) permite validar lo
 de enviar el análisis. Si la cobertura no cumple el umbral mínimo, el análisis no se ejecuta, lo cual puede ser útil o
 contraproducente según el contexto. Por eso, como vimos antes, se recomienda usar un umbral más flexible en `JaCoCo`
 (ej. `80%`) y uno más estricto en `SonarQube` (ej. `90%`) para garantizar visibilidad sin bloquear el análisis.
+
+## 🧰 2° Forma: Análisis de SonarQube mediante script de shell (`.sh`)
+
+En proyectos reales, especialmente cuando trabajamos con múltiples entornos (desarrollo, QA, producción), es común
+evitar hardcodear propiedades sensibles como la URL del servidor o el token de autenticación. Para ello, podemos usar
+`scripts de shell (.sh)` que:
+
+- Centralizan la lógica de ejecución del análisis.
+- Cargan variables desde un archivo `.env` externo.
+- Permiten ejecutar el análisis con un solo comando.
+- Evitan exponer secretos en el código fuente.
+
+### 📦 Paso 1: Crear archivo `.env` (no versionado)
+
+Creamos un archivo `.env` en la raíz del proyecto con las variables necesarias para el entorno de desarrollo:
+
+````properties
+# ============================================================================
+# Archivo: .env
+# Descripción: Variables de entorno para análisis de SonarQube
+# IMPORTANTE: Este archivo NO debe subirse a Git (agregar a .gitignore)
+# ============================================================================
+SONAR_HOST_URL_DEV=http://localhost:9000
+SONAR_TOKEN_DEV=sqa_a0bc5503b5942ddf4739558c59bbb35b66869a66
+````
+
+### 📄 Paso 2: Crear plantilla `.env.example` (sí versionado)
+
+Para documentar cómo debe estructurarse el archivo `.env`, creamos una plantilla de ejemplo que sí se sube al
+repositorio:
+
+````properties
+# ============================================================================
+# Plantilla de variables de entorno - Spring Boot + SonarQube
+#
+# Instrucciones:
+#   1. Copia este archivo: cp .env.example .env
+#   2. Reemplaza los valores xxx con tus valores reales
+#   3. NUNCA subas .env a Git (ya está en .gitignore)
+# ============================================================================
+# =========================
+# SONARQUBE - DESARROLLO
+# =========================
+# Obtén tu token en: http://localhost:9000 → My Account → Security → Generate Token
+SONAR_HOST_URL_DEV=http://localhost:9000
+SONAR_TOKEN_DEV=xxx
+# =========================
+# SONARQUBE - QA (Opcional)
+# =========================
+# SONAR_HOST_URL_QA=https://sonarqube-qa.miempresa.com
+# SONAR_TOKEN_QA=xxx
+# =========================
+# SONARQUBE - PRODUCCIÓN (Opcional)
+# =========================
+# SONAR_HOST_URL_PROD=https://sonarqube.miempresa.com
+# SONAR_TOKEN_PROD=xxx
+````
+
+### 🛡️ Paso 3: Ignorar `.env` en Git
+
+Agregamos el archivo `.env` al `.gitignore` para evitar subir secretos al repositorio:
+
+````bash
+### Variables de entorno con secrets
+.env
+````
+
+### ⚙️ Paso 4: Crear script `scripts/sonar-dev.sh`
+
+Este script automatiza la ejecución del análisis en el entorno de desarrollo:
+
+````bash
+#!/bin/bash
+# ============================================================================
+# Script: sonar-dev.sh
+# Descripción: Ejecuta análisis de SonarQube en entorno de DESARROLLO
+# Uso: ./scripts/sonar-dev.sh
+# Requisitos:
+#   - Archivo .env en la raíz con SONAR_HOST_URL_DEV y SONAR_TOKEN_DEV
+#   - Maven instalado
+#   - Ejecutar desde la raíz del proyecto
+# ============================================================================
+
+set -e  # Detiene la ejecución si ocurre un error
+set -u  # Trata las variables no definidas como error
+
+# ============================================================================
+# AUTO-CARGAR .env SI EXISTE (AUTOMÁTICO)
+# ============================================================================
+if [ -f ".env" ]; then
+    echo "Cargando variables desde .env"
+
+    # shellcheck disable=SC2046
+    export $(grep -v '^#' .env | xargs)
+
+    echo "SUCCESS: Variables cargadas"
+else
+    echo "ERROR: No se encontró .env en la raíz del proyecto"
+    echo "Solución: Crea el archivo .env desde la plantilla .env.example"
+    exit 1
+fi
+
+# ============================================================================
+# VALIDAR VARIABLES REQUERIDAS
+# ============================================================================
+if [ -z "${SONAR_HOST_URL_DEV:-}" ]; then
+    echo "ERROR: SONAR_HOST_URL_DEV no está definida en .env"
+    exit 1
+fi
+
+if [ -z "${SONAR_TOKEN_DEV:-}" ]; then
+    echo "ERROR: SONAR_TOKEN_DEV no está definida en .env"
+    exit 1
+fi
+
+# ============================================================================
+# CONFIGURACIÓN DEL ENTORNO
+# ============================================================================
+ENVIRONMENT="DEV"
+PROJECT_KEY="spring-sonarqube"
+SONAR_HOST_URL=${SONAR_HOST_URL_DEV}
+SONAR_TOKEN=${SONAR_TOKEN_DEV}
+
+# ============================================================================
+# INFORMACIÓN DEL ANÁLISIS
+# ============================================================================
+echo ""
+echo "============================================================"
+echo "Ejecutando análisis SonarQube"
+echo "============================================================"
+echo "Entorno:          ${ENVIRONMENT}"
+echo "Servidor:         ${SONAR_HOST_URL}"
+echo "Proyecto:         ${PROJECT_KEY}"
+echo "Token:            Configurado OK"
+echo "============================================================"
+echo ""
+
+# ============================================================================
+# EJECUCIÓN DEL ANÁLISIS
+# ============================================================================
+echo "Ejecutando tests y generando reporte de cobertura..."
+echo ""
+
+mvn clean verify sonar:sonar \
+  -Dsonar.host.url="${SONAR_HOST_URL}" \
+  -Dsonar.token="${SONAR_TOKEN}"
+
+# ============================================================================
+# FINALIZACIÓN
+# ============================================================================
+echo ""
+echo "============================================================"
+echo "¡Análisis completado con éxito!"
+echo "============================================================"
+echo "Ver resultados en:"
+echo "${SONAR_HOST_URL}/dashboard?id=${PROJECT_KEY}"
+echo "============================================================" 
+````
+
+✅ Beneficios de esta estrategia
+
+| Ventaja               | Descripción                                                                    |
+|-----------------------|--------------------------------------------------------------------------------|
+| 🔐 Seguridad          | Evita hardcodear tokens o URLs en el código fuente                             |
+| 🧩 Modularidad        | Permite definir múltiples entornos (`DEV`, `QA`, `PROD`)                       |
+| 👥 Colaboración       | Facilita que otros desarrolladores ejecuten el análisis sin memorizar comandos |
+| 📄 Documentación viva | `.env.example` actúa como guía clara y versionada                              |
+

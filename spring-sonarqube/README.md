@@ -996,3 +996,122 @@ Cuando `SonarQube` detecta una propiedad en ambos lugares, aplica la fuente con 
 | 1°           | Parámetros de línea de comando (`-D`) | Se usan para ejecutar análisis personalizados o en CI/CD. |
 | 2°           | Propiedades del `pom.xml`             | Define valores persistentes o comunes entre módulos.      |
 
+## 🚀 1° Forma: Análisis de SonarQube mediante línea de comandos
+
+Esta es la forma más directa de ejecutar el análisis estático con `SonarQube` desde un proyecto `Maven`. El proceso se
+compone de dos fases clave:
+
+### 🧪 Fase 1: Verificación y cobertura con JaCoCo
+
+````bash
+$ mvn clean verify
+````
+
+Este comando:
+
+- Limpia el proyecto (`clean`) y compila + ejecuta las pruebas (`verify`).
+- Genera el reporte de cobertura con `JaCoCo`.
+- Verifica que la cobertura obtenida cumpla con el umbral mínimo definido en el `pom.xml`.
+- Si el umbral no se cumple, el build falla y no se ejecuta el análisis `SonarQube`.
+
+### 🔍 Fase 2: Análisis estático con SonarQube
+
+````bash
+$ mvn sonar:sonar -Dsonar.host.url=... -Dsonar.token=...
+````
+
+Este comando:
+
+- Ejecuta el objetivo `sonar:sonar` del plugin `sonar-maven-plugin`.
+- Analiza el código fuente en busca de bugs, vulnerabilidades, duplicación y code smells.
+- Lee el reporte XML de cobertura generado por `JaCoCo`.
+- Envía los resultados al servidor `SonarQube` configurado.
+
+Los parámetros `-Dsonar.host.url` y `-Dsonar.token` se pasan por línea de comandos para evitar exponer datos
+sensibles en el `pom.xml`.
+
+### 🧩 Ejecución completa del análisis
+
+Este comando ejecuta todo el flujo: pruebas, cobertura y análisis estático.
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
+$ mvn clean verify sonar:sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=sqa_a0bc5503b5942ddf4739558c59bbb35b66869a66
+[INFO] Scanning for projects...
+[INFO]
+...
+[INFO] -------------------------------------------------------
+[INFO]  T E S T S
+[INFO] -------------------------------------------------------
+[INFO] Running dev.magadiflo.app.unit.controller.AccountControllerTest
+...
+[INFO] Tests run: 10, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 7.402 s -- in dev.magadiflo.app.unit.controller.AccountControllerTest
+[INFO] Running dev.magadiflo.app.unit.exception.GlobalExceptionHandlerTest
+...
+[INFO] Tests run: 6, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.614 s -- in dev.magadiflo.app.unit.exception.GlobalExceptionHandlerTest
+[INFO] Running dev.magadiflo.app.unit.service.AccountServiceImplTest
+...
+[INFO] Tests run: 19, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 0.372 s -- in dev.magadiflo.app.unit.service.AccountServiceImplTest
+[INFO]
+[INFO] Results:
+[INFO]
+[INFO] Tests run: 35, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-sonarqube ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-sonarqube' with 4 classes
+...
+[INFO] --- sonar:5.2.0.4988:sonar (default-cli) @ spring-sonarqube ---
+[INFO] Java 21.0.6 Oracle Corporation (64-bit)
+...
+[INFO] Project key: spring-sonarqube
+[INFO] Base dir: D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube
+[INFO] Working dir: D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube\target\sonar
+[INFO] Load project settings for component key: 'spring-sonarqube'
+...
+[INFO] Project configuration:
+[INFO]   Excluded sources: **/generated-sources/**
+[INFO]   Excluded sources for coverage: **/SpringSonarQubeApplication.java, **/dto/**, **/entity/**, **/mapper/**, **/config/**, **/exception/*Exception.java
+[INFO] 32 files indexed (done) | time=19ms
+[INFO] Quality profile for java: Sonar way
+[INFO] Quality profile for xml: Sonar way
+...
+[INFO] ANALYSIS SUCCESSFUL, you can find the results at: http://localhost:9000/dashboard?id=spring-sonarqube
+[INFO] Note that you will be able to access the updated dashboard once the server has processed the submitted analysis report
+[INFO] More about the report processing at http://localhost:9000/api/ce/task?id=9bc05ebf-0794-4494-8925-ac73ff9de62b
+[INFO] Analysis total time: 14.598 s
+[INFO] SonarScanner Engine completed successfully
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  42.110 s
+[INFO] Finished at: 2025-11-03T12:05:06-05:00
+[INFO] ------------------------------------------------------------------------
+````
+
+Luego de finalizado la ejecución vemos que nos muestra el mensaje `BUILD SUCCESS`.
+
+### 📊 Resultado del análisis
+
+Una vez finalizado el análisis, `SonarQube` nos redirige al dashboard del proyecto:
+
+````bash
+$ http://localhost:9000/dashboard?id=spring-sonarqube.
+````
+
+Desde allí podemos visualizar:
+
+- Cobertura total y por archivo
+- Bugs, vulnerabilidades y code smells
+- Archivos duplicados
+- Cumplimiento del Quality Gate
+
+![10.png](assets/10.png)
+
+### 🧠 Nota estratégica
+
+Separar la ejecución en dos fases (`verify` y `sonar:sonar`) permite validar localmente la cobertura con `JaCoCo` antes
+de enviar el análisis. Si la cobertura no cumple el umbral mínimo, el análisis no se ejecuta, lo cual puede ser útil o
+contraproducente según el contexto. Por eso, como vimos antes, se recomienda usar un umbral más flexible en `JaCoCo`
+(ej. `80%`) y uno más estricto en `SonarQube` (ej. `90%`) para garantizar visibilidad sin bloquear el análisis.

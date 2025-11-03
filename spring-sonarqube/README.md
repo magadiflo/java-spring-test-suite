@@ -1449,3 +1449,200 @@ Esto permite identificar visualmente qué partes del código necesitan mayor cob
 >
 > 💡 *Las “líneas ejecutables” no incluyen comentarios, declaraciones de clase ni estructuras vacías, sino únicamente
 > las instrucciones que pueden ser realmente ejecutadas durante una prueba.*
+
+## 🧩 Simulando código defectuoso para el análisis de SonarQube
+
+Hasta este punto, nuestro proyecto obtuvo un análisis exitoso y sin problemas de calidad, es decir, `SonarQube` no
+detectó bugs, code smells ni vulnerabilidades.
+
+En esta sección crearemos deliberadamente `fragmentos de código con malas prácticas` para observar cómo `SonarQube`
+los identifica y clasifica durante el análisis estático.
+
+### 💡 Objetivo del ejercicio:
+
+Aprender a interpretar los reportes de `SonarQube` cuando encuentra problemas reales de calidad en el código, y
+reconocer cómo los categoriza según su severidad (`Blocker`, `Critical`, `Major`, etc.).
+
+### 📌 Tipos de problemas que SonarQube detecta
+
+Los analizadores de `SonarQube` pueden identificar una amplia gama de problemas, entre los que se incluyen:
+
+- Código duplicado
+- Variables sin usar
+- Bloques try-catch vacíos
+- Métodos con complejidad cognitiva innecesaria
+- Falta de cierre de recursos
+- Comentarios // TODO o FIXME sin resolver
+- Uso de modificadores o estructuras poco recomendadas (como atributos public en clases internas)
+
+### 🧱 Ejemplo práctico: Clase con malas prácticas intencionales
+
+Creamos la clase `BadPracticeExample` dentro del paquete `dev.magadiflo.app.badcode` con el siguiente contenido:
+
+````java
+public class BadPracticeExample {
+
+    // ⚠️ Variable pública (mala práctica)
+    public int counter = 0;
+
+    // ⚠️ Método sin usar y con código duplicado
+    public void increment() {
+        counter++;
+        System.out.println("Incrementing counter to " + counter);
+    }
+
+    // ⚠️ Código duplicado, mala práctica de copy-paste
+    public void decrement() {
+        counter--;
+        System.out.println("Incrementing counter to " + counter);
+    }
+
+    // ⚠️ Método que siempre devuelve el mismo resultado (redundante)
+    public boolean isActive() {
+        return true;
+    }
+
+    // ⚠️ Método vacío (smell)
+    public void doNothing() {
+    }
+
+    // ⚠️ Método con complejidad cognitiva innecesaria
+    public void complexMethod(int value) {
+        if (value > 0) {
+            if (value < 10) {
+                if (value != 5) {
+                    System.out.println("Value accepted");
+                }
+            }
+        }
+    }
+}
+````
+
+### 🧪 Pruebas unitarias mínimas para cumplir con JaCoCo
+
+Al agregar una nueva clase o paquete, `JaCoCo` espera que al menos el `80%` de las líneas de ese paquete estén
+cubiertas por pruebas. Si no lo hacemos, el build fallará antes de enviar el reporte a `SonarQube`.
+
+Por ello, creamos un conjunto de pruebas triviales que simplemente ejecutan cada método, sin validar comportamiento
+alguno:
+
+````java
+class BadPracticeExampleTest {
+    @Test
+    void dummyTest() {
+        // Solo para que JaCoCo no marque 0% de cobertura
+        new BadPracticeExample().increment();
+    }
+
+    @Test
+    void dummyTest2() {
+        // Solo para que JaCoCo no marque 0% de cobertura
+        new BadPracticeExample().decrement();
+    }
+
+    @Test
+    void dummyTest3() {
+        // Solo para que JaCoCo no marque 0% de cobertura
+        new BadPracticeExample().isActive();
+    }
+
+    @Test
+    void dummyTest4() {
+        // Solo para que JaCoCo no marque 0% de cobertura
+        new BadPracticeExample().doNothing();
+    }
+
+    @Test
+    void dummyTest5() {
+        // Solo para que JaCoCo no marque 0% de cobertura
+        new BadPracticeExample().complexMethod(3);
+    }
+}
+````
+
+💡 Nota técnica:
+> Estas pruebas no aportan valor funcional, pero permiten que `JaCoCo` genere su reporte de cobertura sin errores,
+> garantizando así que el análisis de `SonarQube` se ejecute correctamente.
+
+### 🚀 Ejecución del análisis
+
+Con el código defectuoso agregado y las pruebas creadas, ejecutamos nuevamente el análisis con nuestro `script`:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
+$ sh .\scripts\sonar-dev.sh
+Cargando variables desde .env
+SUCCESS: Variables cargadas
+
+============================================================
+Ejecutando análisis SonarQube
+============================================================
+Entorno:          DEV
+Servidor:         http://localhost:9000
+Proyecto:         spring-sonarqube
+Token:            Configurado OK
+============================================================
+
+Ejecutando tests y generando reporte de cobertura...
+
+[INFO] Scanning for projects...
+[INFO]
+...
+[INFO] SCM Publisher 0/2 source files have been analyzed (done) | time=270ms
+[WARNING] Missing blame information for the following files:
+[WARNING]   * src/test/java/dev/magadiflo/app/unit/badcode/BadPracticeExampleTest.java
+[WARNING]   * src/main/java/dev/magadiflo/app/badcode/BadPracticeExample.java
+[WARNING] This may lead to missing/broken features in SonarQube
+[INFO] CPD Executor 16 files had no CPD blocks
+[INFO] CPD Executor Calculating CPD for 9 files
+[INFO] CPD Executor CPD calculation finished (done) | time=15ms
+[INFO] SCM revision ID '266d9a8098fd012a1f273fc5657c802dc789869e'
+[INFO] Analysis report generated in 117ms, dir size=452.4 kB
+[INFO] Analysis report compressed in 133ms, zip size=117.4 kB
+[INFO] Analysis report uploaded in 42ms
+[INFO] ANALYSIS SUCCESSFUL, you can find the results at: http://localhost:9000/dashboard?id=spring-sonarqube
+[INFO] Note that you will be able to access the updated dashboard once the server has processed the submitted analysis report
+[INFO] More about the report processing at http://localhost:9000/api/ce/task?id=45743df3-1b8e-42e2-adea-7e4f2ca3850c
+[INFO] Analysis total time: 9.429 s
+[INFO] SonarScanner Engine completed successfully
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  42.521 s
+[INFO] Finished at: 2025-11-03T17:03:29-05:00
+[INFO] ------------------------------------------------------------------------
+
+============================================================
+¡Análisis completado con éxito!
+============================================================
+Ver resultados en:
+http://localhost:9000/dashboard?id=spring-sonarqube
+============================================================
+````
+
+Al finalizar, el resultado puede visualizarse desde el dashboard de SonarQube.
+
+### 🔍 Resultado esperado en SonarQube
+
+Al ingresar al proyecto en el panel de `SonarQube`, deberían aparecer nuevas observaciones bajo la sección `Issues`,
+tales como se ven en la siguiente imagen:
+
+![14.png](assets/14.png)
+
+Aquí podemos ver cómo `SonarQube` clasifica los hallazgos según su nivel de severidad (Blocker, High, Medium, Low,
+Info).
+
+Cada uno de estos problemas está asociado a una regla del motor de análisis estático que busca mantener buenas
+prácticas de desarrollo.
+
+Si ingresamos al primer issue `Make counter a static final constant or non-public and provide accessors if needed.`
+`SonarQube` nos mostrará el fragmento exacto del código que originó el problema:
+
+![15.png](assets/15.png)
+
+⚙️ Explicación técnica:
+> En este caso, `SonarQube` detectó que el campo counter es `public`, lo que rompe el principio de encapsulación.
+> La regla sugiere que dicho campo debería ser privado (con `getters/setters` si es necesario) o declarado como
+> constante (`static final`) si su valor no cambia, garantizando así un mejor control sobre el acceso a los datos
+> internos de la clase.

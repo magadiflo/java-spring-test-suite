@@ -24,6 +24,35 @@
 
         <!-- Versión del plugin de SonarQube -->
         <sonar-maven-plugin.version>5.2.0.4988</sonar-maven-plugin.version>
+
+        <!-- ============================================ -->
+        <!--          CONFIGURACIÓN DE SONARQUBE          -->
+        <!-- ============================================ -->
+        <!-- Identificación -->
+        <sonar.projectKey>spring-sonarqube</sonar.projectKey>
+        <sonar.projectName>Spring SonarQube</sonar.projectName>
+
+        <!-- Cobertura de Código (JaCoCo)-->
+        <sonar.java.coveragePlugin>jacoco</sonar.java.coveragePlugin>
+        <sonar.coverage.jacoco.xmlReportPaths>
+            ${project.build.directory}/site/jacoco/jacoco.xml
+        </sonar.coverage.jacoco.xmlReportPaths>
+
+        <!-- Exclusiones del Análisis de Código-->
+        <!-- Archivos que no se analizan en absoluto (ni bugs, ni smells, ni cobertura)-->
+        <!-- Código generado automáticamente que NO escribimos-->
+        <sonar.exclusions>**/generated-sources/**</sonar.exclusions>
+
+        <!-- Exclusiones solo de Cobertura (SE ANALIZAN, pero NO requieren tests)-->
+        <!-- Código que escribimos, pero no tiene lógica de negocio testeable-->
+        <sonar.coverage.exclusions>
+            **/SpringSonarQubeApplication.java,
+            **/dto/**,
+            **/entity/**,
+            **/mapper/**,
+            **/config/**,
+            **/exception/*Exception.java
+        </sonar.coverage.exclusions>
     </properties>
     <dependencies>
         <dependency>

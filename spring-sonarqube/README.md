@@ -1646,3 +1646,141 @@ Si ingresamos al primer issue `Make counter a static final constant or non-publi
 > La regla sugiere que dicho campo debería ser privado (con `getters/setters` si es necesario) o declarado como
 > constante (`static final`) si su valor no cambia, garantizando así un mejor control sobre el acceso a los datos
 > internos de la clase.
+
+## 🎯 Definir un Quality Gate personalizado (umbral de cobertura > 92.2%)
+
+Hasta este punto, nuestro proyecto supera satisfactoriamente el umbral de cobertura definido por `JaCoCo`, el cual
+configuramos en un `80%` dentro del `pom.xml`.
+
+Este porcentaje corresponde a la validación local de cobertura durante la fase de `build`, es decir, si el código
+probado no alcanza ese nivel, `Maven fallará` y el análisis no llegará a ejecutarse.
+
+Sin embargo, el objetivo de esta sección no es modificar `JaCoCo`, sino crear una regla más estricta directamente en
+`SonarQube`, estableciendo un umbral del `95%` de cobertura como parte de un `Quality Gate` personalizado.
+
+Veamos la diferencia clave entre `JaCoCo` y `SonarQube`, aunque dicho sea de paso, esto ya lo habíamos visto en la
+sección `Consideraciones sobre los umbrales de cobertura`.
+
+| Herramienta | Verifica                                                                    | Cuándo se ejecuta                                  | Qué sucede si falla                                                                    |
+|-------------|-----------------------------------------------------------------------------|----------------------------------------------------|----------------------------------------------------------------------------------------|
+| `JaCoCo`    | Cobertura de pruebas a nivel local                                          | Durante la compilación del proyecto (`mvn verify`) | El *build* falla y no se genera el reporte                                             |
+| `SonarQube` | Métricas de calidad globales (bugs, smells, cobertura, duplicaciones, etc.) | Luego del análisis estático (`sonar:sonar`)        | El proyecto no pasa el *Quality Gate* y aparece como “Failed” en el panel de SonarQube |
+
+### ⚙️ Crear un Quality Gate personalizado en SonarQube
+
+1. Ingresamos a la interfaz web de `SonarQube` con un usuario administrador.
+2. En el menú principal, seleccionamos: `Quality Gates`.
+3. Damos clic en `Create` para crear un nuevo `Quality Gate`, por ejemplo:
+   `Strict Coverage Gate`
+
+   ![16.png](assets/16.png)
+
+4. Luego, agregamos una nueva condición. Esto significa que si la cobertura total del proyecto es menor al 95%, el
+   análisis fallará el `Quality Gate`.
+    ````bash
+    Metric: Coverage
+    Operator: is less than
+    Value: 95
+    On: Overall Code
+    ````
+
+   ![17.png](assets/17.png)
+
+⚖️ Diferencia entre `On New Code` y `On Overall Code`
+
+| Opción              | Qué evalúa                                                                                                                                                | Cuándo usarla                                                                                                                   |
+|---------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------|
+| **On New Code**     | Solo el código agregado o modificado desde la última versión analizada o desde el parámetro `new code definition` (por ejemplo, desde la rama principal). | Ideal en proyectos grandes o en mantenimiento continuo. Se usa para exigir calidad en *nuevo código*, sin afectar el histórico. |
+| **On Overall Code** | Evalúa todo el código del proyecto (nuevo y existente).                                                                                                   | Perfecto para pruebas de aprendizaje, proyectos pequeños o cuando quieres verificar el nivel general de calidad.                |
+
+> ✅ En nuestro caso, como este proyecto es experimental y educativo, y buscamos que el `Quality Gate` falle basándose
+> en el 92.2% actual, debemos seleccionar `“On Overall Code”`.
+>
+> De ese modo, `SonarQube` aplicará la regla del `95% de cobertura sobre todo el código del proyecto`, no solo sobre
+> los cambios recientes.
+
+![18.png](assets/18.png)
+
+5. Finalmente, asignamos este nuevo Quality Gate a nuestro proyecto desde:
+   `Projects → [spring-sonarqube] → Project Settings → Quality Gate`
+
+   ![19.png](assets/19.png)
+
+
+6. Seleccionamos nuestro `Quality Gate` personalizado: `Strict Coverage Gate`.
+
+   ![20.png](assets/20.png)
+
+### ⚙️ 📊 Verificando el `Quality Gate` definido
+
+Al ejecutar nuevamente el análisis de SonarQube:
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
+$ sh .\scripts\sonar-dev.sh
+Cargando variables desde .env
+SUCCESS: Variables cargadas
+
+============================================================
+Ejecutando análisis SonarQube
+============================================================
+Entorno:          DEV
+Servidor:         http://localhost:9000
+Proyecto:         spring-sonarqube
+Token:            Configurado OK
+============================================================
+
+Ejecutando tests y generando reporte de cobertura...
+
+[INFO] Scanning for projects...
+[INFO]
+[INFO] -------------------< dev.magadiflo:spring-sonarqube >-------------------
+[INFO] Building spring-sonarqube 0.0.1-SNAPSHOT
+...
+[INFO] Analysis report uploaded in 32ms
+[INFO] ANALYSIS SUCCESSFUL, you can find the results at: http://localhost:9000/dashboard?id=spring-sonarqube
+[INFO] Note that you will be able to access the updated dashboard once the server has processed the submitted analysis report
+[INFO] More about the report processing at http://localhost:9000/api/ce/task?id=7873143b-e2ed-40e2-8357-f3c4a39d3e0e
+[INFO] Analysis total time: 9.474 s
+[INFO] SonarScanner Engine completed successfully
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  38.015 s
+[INFO] Finished at: 2025-11-03T18:04:24-05:00
+[INFO] ------------------------------------------------------------------------
+
+============================================================
+¡Análisis completado con éxito!
+============================================================
+Ver resultados en:
+http://localhost:9000/dashboard?id=spring-sonarqube
+============================================================
+````
+
+El análisis se completará correctamente, pero al visualizar el resultado en el panel del proyecto, el estado del
+`Quality Gate` aparecerá como: `❌ Failed — Coverage is less than 95%`.
+
+![21.png](assets/21.png)
+
+### ⚙️ Explicación técnica
+
+Cuando agregamos la clase `BadPracticeExample`, `JaCoCo` y `SonarQube` detectaron nuevas líneas ejecutables
+(`“lines to cover”`) en el proyecto. En nuestro caso, pasamos de `171` a `186` líneas totales cubribles.
+
+Aunque escribimos tests para esa clase, esos tests eran “mínimos” (solo ejecutaban los métodos sin validaciones reales),
+por lo que no todas las ramas y líneas del nuevo código fueron cubiertas. En consecuencia, el número de líneas
+cubiertas creció, pero las líneas no cubiertas crecieron más, reduciendo el porcentaje global de cobertura.
+
+💡 Ejemplo simplificado:
+
+- `Antes`: de `171` líneas, el `92.2%` fueron cubiertas.
+- `Ahora`: de `186` líneas, el `91.5%` fueron cubiertas.
+
+En consecuencia, aunque `JaCoCo` sigue considerando el análisis exitoso (ya que supera su umbral del `80%`),
+`SonarQube` evalúa el proyecto contra su `Quality Gate` más estricto `(≥ 95%)`, lo que provoca que el resultado sea
+marcado como `Failed`.
+
+Este comportamiento es intencional y refleja una práctica común en entornos profesionales: usar `JaCoCo` como
+verificación local (nivel de desarrollador) y `SonarQube` como política de calidad organizacional
+(nivel de equipo o CI/CD), garantizando un control más riguroso antes de integrar el código.

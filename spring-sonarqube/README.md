@@ -1116,7 +1116,7 @@ de enviar el análisis. Si la cobertura no cumple el umbral mínimo, el análisi
 contraproducente según el contexto. Por eso, como vimos antes, se recomienda usar un umbral más flexible en `JaCoCo`
 (ej. `80%`) y uno más estricto en `SonarQube` (ej. `90%`) para garantizar visibilidad sin bloquear el análisis.
 
-## 🧰 2° Forma: Análisis de SonarQube mediante script de shell (`.sh`)
+## 🚀 2° Forma: Análisis de SonarQube mediante script de shell (`.sh`)
 
 En proyectos reales, especialmente cuando trabajamos con múltiples entornos (desarrollo, QA, producción), es común
 evitar hardcodear propiedades sensibles como la URL del servidor o el token de autenticación. Para ello, podemos usar
@@ -1283,3 +1283,100 @@ echo "============================================================"
 | 👥 Colaboración       | Facilita que otros desarrolladores ejecuten el análisis sin memorizar comandos |
 | 📄 Documentación viva | `.env.example` actúa como guía clara y versionada                              |
 
+### 🧪 Ejecutando el script de shell `sonar-dev.sh`
+
+Para iniciar el análisis, basta con ejecutar el archivo `sonar-dev.sh`. Este script encapsula el comando completo de
+análisis con `SonarQube` y muestra información enriquecida durante la ejecución: entorno actual, variables utilizadas,
+mensajes de validación y confirmación de éxito.
+
+📦 ¿Qué comando ejecuta internamente?
+
+````bash
+mvn clean verify sonar:sonar \
+  -Dsonar.host.url="${SONAR_HOST_URL}" \
+  -Dsonar.token="${SONAR_TOKEN}" 
+````
+
+Este comando:
+
+- Ejecuta las pruebas y genera el reporte de cobertura con `JaCoCo`.
+- Lanza el análisis estático con `SonarQube`.
+- Envía los resultados al servidor configurado.
+- Usa variables de entorno cargadas desde `.env`, evitando hardcodear secretos.
+
+En este proyecto haremos uso de un archivo de script por entorno (`sonar-dev.sh`, `sonar-qa.sh`, etc.), ya que permite
+mantener la configuración explícita, facilitar la ejecución por parte del equipo y documentar claramente las variables
+utilizadas en cada contexto. Aunque esto implica cierta duplicación de lógica, priorizamos la claridad operativa
+y la facilidad de uso para cada entorno.
+
+🖥️ Ejemplo de ejecución
+
+````bash
+D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube (feature/spring-sonarqube)
+$ sh .\scripts\sonar-dev.sh
+Cargando variables desde .env
+SUCCESS: Variables cargadas
+
+============================================================
+Ejecutando análisis SonarQube
+============================================================
+Entorno:          DEV
+Servidor:         http://localhost:9000
+Proyecto:         spring-sonarqube
+Token:            Configurado OK
+============================================================
+
+Ejecutando tests y generando reporte de cobertura...
+
+[INFO] Scanning for projects...
+[INFO]
+[INFO] -------------------< dev.magadiflo:spring-sonarqube >-------------------
+[INFO] Building spring-sonarqube 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO]
+...
+[INFO]
+[INFO] Tests run: 35, Failures: 0, Errors: 0, Skipped: 0
+[INFO]
+[INFO]
+[INFO] --- jacoco:0.8.12:report (report) @ spring-sonarqube ---
+[INFO] Loading execution data file D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-sonarqube\target\jacoco.exec
+[INFO] Analyzed bundle 'spring-sonarqube' with 4 classes
+...
+[INFO] Process project properties
+[INFO] Process project properties (done) | time=21ms
+[INFO] Project key: spring-sonarqube
+...
+[INFO] Analysis report compressed in 97ms, zip size=116.0 kB
+[INFO] Analysis report uploaded in 245ms
+[INFO] ANALYSIS SUCCESSFUL, you can find the results at: http://localhost:9000/dashboard?id=spring-sonarqube
+[INFO] Note that you will be able to access the updated dashboard once the server has processed the submitted analysis report
+[INFO] More about the report processing at http://localhost:9000/api/ce/task?id=57b563c9-a764-4032-9411-5b64155255f4
+[INFO] Analysis total time: 8.298 s
+[INFO] SonarScanner Engine completed successfully
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  34.648 s
+[INFO] Finished at: 2025-11-03T13:04:40-05:00
+[INFO] ------------------------------------------------------------------------
+
+============================================================
+¡Análisis completado con éxito!
+============================================================
+Ver resultados en:
+http://localhost:9000/dashboard?id=spring-sonarqube
+============================================================
+````
+
+Una vez finalizado el análisis, `SonarQube` nos redirige al dashboard del proyecto:
+
+![11.png](assets/11.png)
+
+Desde allí podemos visualizar:
+
+- Cobertura total y por archivo.
+- Bugs, vulnerabilidades y code smells.
+- Archivos duplicados.
+- Cumplimiento del Quality Gate.

@@ -187,29 +187,50 @@ Ejecutan componentes reales: base de datos, capa web, repositorio. Verifican el 
 Aunque son críticas en producción, `no se usan para cobertura`, ya que pueden dar una falsa sensación de calidad al
 ejecutar código que no está correctamente validado con asserts.
 
-#### 🎛️ Ejecución selectiva con Maven
+### 📌 Convención de sufijos en clases de prueba
 
-La separación por `@Tags` y sufijos nos permite filtrar qué tipo de pruebas ejecutar:
+Una práctica común en proyectos Java es diferenciar los tipos de prueba mediante el sufijo del nombre de clase:
+
+| Tipo de prueba         | Sufijo recomendado | Plugin Maven que las ejecuta | Fase de ejecución             |
+|:-----------------------|--------------------|------------------------------|-------------------------------|
+| Pruebas unitarias      | `...Test`          | `maven-surefire-plugin`      | `test`                        |
+| Pruebas de integración | `...IT`            | `maven-failsafe-plugin`      | `integration-test` + `verify` |
+
+🔍 ¿Por qué es importante?
+
+- Maven `detecta las clases de prueba por su nombre`, no por su contenido.
+- Si una clase termina en `...Test`, `Maven` la considera `unitaria`, aunque internamente use base de datos o
+  contexto real.
+- Si una clase termina en `...IT`, `Maven` la considera `de integración`, pero no la ejecutará a menos que esté
+  configurado el plugin `maven-failsafe-plugin`.
+
+⚠️ `Ejemplo práctico`. Si ejecutamos:
 
 ````bash
-# Ejecutar solo pruebas unitarias
-mvn test -Dgroups="unit"
-
-# Ejecutar solo pruebas de integración
-mvn test -Dgroups="integration"
-
-# Ejecutar ambos tipos
-mvn test -Dgroups="unit,integration"
-
-# Excluir integración
-mvn test -DexcludedGroups="integration"
+$ mvn clean test
 ````
 
-Esto es exactamente como se organizan los pipelines corporativos en `GitHub Actions`, `GitLab CI` o `Jenkins`.
+Solo se ejecutarán las clases `...Test`. Las `...IT` serán ignoradas.
+
+Para ejecutar ambas, necesitamos:
+
+1. Configurar el plugin `maven-failsafe-plugin` en el `pom.xml`.
+2. Usar el comando:
+    ````bash
+    $ mvn clean verify 
+    ````
+
+Esto ejecutará:
+
+- Las `pruebas unitarias` con `surefire`.
+- Las `pruebas de integración` con `failsafe`.
+
+> Esta convención no solo mejora la organización del proyecto, sino que permite configurar pipelines, métricas y
+> filtros de ejecución de forma precisa y profesional.
 
 ### ✅ En esta guía
 
-Solo se utilizarán las `pruebas unitarias` para:
+Solo se utilizarán las `PRUEBAS UNITARIAS` para:
 
 | Objetivo                    | Herramienta |
 |-----------------------------|-------------|
@@ -466,12 +487,13 @@ target/site/jacoco/
 
 Dentro encontraremos los reportes en distintos formatos: `HTML`, `CSV` y `XML`.
 
-### ✅ Ejecutando únicamente los test unitarios
+### ✅ Ejecutando pruebas unitarias
 
 Recordemos que en este proyecto contamos con pruebas unitarias y pruebas de integración. Sin embargo,
-`solo las pruebas unitarias son consideradas para la cobertura de código`.
+solo las `pruebas unitarias` son consideradas para la cobertura de código, en ese sentido vamos a ejecutar solo las
+pruebas unitarias.
 
-Limpiamos primero el proyecto para eliminar cualquier resultado previo:
+Primero, limpiamos el proyecto para eliminar cualquier resultado previo:
 
 ````bash
 $ mvn clean
@@ -520,7 +542,39 @@ $ mvn test -Dgroups=unit
 [INFO] ------------------------------------------------------------------------
 ````
 
-Todo correcto. Nuestras pruebas unitarias pasaron y la cobertura ya fue registrada.
+### 📌 Nota sobre la convención `...Test` y ejecución sin filtros
+
+No es necesario usar `-Dgroups=unit` (aunque en la ejecución anterior sí lo hicimos) si nuestro objetivo es ejecutar
+todas las pruebas unitarias. `Maven`, por defecto, ejecuta únicamente las clases que terminan en `...Test` mediante
+el plugin `maven-surefire-plugin`. Esto significa que:
+
+- Las clases como `AccountControllerTest` y `AccountServiceTest` sí serán ejecutadas automáticamente con:
+    ````bash
+    $ mvn test
+    ````
+- Las clases que terminan en `...IT`, como `AccountControllerIT` o `AccountRepositoryIT`, no serán ejecutadas a menos
+  que configuremos el plugin `maven-failsafe-plugin` y usemos `mvn verify`.
+
+> Esta convención de sufijos (`...Test` para unitarias, `...IT` para integración) permite que `Maven` distinga
+> automáticamente qué pruebas ejecutar en cada fase del ciclo de build.
+
+### 🎯 ¿Cuándo usar `-Dgroups=unit`?
+
+- Si deseamos ejecutar solo un subconjunto de nuestras pruebas unitarias (por ejemplo, aquellas marcadas con
+  `@Tag("unit")`), entonces sí puedes usar:
+    ````bash
+    $ mvn test -Dgroups=unit
+    ````
+  Esto es útil cuando tenemos muchas pruebas unitarias y queremos filtrar por tipo, velocidad, criticidad, propósito,
+  etc.
+- Cuando una clase de prueba no sigue la convención `...Test`, pero queremos incluirla en la ejecución de unitarias
+  mediante `@Tag("unit")`.
+- Cuando una clase contiene tanto pruebas unitarias como de integración, y usamos `@Tag("unit")` y `@Tag("integration")`
+  para distinguirlas internamente.
+- Cuando queremos ejecutar solo los tests rápidos o determinísticos, sin importar el nombre de la clase.
+
+> El uso de `@Tag` permite una clasificación más fina y flexible que el sufijo del nombre de clase. Es especialmente
+> útil en proyectos grandes o cuando se mezclan tipos de pruebas en una misma clase.
 
 ### 📌 Objetivo principal en este proyecto
 
@@ -744,7 +798,7 @@ class AccountServiceTest {
 }
 ````
 
-### ▶ Ejecutando nuevamente los tests
+### ▶ Ejecutando nuevamente las pruebas unitarias
 
 Procedemos a ejecutar los test unitarios anteponiendo el `clean` en el comando de maven para limpiar el directorio
 `/target` antes de ejecutar los test.
@@ -859,7 +913,7 @@ tipo `**/package/ClassName.class`.
 </plugin>
 ````
 
-### 🚀 Resultado después de excluir la clase principal
+### 🚀 Resultado de las pruebas unitarias después de excluir la clase principal
 
 A continuación procedemos a ejecutar los test con el comando `mvn clean test -Dgroups=unit`.
 
@@ -963,7 +1017,7 @@ Como no termina en `Exception`, `no será excluida` por el patrón anterior. Est
 > 🎯 `Conclusión`: El patrón `*Exception.class` excluye solo las clases de excepción personalizadas, manteniendo
 > `GlobalExceptionHandler` dentro del reporte de cobertura.
 
-### 🚀 Resultado después de excluir por paquetes
+### 🚀 Resultado de las pruebas unitarias después de excluir por paquetes
 
 A continuación procedemos a ejecutar los test con el comando `mvn clean test -Dgroups=unit`.
 
@@ -1082,11 +1136,11 @@ Vemos que la cobertura por paquete es:
 Esto indica que `no se cumple el umbral mínimo de cobertura` por líneas ejecutadas según la configuración que definimos
 en el `pom.xml`, lo que puede bloquear el build si se ejecuta con `verify`.
 
-### 🧪 Validación automática con Maven
+### 🧪 Verificando cobertura mínima con Maven
 
 Viendo la imagen anterior y haciendo el cálculo para obtener el porcentaje de las `líneas cubiertas`, es fácil deducir
 que `no estamos cumpliendo con la cobertura mínima (90%)`, sin embargo, hay otra manera de poder verificar si nuestras
-pruebas están cumpliendo con la cobertura mínima establecida y es ejecutando el siguiente comando:
+pruebas están cumpliendo con la cobertura mínima establecida y es ejecutando el siguiente comando de maven:
 
 ````bash
 D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)
@@ -1296,7 +1350,7 @@ class AccountServiceTest {
 }
 ````
 
-### 🧪 Ejecución de pruebas
+### 🧪 Ejecución de pruebas unitarias
 
 Vamos a ejecutar nuestras pruebas unitarias para obtener visualmente el reporte en html.
 
@@ -1334,9 +1388,10 @@ significativas en el paquete `dev.magadiflo.app.service.impl`:
 📌 El paquete `dev.magadiflo.app.service.impl` ahora cumple el umbral mínimo de cobertura por líneas `(90%)`,
 gracias a las nuevas pruebas unitarias.
 
-### 🚦 Validación con mvn verify
+### 🚦 Verificando cobertura mínima con Maven
 
-Ahora ejecutamos el comando `mvn clean verify` para ver si coincide con lo que hemos calculado.
+Ahora ejecutamos el comando `mvn clean verify` para comprobar si la cobertura mínima coincide con lo que hemos
+calculado.
 
 ````bash
 D:\programming\spring\01.udemy\02.andres_guzman\03.junit_y_mockito_2023\java-spring-test-suite\spring-jacoco (feature/spring-jacoco)

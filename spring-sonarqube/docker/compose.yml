@@ -1,0 +1,48 @@
+services:
+  s-sonarqube:
+    image: sonarqube:25.10.0.114319-community
+    container_name: c-sonarqube
+    restart: unless-stopped
+    ports:
+      - '9000:9000'
+    environment:
+      SONAR_JDBC_URL: jdbc:postgresql://s-postgres-sonar:5432/db_sonar_dev
+      SONAR_JDBC_USERNAME: sonar_dev_user
+      SONAR_JDBC_PASSWORD: sonar_dev_password
+    volumes:
+      - sonarqube_data:/opt/sonarqube/data
+      - sonarqube_extensions:/opt/sonarqube/extensions
+      - sonarqube_logs:/opt/sonarqube/logs
+    networks:
+      - sonarqube-net
+    depends_on:
+      - s-postgres-sonar
+
+  s-postgres-sonar:
+    image: postgres:17-alpine
+    container_name: c-postgres-sonar
+    restart: unless-stopped
+    ports:
+      - '5433:5432'
+    environment:
+      POSTGRES_DB: db_sonar_dev
+      POSTGRES_USER: sonar_dev_user
+      POSTGRES_PASSWORD: sonar_dev_password
+    volumes:
+      - postgres-sonar-data:/var/lib/postgresql/data
+    networks:
+      - sonarqube-net
+
+volumes:
+  sonarqube_data:
+    name: sonarqube_data
+  sonarqube_extensions:
+    name: sonarqube_extensions
+  sonarqube_logs:
+    name: sonarqube_logs
+  postgres-sonar-data:
+    name: postgres-sonar-data
+
+networks:
+  sonarqube-net:
+    name: sonarqube-net
